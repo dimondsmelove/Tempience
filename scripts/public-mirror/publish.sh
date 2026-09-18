@@ -6,6 +6,9 @@
 # Run inside the mirror clone. One-time setup there:
 #   git config mirror.source <path | host:/path>   # the canonical Tempience checkout
 #   git config mirror.ref master                    # optional, default master
+#
+# The exporter is taken from the source at <ref>, not from this checkout, so the
+# mirror never publishes with a stale copy of its own tooling.
 set -euo pipefail
 
 mirror=$(git rev-parse --show-toplevel)
@@ -13,7 +16,15 @@ src=$(git -C "$mirror" config mirror.source || true)
 : "${src:?run once: git config mirror.source <path|host:/path>}"
 ref=${1:-$(git -C "$mirror" config mirror.ref || echo master)}
 
-sha=$(TEMPIENCE_SRC="$src" "$mirror/scripts/public-mirror/export.sh" "$mirror" "$ref")
+exporter=$(mktemp)
+trap 'rm -f "$exporter"' EXIT
+if [[ $src == *:* ]]; then
+	ssh "${src%%:*}" "git -C '${src#*:}' show '$ref:scripts/public-mirror/export.sh'" > "$exporter"
+else
+	git -C "$src" show "$ref:scripts/public-mirror/export.sh" > "$exporter"
+fi
+
+sha=$(TEMPIENCE_SRC="$src" bash "$exporter" "$mirror" "$ref")
 cd "$mirror"
 git add -A
 if git diff --cached --quiet; then
