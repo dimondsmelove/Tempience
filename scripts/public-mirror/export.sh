@@ -29,8 +29,8 @@ trap 'rm -rf "$work"' EXIT
 src_git archive --format=tar "$ref" | tar -x -C "$work"
 cd "$work"
 
-# Working notes, agent instructions, owner deployment, owner tooling.
-rm -rf context research reports deploy AGENTS.md PROJECT_CONTEXT.md \
+# Working notes, agent instructions, owner deployment, owner tooling, owner API.
+rm -rf context research reports deploy API AGENTS.md PROJECT_CONTEXT.md \
 	"FE Svelte/AGENTS.md" "FE Svelte/skills" \
 	"FE Svelte/playwright.config.ts" "FE Svelte/playwright.appearance.config.ts" \
 	"FE Svelte/scripts/generate-synthetic-manifest.mjs" "FE Svelte/scripts/measure-kind-history.mjs" \
@@ -52,19 +52,30 @@ rm -f "FE Svelte/src/lib/scenarios/belgrade/seed-manifest.json" \
 	"FE Svelte/src/lib/state/triplit/data-space.test.ts"
 printf '[]\n' > "FE Svelte/src/lib/scenarios/DataPacks/catalog.json"
 
-# package.json scripts that pointed at removed files.
+# package.json: drop the API workspace and the scripts that pointed at removed
+# files, then let npm prune the lockfile to match (no node_modules are written).
 node -e '
 const fs = require("node:fs");
-const prune = (file, keep) => {
+const prune = (file, keep, edit = () => {}) => {
 	const text = fs.readFileSync(file, "utf8");
 	const indent = (/^([ \t]+)"/m.exec(text) ?? [, "  "])[1];
 	const pkg = JSON.parse(text);
 	pkg.scripts = Object.fromEntries(Object.entries(pkg.scripts).filter(([k]) => keep(k)));
+	edit(pkg);
 	fs.writeFileSync(file, JSON.stringify(pkg, null, indent) + "\n");
 };
-prune("package.json", (k) => k === "sync:triplit" || k === "test:triplit");
+prune("package.json", (k) => k === "sync:triplit" || k === "test:triplit",
+	(pkg) => { pkg.workspaces = pkg.workspaces.filter((w) => w !== "API"); });
 prune("FE Svelte/package.json", (k) =>
 	!["e2e", "e2e:ui", "e2e:update-snapshots", "fixtures:synthetic", "measure:history", "fe:audit"].includes(k));
+'
+npm install --package-lock-only --ignore-scripts --no-audit --no-fund --silent
+# npm leaves the removed workspace's own entry behind; it is inert but noise.
+node -e '
+const fs = require("node:fs");
+const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+delete lock.packages.API;
+fs.writeFileSync("package-lock.json", JSON.stringify(lock, null, 2) + "\n");
 '
 
 # Public overlay: README, LICENSE, GitHub Pages workflow.

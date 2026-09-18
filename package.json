@@ -2,7 +2,6 @@
   "name": "tempience-chronograph",
   "private": true,
   "workspaces": [
-    "API",
     "packages/shared"
   ],
   "scripts": {

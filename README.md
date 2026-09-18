@@ -5,8 +5,6 @@ A local-first PWA: everything you write lives in your browser's IndexedDB.
 No accounts, no shared backend, no telemetry. Optional sync between *your own*
 devices through a tiny server you run yourself, inside your own Tailscale network.
 
-The UI is in Russian.
-
 ## Using it
 
 - Open the app in a browser. Install it as an app if you like — it works offline.
@@ -187,7 +185,7 @@ of the "own devices" model.
 Requires Node.js 22.
 
 ```sh
-npm ci --ignore-scripts          # root: workspaces
+npm ci --ignore-scripts          # root: packages/shared
 cd "FE Svelte"
 npm ci
 npm run check:public             # types for the public route set
@@ -208,7 +206,6 @@ it to GitHub Pages through `.github/workflows/pages.yml`.
 | `FE Svelte/` | The app: SvelteKit 2 + Svelte 5, Tailwind 4, Triplit client on top of IndexedDB, service worker |
 | `packages/shared/` | Shared types and utilities |
 | `scripts/triplit-server.mjs` | The single-owner sync server: pairing by code, SQLite |
-| `API/` | Hono + Drizzle + SQLite — the owner-mode backend (needed by neither the public build nor sync) |
 | `scripts/public-mirror/` | The scripts that produce this public repository |
 
 ## About this repository
