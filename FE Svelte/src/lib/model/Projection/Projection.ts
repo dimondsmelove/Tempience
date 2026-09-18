@@ -184,7 +184,8 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 	const unscoped = traces.filter(
 		(trace) => !query && (membership.scopesByTrace.get(trace.id)?.size ?? 0) === 0
 	);
-	if (state.grouping === 'scope' && unscoped.length > 0) {
+	// «Только эти Scope» is about Scopes: records in none are out of it (owner, 2026-09-18).
+	if (state.grouping === 'scope' && unscoped.length > 0 && !state.onlyScopes) {
 		const marks: Mark[] = [];
 		for (const trace of unscoped) {
 			const time = timeByTraceId.get(trace.id);

@@ -77,11 +77,21 @@ export class ViewportState {
 		});
 	}
 
-	/** Zooms around `anchor`; while following, «сейчас» is the anchor regardless. */
+	/**
+	 * Zooms around `anchor`; while following, «сейчас» is the anchor regardless. The span
+	 * stops at its limits without sliding: a factor past the limit is cut to it, so the
+	 * anchor keeps its pixel to the end and a wheel at the end moves nothing.
+	 */
 	zoomAt(factor: number, anchor?: number, duration = CAMERA_DURATION_MS): void {
 		const base = duration ? this.target : this.window;
+		const span = spanOf(base);
+		const bounded = Math.min(
+			Math.max(factor, this.limits.minSpanMs / span),
+			this.limits.maxSpanMs / span
+		);
+		if (Math.abs(bounded - 1) < 1e-9) return;
 		const centre = this.follow ? this.now : (anchor ?? (base.start + base.end) / 2);
-		this.move(zoomWindow(base, factor, centre), duration);
+		this.move(zoomWindow(base, bounded, centre), duration);
 	}
 
 	zoomIn(anchor?: number): void {

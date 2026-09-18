@@ -57,6 +57,15 @@
 			anchor = dayAt(picker.point);
 		}}>{t('time.today')}</button
 	>
+	<button
+		type="button"
+		class="picker-today"
+		data-testid="picker-now"
+		onclick={() => {
+			picker.now();
+			anchor = dayAt(picker.point);
+		}}>{t('time.now')}</button
+	>
 </div>
 <div class={['picker-columns', picker.calendar && 'calendar-columns']}>
 	{#if picker.calendar}

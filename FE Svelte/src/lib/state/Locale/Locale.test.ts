@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LocaleState, translate } from './Locale.svelte';
+import { LocaleState, detectLocale, translate } from './Locale.svelte';
 import { LOCALE_STORAGE_KEY } from './constants';
 import { ru } from './messages/ru';
 import { en } from './messages/en';
@@ -52,6 +52,37 @@ describe('Locale', () => {
 		expect(state.current).toBe('ru');
 		state.set('en');
 		expect(state.current).toBe('en');
+	});
+
+	it('follows the browser language until the user picks one by hand', () => {
+		const denied = {
+			getItem: () => null,
+			setItem: () => {
+				throw new Error('Storage denied');
+			}
+		};
+		expect(detectLocale(['ru-RU', 'en-US'])).toBe('ru');
+		expect(detectLocale(['ru'])).toBe('ru');
+		expect(detectLocale(['en-US', 'ru'])).toBe('en');
+		expect(detectLocale(['de'])).toBe('en');
+		expect(detectLocale([])).toBe('ru');
+		expect(detectLocale(undefined)).toBe('ru');
+
+		const english = new LocaleState();
+		english.init(denied, ['en-GB']);
+		expect(english.current).toBe('en');
+
+		// An explicit choice wins over the browser, and stays after the browser changes.
+		const stored = new Map<string, string>([[LOCALE_STORAGE_KEY, 'ru']]);
+		const chosen = new LocaleState();
+		chosen.init(
+			{
+				getItem: (key) => stored.get(key) ?? null,
+				setItem: (key, value) => stored.set(key, value)
+			},
+			['en-US']
+		);
+		expect(chosen.current).toBe('ru');
 	});
 
 	it('uses locale-specific plural rules and interpolates complete messages', () => {

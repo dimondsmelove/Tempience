@@ -160,7 +160,8 @@
 	<div class="mx-auto max-w-6xl">
 		<nav class="mb-4 flex flex-wrap gap-2 text-sm" aria-label={t('forms.nav')}>
 			{#if embedded}
-				{#if kindId || creating}<Button size="sm" onclick={() => chooseKind()}
+				<!-- A form on the page has its own «Отмена»; the way back to the list is for a Kind's page. -->
+				{#if kindId && tab !== 'builder'}<Button size="sm" onclick={() => chooseKind()}
 						>{t('forms.all')}</Button
 					>{/if}
 			{:else}
@@ -169,7 +170,9 @@
 					>{/if}
 			{/if}
 		</nav>
-		<h1 class="mb-4 text-xl font-semibold break-words">{kind?.name ?? t('forms.catalog')}</h1>
+		<h1 class="mb-4 text-xl font-semibold break-words">
+			{kind?.name ?? (creating ? t('forms.newKind') : t('forms.catalog'))}
+		</h1>
 		{#if failure !== null}<p role="alert">{errorText(failure)}</p>{/if}
 		{#if loading}<p class="text-muted">{t('forms.loading')}</p>
 		{:else if kindId && !kind}<p role="alert">{t('forms.notFound')}</p>
@@ -198,7 +201,12 @@
 					{t('forms.branches')}
 				</p>{/if}
 			{#if message}<p class="mb-4 text-sm" role="status">{t(message)}</p>{/if}
-			<div class="mb-5 flex flex-wrap gap-2" role="group" aria-label={t('forms.actions')}>
+			<!-- While the form is being edited its own buttons are the actions; the row waits. -->
+			<div
+				class={['mb-5 flex flex-wrap gap-2', embedded && tab === 'builder' && 'hidden']}
+				role="group"
+				aria-label={t('forms.actions')}
+			>
 				{#if embedded}
 					<Button
 						disabled={!selected}
@@ -211,11 +219,8 @@
 						onclick={() => selected && oncapture?.(kind!.id, selected.id)}
 						>{t('forms.record')}</Button
 					>
-					<Button
-						disabled={!selected}
-						pressed={tab === 'builder'}
-						onclick={() => (tab = tab === 'builder' ? 'overview' : 'builder')}
-						>{tab === 'builder' ? t('forms.cancelChanges') : t('forms.editForm')}</Button
+					<Button disabled={!selected} onclick={() => (tab = 'builder')}
+						>{t('forms.editForm')}</Button
 					>
 				{:else}
 					<Button variant="primary" disabled={!selected} onclick={fill}>{t(FILL_KEY)}</Button>
@@ -237,6 +242,7 @@
 								{scopes}
 								{memberships}
 								onsaved={saved}
+								oncancel={() => (tab = 'overview')}
 							/>{/key}{/if}
 				{:else if embedded}
 					<p class="text-sm text-muted">
@@ -261,6 +267,7 @@
 					{memberships}
 					newScopes={newKindScopes}
 					onsaved={saved}
+					oncancel={() => (creating = false)}
 				/>{:else}
 				<label class="mt-5 grid gap-1 text-sm"
 					>{t('forms.search')}<input

@@ -20,11 +20,14 @@
 	let {
 		draft = $bindable(),
 		open = $bindable(false),
-		existing
+		existing,
+		prefilledTime = false
 	}: {
 		draft: TimeDraft;
 		open?: boolean;
 		existing?: TemporalPlacement;
+		/** The time is «сейчас» by default, not the user's: another day drops it (owner, 2026-09-18). */
+		prefilledTime?: boolean;
 	} = $props();
 	const id = $props.id();
 	const host = getTimeInputHost();
@@ -64,7 +67,7 @@
 		if (!current.value) return;
 		original = current.value;
 		initial = selectionFromPlacement(original);
-		picker = new TimeInputState(initial);
+		picker = new TimeInputState(initial, { prefilledTime });
 		picker.open();
 		open = true;
 		host?.activate({

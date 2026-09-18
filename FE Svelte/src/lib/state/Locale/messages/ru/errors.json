@@ -83,6 +83,8 @@
 	"error.backup_restore_target": "Восстановление возможно только в новую локальную базу.",
 	"error.backup_not_empty": "База уже содержит данные. Создайте отдельную копию из файла.",
 	"error.pairing_server_url": "Адрес сервера синхронизации не настроен.",
+	"error.pairing_server_invalid": "Адрес сервера должен быть полным URL, например https://laptop.your-tailnet.ts.net.",
+	"error.pairing_server_insecure": "Адрес сервера должен начинаться с https:// (http:// допустим только для localhost).",
 	"error.pairing_code_required": "Введите код подключения.",
 	"error.pairing_failed": "Подключение не удалось: {{detail}}",
 	"error.pairing_token": "Сервер вернул некорректный ключ устройства.",

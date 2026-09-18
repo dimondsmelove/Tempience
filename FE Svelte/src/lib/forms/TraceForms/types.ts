@@ -29,6 +29,9 @@ export type BuilderProps = {
 		definition: TraceKindVDraft,
 		memberships: MembershipIntent
 	) => Promise<void>;
+	/** «Отмена» beside the save, when the owner has somewhere to return to. */
+	oncancel?: () => void | Promise<void>;
+	cancelTestId?: string;
 	/** Hands the owner of a nested step a reader of whether the Builder holds unsaved input. */
 	watch?: (dirty: () => boolean) => void;
 };

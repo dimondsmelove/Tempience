@@ -40,18 +40,21 @@
 	};
 </script>
 
+<!-- One heading over the nested step; the Builder carries «Создать» and «Отмена» together. -->
 <section class="grid gap-3" data-testid="nested-kind" aria-label={t('draft.kindNew')}>
 	<h2 class="text-lg font-semibold">{t('draft.kindNew')}</h2>
 	{#if saving.failure?.stage === 'return'}
 		<p role="alert" class="text-sm" data-testid="kind-saved-not-returned">
 			{t('nested.savedNotReturned', { message: errorText(saving.failure.cause) })}
 		</p>
-		<Button
-			variant="primary"
-			class="justify-self-start"
-			data-testid="kind-retry-return"
-			onclick={() => void saving.retry()}>{t('nested.retryReturn')}</Button
-		>
+		<div class="flex flex-wrap gap-2">
+			<Button variant="primary" data-testid="kind-retry-return" onclick={() => void saving.retry()}
+				>{t('nested.retryReturn')}</Button
+			>
+			<Button variant="quiet" data-testid="nested-cancel" onclick={onreturn}
+				>{t('draft.cancel')}</Button
+			>
+		</div>
 	{:else}
 		<Builder
 			compact
@@ -59,14 +62,9 @@
 			scopes={draft.scopeList}
 			{memberships}
 			onsave={save}
+			oncancel={onreturn}
+			cancelTestId="nested-cancel"
 			watch={(dirty) => (draft.nestedInput = dirty)}
 		/>
 	{/if}
-	<Button
-		variant="quiet"
-		class="justify-self-start"
-		data-testid="nested-cancel"
-		disabled={saving.busy}
-		onclick={onreturn}>{t('draft.cancel')}</Button
-	>
 </section>

@@ -4,6 +4,8 @@
 	import type { MessageKey } from '$lib/state/Locale/types';
 	import type { KindHistoryState } from '$lib/state/KindHistory/KindHistory.svelte';
 	import type { Scope, TraceKindV } from '$lib/state/triplit/types';
+	import { workbench } from '$lib/state/Workbench/instance.svelte';
+	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { composeFilter, describeFilter, filterOperators } from './model';
 	import type { FilterField } from './types';
 	let {
@@ -27,6 +29,7 @@
 		like: 'kindHistory.op.like'
 	};
 	const filters = $derived(history.filters);
+	const scopeOptions = $derived(scopeOptionsOf(scopes, workbench.view.intersections));
 	/** Whether the user unfolded the filters; a filter that applies unfolds them anyway. */
 	let opened = $state(false);
 	const byGeneration = $derived(versions.toSorted((a, b) => b.generation - a.generation));
@@ -103,17 +106,16 @@
 			{/each}
 		</fieldset>
 		<div class="grid content-start gap-2">
-			<label class="grid gap-1"
-				><span class="text-xs text-muted">{t('kindHistory.scope')}</span><select
-					class="cg-control cg-field"
-					aria-label="Scope"
-					value={filters.scope?.id ?? ''}
-					onchange={(event) => setScope(event.currentTarget.value)}
-					><option value="">{t('kindHistory.scopeAny')}</option
-					>{#each scopes as scope (scope.id)}<option value={scope.id}>{scope.name}</option
-						>{/each}</select
-				></label
-			>
+			<div class="grid gap-1">
+				<span class="text-xs text-muted">{t('kindHistory.scope')}</span>
+				<ScopePicker
+					scopes={scopeOptions}
+					value={filters.scope?.id ?? null}
+					none={t('kindHistory.scopeAny')}
+					label="Scope"
+					onpick={(id) => setScope(id ?? '')}
+				/>
+			</div>
 			{#if filters.scope}<label class="flex items-center gap-2"
 					><input
 						type="checkbox"

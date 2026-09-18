@@ -14,7 +14,7 @@
 	// The saved interface language is read here, before any child is constructed, so the
 	// first render already speaks it; onMount would run after that render. The guard keeps
 	// build-time and other non-browser evaluation away from local storage.
-	if (browser) locale.init();
+	if (browser) locale.init(undefined, navigator.languages);
 
 	onMount(() => {
 		themeState.init();

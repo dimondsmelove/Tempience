@@ -33,6 +33,7 @@
 </script>
 
 <section class="grid gap-3" data-testid="context-capture" aria-label={t('context.capture')}>
-	<h2 class="text-lg font-semibold">{t('context.capture')}</h2>
-	<TraceEditor {draft} onopen={open} oncancel={() => workbench.closeCapture()} />
+	<!-- A nested step carries its own heading; two headings over one form read as two forms. -->
+	{#if !draft.nested}<h2 class="text-lg font-semibold">{t('context.capture')}</h2>{/if}
+	<TraceEditor {draft} onopen={open} oncancel={() => workbench.cancelCapture()} />
 </section>

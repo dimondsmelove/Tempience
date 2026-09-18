@@ -3,12 +3,10 @@
 	import { CodedError } from '$lib/model/Errors/CodedError';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
-	import { DEFAULT_GROUP_KEY } from './constants';
 	import type { OnboardingProps, OnboardingStep } from './types';
-	let { oncreate }: OnboardingProps = $props();
+	let { oncreate, onskip }: OnboardingProps = $props();
 	let step = $state<OnboardingStep>('intro');
-	// The proposed name is the user's to edit from here on; it is offered once, when the form opens.
-	let name = $state(t(DEFAULT_GROUP_KEY));
+	let name = $state('');
 	let busy = $state(false);
 	/** What the last attempt failed with, read in the language of the moment. */
 	let failure = $state.raw<unknown>(null);
@@ -45,15 +43,16 @@
 			<p class="text-sm leading-relaxed text-muted">{t('onboarding.storage')}</p>
 			<Button variant="primary" onclick={() => (step = 'group')}>{t('onboarding.start')}</Button>
 		{:else}
-			<h1 class="text-2xl font-semibold leading-tight">{t('onboarding.nameGroup')}</h1>
-			<p class="text-sm leading-relaxed text-muted">{t('onboarding.nameHint')}</p>
+			<h1 class="text-2xl font-semibold leading-tight">{t('onboarding.groupsHeading')}</h1>
+			<p class="text-sm leading-relaxed text-muted">{t('onboarding.groupsWhat')}</p>
+			<p class="text-sm leading-relaxed text-muted">{t('onboarding.groupsOptional')}</p>
 			<form class="space-y-4" onsubmit={create}>
 				<label class="block space-y-2">
 					<span class="cg-label">{t('onboarding.groupName')}</span>
 					<input
 						class="cg-field w-full"
 						bind:value={name}
-						required
+						placeholder={t('onboarding.groupPlaceholder')}
 						maxlength="200"
 						disabled={busy}
 						autocomplete="off"
@@ -61,9 +60,10 @@
 				</label>
 				{#if failure !== null}<p class="text-sm" role="alert">{errorText(failure)}</p>{/if}
 				<div class="flex flex-wrap gap-2">
-					<Button type="submit" variant="primary" disabled={busy}
+					<Button type="submit" variant="primary" disabled={busy || !name.trim()}
 						>{busy ? t('onboarding.preparing') : t('onboarding.createGroup')}</Button
 					>
+					<Button disabled={busy} onclick={onskip}>{t('onboarding.skipGroup')}</Button>
 					<Button variant="quiet" disabled={busy} onclick={() => (step = 'intro')}
 						>{t('onboarding.back')}</Button
 					>

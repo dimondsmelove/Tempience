@@ -6,6 +6,8 @@
 	import { tempienceRepository as repository } from '$lib/state/triplit';
 	import type { Scope } from '$lib/state/triplit/types';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
+	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import type { ScopeEditorProps } from './types';
 	import { ROOT_SCOPE_KEY } from './constants';
 	let { scope, parentId = null, onsaved, oncancel, hold, watch }: ScopeEditorProps = $props();
@@ -13,6 +15,13 @@
 	let note = $state(untrack(() => scope?.note ?? ''));
 	let parent = $state(untrack(() => parentId));
 	let scopes = $state.raw<Scope[]>([]);
+	/** The parents offered: every other Scope, in the tree the timeline knows. */
+	const options = $derived(
+		scopeOptionsOf(
+			scopes.filter((entry) => entry.id !== scope?.id),
+			workbench.view.intersections
+		)
+	);
 	let failure = $state.raw<unknown>(null);
 	// The write commits once; the committed id is latched before whoever opened this is told.
 	const saving = new NestedSave<string>((run) => hold?.(run));
@@ -59,14 +68,17 @@
 		<label class="grid gap-1 text-sm"
 			>{t('scope.note')}<textarea class="cg-control cg-field" bind:value={note}></textarea></label
 		>
-		<label class="grid gap-1 text-sm"
-			>{t('scope.parent')}<select class="cg-control cg-field" bind:value={parent}
-				><option value={null}>{t(ROOT_SCOPE_KEY)}</option
-				>{#each scopes.filter((entry) => entry.id !== scope?.id) as entry (entry.id)}<option
-						value={entry.id}>{entry.name}</option
-					>{/each}</select
-			></label
-		>
+		<div class="grid gap-1 text-sm">
+			<span id="scope-parent-label">{t('scope.parent')}</span>
+			<ScopePicker
+				scopes={options}
+				value={parent}
+				none={t(ROOT_SCOPE_KEY)}
+				label={t('scope.parent')}
+				testId="scope-parent"
+				onpick={(id) => (parent = id)}
+			/>
+		</div>
 		{#if failure !== null}<p role="alert" class="text-sm">{errorText(failure)}</p>{/if}
 		{#if saving.failure?.stage === 'write'}<p role="alert" class="text-sm">
 				{errorText(saving.failure.cause)}

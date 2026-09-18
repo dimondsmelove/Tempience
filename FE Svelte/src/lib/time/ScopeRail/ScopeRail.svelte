@@ -6,18 +6,14 @@
 		EyeOutline,
 		EyeSlashOutline
 	} from 'flowbite-svelte-icons';
-	import RowHeight from '$lib/theme/RowHeight/RowHeight.svelte';
-	import { appearance } from '$lib/theme/appearance.svelte';
-	import Popover from '$lib/ui/Popover/Popover.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { SECTION_HEADING_CLASS } from '$lib/context/constants';
 	import PanelResize from '$lib/ui/PanelResize/PanelResize.svelte';
+	import type { ProjectedRow } from '$lib/model/Projection/types';
 	import { RAIL_INDENT_PX, RAIL_MAX_WIDTH_PX, RAIL_MIN_WIDTH_PX } from './constants';
 	import type { ScopeRailProps } from './types';
 
 	let {
 		rows,
-		scopes,
 		filters,
 		disclosure,
 		headerHeight = $bindable(0),
@@ -33,8 +29,10 @@
 		oncancel,
 		oncreate
 	}: ScopeRailProps = $props();
-	const hidden = $derived(scopes.filter((scope) => filters.hiddenScopes.has(scope.id)));
 	const searching = $derived(Boolean(filters.scopeQuery.trim()));
+	/** What a click on the row selects: a Scope, or the «Без Scope» row as one of its own. */
+	const selectable = (row: ProjectedRow): string | null =>
+		row.scopeId ?? (row.kind === 'unscoped' ? row.id : null);
 </script>
 
 {#if !onCanvas}
@@ -61,10 +59,6 @@
 							filters.scopeQuery = event.currentTarget.value;
 						}}
 					/>
-					<span
-						class="shrink-0 font-mono text-xs whitespace-nowrap text-muted"
-						data-testid="rows-count">{t('rail.rows', { count: rows.length })}</span
-					>
 					{#if filters.scopeQuery}
 						<button
 							type="button"
@@ -86,37 +80,6 @@
 						onclick={oncreate}>+</Button
 					>
 				{/if}
-				<Popover id="scope-menu" label={t('rail.settings')} testId="scope-menu-toggle">
-					{#snippet trigger()}≡{#if hidden.length}<span class="ml-1 font-mono text-xs text-muted"
-								>{hidden.length}</span
-							>{/if}{/snippet}
-					<div class="grid w-64 max-w-full gap-3 text-sm">
-						<h3 class={SECTION_HEADING_CLASS}>{t('rail.settings')}</h3>
-						<RowHeight
-							compact
-							value={rowHeightPx}
-							onchange={(value) =>
-								appearance.applyDevice({ ...appearance.savedDevice, rowHeightPx: value })}
-						/>
-						<div class="grid gap-1">
-							<span class="text-xs text-muted" data-testid="hidden-scopes-count"
-								>{t('rail.hidden', { count: hidden.length })}</span
-							>
-							{#each hidden as scope (scope.id)}
-								<Button
-									size="sm"
-									variant="quiet"
-									class="justify-start truncate"
-									aria-label={t('rail.showScope', { name: scope.name })}
-									onclick={() => filters.showScope(scope.id)}>{scope.name}</Button
-								>
-							{/each}
-							{#if hidden.length}<Button size="sm" onclick={() => filters.showAllScopes()}
-									>{t('rail.showAll')}</Button
-								>{/if}
-						</div>
-					</div>
-				</Popover>
 				<Button
 					size="sm"
 					variant="quiet"
@@ -135,11 +98,12 @@
 	data-testid={onCanvas ? 'scope-canvas-names' : 'scope-rail-rows'}
 >
 	{#each rows as row (row.id)}
+		{@const target = selectable(row)}
 		<li
 			class={[
 				'flex items-center gap-1 overflow-hidden border-b border-outline pr-2 text-sm whitespace-nowrap',
 				row.kind === 'unscoped' ? 'text-muted' : 'text-ink',
-				row.scopeId !== null && row.scopeId === selectedScopeId && 'bg-accent/10'
+				target !== null && target === selectedScopeId && 'bg-accent/10'
 			]}
 			style:height="{rowHeightPx}px"
 			style:padding-left="min(25%, calc(0.5rem + {row.depth * RAIL_INDENT_PX}px))"
@@ -161,13 +125,16 @@
 					{:else}<ChevronRightOutline class="h-4 w-4 shrink-0" />{/if}
 				</button>
 			{:else}<span class="w-4 shrink-0"></span>{/if}
-			{#if row.scopeId}
+			{#if target !== null}
 				<button
 					type="button"
-					class="min-w-0 flex-1 truncate py-2 text-left font-medium focus-visible:outline-2 focus-visible:outline-accent"
+					class={[
+						'min-w-0 flex-1 truncate py-2 text-left focus-visible:outline-2 focus-visible:outline-accent',
+						row.kind === 'unscoped' ? 'font-normal' : 'font-medium'
+					]}
 					aria-label={t('rail.select', { name: row.name })}
-					aria-pressed={row.scopeId === selectedScopeId}
-					onclick={() => onselectscope(row.scopeId!)}>{row.name}</button
+					aria-pressed={target === selectedScopeId}
+					onclick={() => onselectscope(target)}>{row.name}</button
 				>
 			{:else}<span class="min-w-0 flex-1 truncate" title={row.name}>{row.name}</span>{/if}
 			{#if !onCanvas}

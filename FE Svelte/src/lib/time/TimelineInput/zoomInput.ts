@@ -4,7 +4,8 @@ import type { Attachment } from 'svelte/attachments';
 import type { ViewportState } from '$lib/state/Viewport/Viewport.svelte';
 import { WHEEL_DURATION_MS } from '$lib/state/Viewport/constants';
 import { spanOf, timeAtPx } from '$lib/state/Viewport/math';
-import { SCALE_EXTENT, SHIFT_WHEEL_PAN_RATIO } from './constants';
+import { PINCH_ZOOM_GAIN, SCALE_EXTENT, SHIFT_WHEEL_PAN_RATIO, WHEEL_ZOOM_UNIT } from './constants';
+import { WheelSourceReader } from './wheelSource';
 
 type ZoomEvent = D3ZoomEvent<HTMLElement, unknown>;
 
@@ -15,23 +16,39 @@ type ZoomEvent = D3ZoomEvent<HTMLElement, unknown>;
 const anchorPx = (prev: ZoomTransform, next: ZoomTransform, ratio: number): number =>
 	(next.x - prev.x * ratio) / (1 - ratio);
 
+/** The span factor of a wheel delta: d3's reading, so the feel of the ribbon does not change. */
+export const wheelZoomFactor = (
+	event: Pick<WheelEvent, 'deltaY' | 'deltaMode' | 'ctrlKey'>
+): number =>
+	Math.pow(
+		2,
+		event.deltaY *
+			(WHEEL_ZOOM_UNIT[event.deltaMode] ?? WHEEL_ZOOM_UNIT[0]) *
+			(event.ctrlKey ? PINCH_ZOOM_GAIN : 1)
+	);
+
 /**
- * Wheel, drag, pinch and double-click on the lanes, translated into viewport
- * commands. d3-zoom is used as a gesture source only: every event is applied
- * as a delta against the previous transform, and the transform is reset to
- * identity when a gesture ends, so the viewport stays the single source of
- * truth and programmatic window changes need no sync back.
+ * Drag, touch pinch and double-click on the lanes go through d3-zoom, used as a gesture
+ * source only: every event is applied as a delta against the previous transform, and the
+ * transform is reset to identity when a gesture ends, so the viewport stays the single
+ * source of truth and programmatic window changes need no sync back.
+ *
+ * The wheel is read here, not by d3, because it means different things by its source
+ * (owner, 2026-09-18): a mouse notch and a trackpad pinch zoom at the pointer and nothing
+ * else; a trackpad swipe moves time sideways and the rows up and down; Shift and any
+ * wheel move time.
  */
 export const zoomInput =
 	(viewport: ViewportState, onScrollRows: (deltaPx: number) => void): Attachment<HTMLElement> =>
 	(element) => {
 		let previous: ZoomTransform = zoomIdentity;
 		let dragY: number | null = null;
+		const source = new WheelSourceReader();
 
 		const behavior = zoom<HTMLElement, unknown>()
 			.scaleExtent(SCALE_EXTENT)
 			.filter((event: Event) => {
-				if (event.type === 'wheel') return !(event as WheelEvent).shiftKey;
+				if (event.type === 'wheel') return false;
 				if (event.type === 'mousedown') return (event as MouseEvent).button === 0;
 				return true;
 			})
@@ -49,17 +66,16 @@ export const zoomInput =
 				const width = element.clientWidth;
 				if (width === 0) return;
 				const ratio = next.k / previous.k;
-				const duration = event.sourceEvent?.type === 'wheel' ? WHEEL_DURATION_MS : 0;
-				const base = duration ? viewport.target : viewport.window;
+				const base = viewport.window;
 				let expectedX = previous.x;
 				if (ratio !== 1) {
 					const px = anchorPx(previous, next, ratio);
-					viewport.zoomAt(1 / ratio, timeAtPx(base, px, width), duration);
+					viewport.zoomAt(1 / ratio, timeAtPx(base, px, width), 0);
 					expectedX = px - (px - previous.x) * ratio;
 				}
 				const residualPx = next.x - expectedX;
 				if (Math.abs(residualPx) > 0.01) {
-					viewport.pan((-residualPx / width) * spanOf(base), duration);
+					viewport.pan((-residualPx / width) * spanOf(base), 0);
 				}
 				const source = event.sourceEvent as MouseEvent | TouchEvent | undefined;
 				const y =
@@ -81,19 +97,32 @@ export const zoomInput =
 
 		select(element).call(behavior);
 
-		const onShiftWheel = (event: WheelEvent): void => {
-			if (!event.shiftKey) return;
-			event.preventDefault();
-			const delta = event.deltaY || event.deltaX;
-			viewport.pan(
-				(delta / 100) * SHIFT_WHEEL_PAN_RATIO * spanOf(viewport.target),
-				WHEEL_DURATION_MS
-			);
+		const onWheel = (event: WheelEvent): void => {
+			const width = element.clientWidth;
+			if (width === 0) return;
+			const target = viewport.target;
+			if (event.shiftKey) {
+				event.preventDefault();
+				const delta = event.deltaY || event.deltaX;
+				viewport.pan((delta / 100) * SHIFT_WHEEL_PAN_RATIO * spanOf(target), WHEEL_DURATION_MS);
+				return;
+			}
+			if (event.ctrlKey || source.read(event, event.timeStamp) === 'mouse') {
+				event.preventDefault();
+				const px = event.clientX - element.getBoundingClientRect().left;
+				viewport.zoomAt(wheelZoomFactor(event), timeAtPx(target, px, width), WHEEL_DURATION_MS);
+				return;
+			}
+			// A trackpad swipe: sideways is time, up and down is the scroller's own scrolling.
+			if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+				event.preventDefault();
+				viewport.pan((event.deltaX / width) * spanOf(target), 0);
+			}
 		};
-		element.addEventListener('wheel', onShiftWheel, { passive: false });
+		element.addEventListener('wheel', onWheel, { passive: false });
 
 		return () => {
 			select(element).on('.zoom', null);
-			element.removeEventListener('wheel', onShiftWheel);
+			element.removeEventListener('wheel', onWheel);
 		};
 	};

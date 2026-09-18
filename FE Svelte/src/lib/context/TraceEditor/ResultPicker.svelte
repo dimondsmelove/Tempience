@@ -5,10 +5,13 @@
 	import { resultCandidates } from '$lib/state/TraceDraft/results';
 	import type { TraceDraftState } from '$lib/state/TraceDraft/TraceDraft.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
+	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import { openKey, outcomeKey } from './results';
 
 	let { draft, onclose }: { draft: TraceDraftState; onclose: () => void } = $props();
 	const id = $props.id();
+	const scopeOptions = $derived(scopeOptionsOf(draft.scopeList, workbench.view.intersections));
 	const role = $derived(draft.targetContext.role);
 	let query = $state('');
 	let scopeId = $state('');
@@ -56,15 +59,17 @@
 		bind:value={query}
 	/>
 	<div class="grid gap-2 sm:grid-cols-3">
-		<label class="grid gap-1 text-xs text-muted"
-			>{t('result.scopeFilter')}
-			<select class="cg-control cg-field" data-testid="result-scope" bind:value={scopeId}>
-				<option value="">{t('result.scopeAny')}</option>
-				{#each draft.scopeList as scope (scope.id)}
-					<option value={scope.id}>{scope.name}</option>
-				{/each}
-			</select>
-		</label>
+		<div class="grid gap-1 text-xs text-muted">
+			{t('result.scopeFilter')}
+			<ScopePicker
+				scopes={scopeOptions}
+				value={scopeId || null}
+				none={t('result.scopeAny')}
+				label={t('result.scopeFilter')}
+				testId="result-scope"
+				onpick={(id) => (scopeId = id ?? '')}
+			/>
+		</div>
 		<label class="grid gap-1 text-xs text-muted"
 			>{t('result.from')}
 			<input class="cg-control cg-field" type="date" data-testid="result-from" bind:value={from} />

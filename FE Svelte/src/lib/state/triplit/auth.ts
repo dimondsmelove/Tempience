@@ -2,6 +2,10 @@ import { CodedError } from '$lib/model/Errors/CodedError';
 import { getDeviceId } from './ids';
 
 const AUTH_STORAGE_KEY = 'tempience.triplit.auth';
+/** The sync server this browser was pointed at on /pair; only when no build-time address exists. */
+const SERVER_STORAGE_KEY = 'tempience.triplit.server';
+/** Hosts a plain http:// address may point at: the developer's own machine. */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 export type DeviceAuth = {
 	deviceId: string;
@@ -24,11 +28,50 @@ const storage = (): Storage | null => {
 	}
 };
 
-export const getTriplitServerUrl = (): string | undefined => {
+/** The owner's build-time address; a public build never carries one. */
+const configuredServerUrl = (): string | undefined => {
 	if (import.meta.env.PUBLIC_BUILD === '1') return undefined;
 	const value = import.meta.env.PUBLIC_TRIPLIT_SERVER_URL as string | undefined;
 	const normalized = value?.trim().replace(/\/$/, '');
 	return normalized || undefined;
+};
+
+const storedServerUrl = (): string | undefined => {
+	try {
+		return storage()?.getItem(SERVER_STORAGE_KEY) ?? undefined;
+	} catch {
+		return undefined;
+	}
+};
+
+export const getTriplitServerUrl = (): string | undefined =>
+	configuredServerUrl() ?? storedServerUrl();
+
+/** True when the address comes from the user, not the build: /pair shows the address field. */
+export const isServerUrlEditable = (): boolean => configuredServerUrl() === undefined;
+
+/**
+ * Normalizes a user-entered sync server address. The app is served over HTTPS, so the browser
+ * would refuse a plain http:// server anyway — except on the developer's own machine.
+ */
+export const parseServerUrl = (value: string): string => {
+	let url: URL;
+	try {
+		url = new URL(value.trim());
+	} catch {
+		throw new CodedError('pairing_server_invalid', 'Адрес сервера должен быть полным URL.');
+	}
+	const secure =
+		url.protocol === 'https:' || (url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname));
+	if (!secure)
+		throw new CodedError('pairing_server_insecure', 'Адрес сервера должен начинаться с https://.');
+	if (url.username || url.password || url.search || url.hash)
+		throw new CodedError('pairing_server_invalid', 'Адрес сервера должен быть полным URL.');
+	return `${url.origin}${url.pathname}`.replace(/\/$/, '');
+};
+
+export const forgetServerUrl = (): void => {
+	storage()?.removeItem(SERVER_STORAGE_KEY);
 };
 
 const isUnexpired = (expiresAt: string): boolean => {
@@ -79,11 +122,17 @@ const saveAuth = (auth: DeviceAuth): void => {
 	storage()?.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 };
 
+/**
+ * Pairs this browser with a sync server. With a build-time address the server is fixed; otherwise
+ * the address entered on /pair is used and remembered together with the device token.
+ */
 export const pairDevice = async (
 	code: string,
-	deviceLabel = 'Browser device'
+	deviceLabel = 'Browser device',
+	serverInput?: string
 ): Promise<DeviceAuth> => {
-	const serverUrl = getTriplitServerUrl();
+	const editable = isServerUrlEditable();
+	const serverUrl = editable && serverInput ? parseServerUrl(serverInput) : getTriplitServerUrl();
 	if (!serverUrl)
 		throw new CodedError('pairing_server_url', 'PUBLIC_TRIPLIT_SERVER_URL не настроен.');
 	if (code.trim().length === 0)
@@ -110,6 +159,7 @@ export const pairDevice = async (
 	}
 	const auth = parseDeviceAuth(body);
 	if (!auth) throw new CodedError('pairing_token', 'Сервер вернул некорректный device token.');
+	if (editable) storage()?.setItem(SERVER_STORAGE_KEY, serverUrl);
 	saveAuth(auth);
 	return auth;
 };

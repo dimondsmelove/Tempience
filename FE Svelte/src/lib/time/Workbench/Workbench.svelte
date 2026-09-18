@@ -30,6 +30,7 @@
 	import MobilePanels from './MobilePanels.svelte';
 	import { adoptContext } from './context-host';
 	import { provideTimeInputHost } from '$lib/ui/TimeInput/host.svelte';
+	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import type { SheetPosition } from '$lib/ui/BottomSheet/types';
 
 	let { preview }: { preview?: WorkbenchPreview } = $props();
@@ -200,13 +201,14 @@
 		)
 	);
 	let lanes = $state<HTMLDivElement | null>(null);
-	/** A selection made off the canvas also scrolls its row into view. */
-	$effect(() => {
-		void selection.revision;
-		void mobilePanel;
+	/**
+	 * Scrolls the selected row to the middle of the lanes. A selection leaves a row already
+	 * in view where it is; «К выбранному» centres it regardless, as far as the scroller
+	 * allows (the last rows can only be brought into view).
+	 */
+	const scrollSelectedRow = (centre: boolean): void => {
 		const traceId = selection.traceId;
-		if (!scroller || !lanes || (!traceId && !selection.scopeId) || selection.source === 'canvas')
-			return;
+		if (!scroller || !lanes || (!traceId && !selection.scopeId)) return;
 		const rowId =
 			selection.scopeId ?? (traceId ? projection.marksByTraceId.get(traceId)?.[0]?.rowId : null);
 		const index = projection.rows.findIndex((row) => row.id === rowId);
@@ -215,12 +217,11 @@
 		const lanesTop =
 			lanes.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
 		const rowTop = lanesTop + index * rowHeight;
-		// Resizing Context must not restart smooth scrolling behind the touch gesture.
-		const covered = untrack(() => occludedHeight);
+		const covered = occludedHeight;
 		const visibleTop = scroller.scrollTop + lanesTop;
 		const visibleBottom = scroller.scrollTop + scroller.clientHeight - covered;
 		if (visibleBottom <= visibleTop) return;
-		if (rowTop >= visibleTop && rowTop + rowHeight <= visibleBottom) return;
+		if (!centre && rowTop >= visibleTop && rowTop + rowHeight <= visibleBottom) return;
 		scroller.scrollTo({
 			top: Math.max(
 				0,
@@ -228,6 +229,21 @@
 			),
 			behavior: 'smooth'
 		});
+	};
+	/** A selection made off the canvas also scrolls its row into view. */
+	$effect(() => {
+		void selection.revision;
+		void mobilePanel;
+		void scroller;
+		void lanes;
+		if (selection.source === 'canvas') return;
+		// Resizing Context must not restart smooth scrolling behind the touch gesture.
+		untrack(() => scrollSelectedRow(false));
+	});
+	// «К выбранному»: the row goes to the middle too, not only the time.
+	$effect(() => {
+		if (!workbench.revealRequest) return;
+		untrack(() => scrollSelectedRow(true));
 	});
 
 	const onkeydown = (event: KeyboardEvent): void => {
@@ -243,7 +259,7 @@
 			// One step back per press: overlay panel, then «Записать», then the selection (C9a-1).
 			if (mobilePanel === 'context') closeContext();
 			else if (mobilePanel) mobilePanel = null;
-			else if (workbench.capture) workbench.closeCapture();
+			else if (workbench.capture) workbench.cancelCapture();
 			else if (selection.current) workbench.rest();
 			else return;
 			event.preventDefault();
@@ -298,7 +314,6 @@
 	<ScopeRail
 		{onCanvas}
 		rows={projection.rows}
-		scopes={workbench.snapshot.scopes}
 		filters={workbench.filters}
 		disclosure={workbench.rows}
 		selectedScopeId={selection.scopeId}
@@ -342,35 +357,42 @@
 	>
 		{#if !phone}{@render controls(false)}{/if}
 
+		<!-- The timeline scrolls as one; a Kind's table and the rail beside it scroll each on
+		     its own. The gutter is reserved, so a row more or less never changes the width. -->
 		<div
-			class="min-h-0 flex-1 overflow-auto"
+			class={[
+				'time-scroller min-h-0 flex-1',
+				workbench.forms.data && !interaction ? 'overflow-hidden' : 'overflow-auto'
+			]}
 			bind:this={scroller}
 			bind:clientHeight={scrollerHeight}
 			style:padding-bottom="{occludedHeight}px"
+			{@attach overlayScrollbar}
 		>
 			{#if workbench.forms.data && !interaction}
 				<div
-					class="grid min-h-full"
+					class="kinds-layout grid h-full min-h-0"
 					style:grid-template-columns={(!compact && railOpen ? widths.rail : 0) +
 						'px minmax(0, 1fr)'}
 				>
 					{#if railOpen && !phone}
 						<aside
-							class={['scope-rail border-r border-outline bg-canvas', compact && 'mobile-panel']}
+							class={[
+								'scope-rail min-h-0 overflow-auto border-r border-outline bg-canvas',
+								compact && 'mobile-panel'
+							]}
 							id="time-scope"
 							aria-label="Scope"
+							{@attach overlayScrollbar}
 						>
 							{@render scopeContent(false)}
 						</aside>
 					{/if}
-					<div class="col-start-2 min-w-0">
-						<DataSurface
-							{workbench}
-							oncapture={(preset) => {
-								workbench.openCapture(preset);
-								togglePanel('context', true);
-							}}
-						/>
+					<div
+						class="col-start-2 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto"
+						{@attach overlayScrollbar}
+					>
+						<DataSurface {workbench} />
 					</div>
 				</div>
 			{:else}
@@ -393,7 +415,7 @@
 						</aside>
 					{/if}
 					<div
-						class="sticky top-0 z-10 col-start-2 row-start-1 flex flex-col justify-between border-b border-outline bg-surface"
+						class="sticky top-0 z-10 col-start-2 row-start-1 flex flex-col justify-between overflow-hidden border-b border-outline bg-surface"
 						bind:clientHeight={axisHeaderHeight}
 					>
 						{#if interaction}{@render interaction.header()}{:else}

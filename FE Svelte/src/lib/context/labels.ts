@@ -67,14 +67,19 @@ export const linkGroupLabel = (kind: NeighborLinkKind, outgoing: boolean): strin
 	}
 };
 
-export const reasonLabel = (reason: NeighborReason, scopeName: (id: string) => string): string => {
+/** `after` says which side of the anchor a distance lies on: later in time, or earlier. */
+export const reasonLabel = (
+	reason: NeighborReason,
+	scopeName: (id: string) => string,
+	after = false
+): string => {
 	switch (reason.kind) {
 		case 'link':
 			return linkGroupLabel(reason.link, reason.direction === 'outgoing').toLowerCase();
 		case 'sameDay':
 			return t('reason.sameDay');
 		case 'distance':
-			return t('reason.days', { count: reason.days });
+			return t(after ? 'reason.daysAfter' : 'reason.daysBefore', { count: reason.days });
 		case 'sharedScope':
 			return reason.scopeIds.map(scopeName).join(', ');
 		case 'sharedSource':

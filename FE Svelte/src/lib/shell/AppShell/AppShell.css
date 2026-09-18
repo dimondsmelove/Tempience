@@ -7,6 +7,12 @@
 .time-identity .sync-widget {
 	font-size: var(--cg-text-size-caption);
 }
+/* A short select: the language name alone, without the form arrow that ran over it. */
+.time-identity .locale-picker {
+	appearance: none;
+	background-image: none;
+	padding-right: var(--cg-control-padding-x);
+}
 .time-identity .sync-widget .sync-quiet {
 	color: var(--cg-text-muted);
 	background: transparent;

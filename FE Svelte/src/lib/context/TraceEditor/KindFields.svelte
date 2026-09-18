@@ -42,7 +42,6 @@
 					{/if}
 				</select>
 				<Button
-					size="sm"
 					icon
 					aria-label={t('draft.kindNew')}
 					title={t('draft.kindNew')}

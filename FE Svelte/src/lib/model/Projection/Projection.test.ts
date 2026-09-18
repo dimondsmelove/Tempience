@@ -186,7 +186,7 @@ describe('projectSnapshot', () => {
 			snapshot,
 			state({ onlyScopes: new Set(['b']), expanded: new Set(['a']) })
 		);
-		expect(only.rows.map((row) => row.id)).toEqual(['a', 'b', UNSCOPED_ROW_ID]);
+		expect(only.rows.map((row) => row.id)).toEqual(['a', 'b']);
 	});
 
 	it('parks records without an absolute time and counts the rest', () => {

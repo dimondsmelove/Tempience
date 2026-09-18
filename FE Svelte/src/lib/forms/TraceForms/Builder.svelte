@@ -3,7 +3,6 @@
 	import { untrack } from 'svelte';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { SECTION_HEADING_CLASS } from '$lib/context/constants';
 	import { compileTraceForm, assertFieldEvolution } from '$lib/model/TraceForm/TraceForm';
 	import type { TraceFormDraft } from '$lib/model/TraceForm/types';
 	import type { BuilderProps, MembershipIntent } from './types';
@@ -17,6 +16,8 @@
 		scopes,
 		memberships,
 		onsave,
+		oncancel,
+		cancelTestId = 'builder-cancel',
 		watch
 	}: BuilderProps = $props();
 	let draft = $state(
@@ -54,32 +55,42 @@
 	};
 </script>
 
-<!-- Name and fields, then the Kind's Scopes as a part of their own; the preview is gone —
-     the save validates the same way (owner, 2026-09-15). -->
+<!-- What the Kind is, then what it holds: name and Scopes first, the fields as cards under
+     them, the two buttons on one line at the end. The preview is gone — the save validates
+     the same way (owner, 2026-09-15). The page owns the heading when the form is compact. -->
 <div class={['grid min-w-0 gap-4', compact ? '' : 'max-w-2xl']} data-testid="form-builder">
-	<h2 class="text-lg font-semibold">{published ? t('form.editing') : t('form.new')}</h2>
+	{#if !compact}<h2 class="text-lg font-semibold">
+			{published ? t('form.editing') : t('form.new')}
+		</h2>{/if}
 	<fieldset disabled={busy} class="grid min-w-0 gap-4 border-0 p-0">
-		<label class="grid gap-1 text-sm"
-			>{t('form.kindName')}<input
-				class="cg-control cg-field"
-				bind:value={draft.name}
-				placeholder={t('form.kindNamePlaceholder')}
-			/></label
-		>
+		<div class="grid min-w-0 gap-3">
+			<label class="grid gap-1 text-sm"
+				>{t('form.kindName')}<input
+					class="cg-control cg-field"
+					bind:value={draft.name}
+					placeholder={t('form.kindNamePlaceholder')}
+				/></label
+			>
+			{#if scopes}
+				<div class="grid gap-1 text-sm">
+					<span>{t('kind.scopes')}</span>
+					<KindScopes {scopes} value={intent} onchange={(next) => (intent = next)} />
+				</div>
+			{/if}
+		</div>
 		<FieldEditor bind:fields={draft.fields} />
-		{#if scopes}
-			<section class="grid gap-2 border-t border-outline pt-3">
-				<h3 class={SECTION_HEADING_CLASS}>{t('kind.scopes')}</h3>
-				<KindScopes {scopes} value={intent} onchange={(next) => (intent = next)} />
-			</section>
-		{/if}
 		{#if failure !== null}<p class="text-sm text-[color:var(--cg-danger)]" role="alert">
 				{errorText(failure)}
 			</p>{/if}
-		<div class="flex flex-wrap gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			<Button variant="primary" disabled={busy} onclick={save}
 				>{busy ? t('form.saving') : published ? t('kind.saveChanges') : t('form.create')}</Button
 			>
+			{#if oncancel}
+				<Button disabled={busy} data-testid={cancelTestId} onclick={oncancel}
+					>{t('common.cancel')}</Button
+				>
+			{/if}
 		</div>
 	</fieldset>
 </div>

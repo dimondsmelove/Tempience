@@ -20,7 +20,8 @@
 		compact = false,
 		memberships,
 		newScopes,
-		onsaved
+		onsaved,
+		oncancel
 	}: {
 		kind?: TraceKind;
 		published?: TraceKindV;
@@ -32,6 +33,8 @@
 		newScopes?: readonly string[];
 		/** What the catalog does with the committed result; a rejection is a failed return, repeatable. */
 		onsaved: (result: KindSaveResult) => void | Promise<void>;
+		/** «Отмена» beside the save: back to the Kind's page, or to the catalog. */
+		oncancel?: () => void;
 	} = $props();
 	// The write is latched the moment the repository returns; a second click never writes again.
 	const saving = new NestedSave<KindSaveResult>();
@@ -75,5 +78,13 @@
 {:else if current === null}
 	<p class="text-sm text-muted" data-testid="kind-scopes-loading">{t('kind.scopesLoading')}</p>
 {:else}
-	<Builder {compact} {initial} {published} {scopes} memberships={current} onsave={save} />
+	<Builder
+		{compact}
+		{initial}
+		{published}
+		{scopes}
+		memberships={current}
+		onsave={save}
+		{oncancel}
+	/>
 {/if}

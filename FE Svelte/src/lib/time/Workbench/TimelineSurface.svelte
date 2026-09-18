@@ -22,7 +22,7 @@
 </script>
 
 <div
-	class="relative col-start-2 row-start-2 cursor-grab touch-none select-none active:cursor-grabbing"
+	class="relative col-start-2 row-start-2 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
 	aria-label={interaction ? t('surface.pickTime') : t('surface.hint')}
 	{@attach (node) => {
 		element = node;

@@ -193,6 +193,7 @@ export class WorkbenchState {
 		this.capture = false;
 		this.forms.editingId = null;
 		this.forms.newScope = null;
+		this.forms.captureReturn = null;
 	}
 
 	/** DP7: a choice made on the ribbon, by pointer or through its DOM twin, leaves the window alone. */
@@ -260,10 +261,14 @@ export class WorkbenchState {
 		else this.viewport.fit(range.start, range.end);
 	}
 
-	/** «К выбранному» frames the full selected object, including one already in view. */
+	/** Counts «К выбранному» presses: the surface centres the selected row on each one. */
+	revealRequest = $state(0);
+
+	/** «К выбранному» frames the full selected object, including one already in view, and asks the surface to centre its row. */
 	goToSelected(): void {
 		const range = this.selectedRange;
 		if (range) this.viewport.fit(range.start, range.end);
+		this.revealRequest += 1;
 	}
 
 	/** A click on a pile of records closes in on their range; at the limit it picks the top one. */
@@ -286,6 +291,8 @@ export class WorkbenchState {
 	openCapture(preset?: FormCapturePreset): void {
 		this.exitGuard.exit(() => {
 			this.forms.capture(preset);
+			// A form started from a Kind's page in the catalog remembers it for its cancel.
+			this.forms.captureReturn = this.forms.open ? (this.forms.kindId ?? null) : null;
 			this.forms.open = false;
 			this.forms.editingId = null;
 			this.capture = true;
@@ -301,10 +308,23 @@ export class WorkbenchState {
 		});
 	}
 
+	/** The form ends with its record committed, or is closed from outside: nothing returns. */
 	closeCapture(): void {
 		this.exitGuard.exit(() => {
 			this.capture = false;
 			this.forms.open = false;
+			this.forms.captureReturn = null;
+		});
+	}
+
+	/** «Отмена» on «Записать»: back to the Kind it was opened from, if it was; else to nothing. */
+	cancelCapture(): void {
+		this.exitGuard.exit(() => {
+			this.capture = false;
+			const back = this.forms.captureReturn;
+			this.forms.captureReturn = null;
+			if (back) this.forms.showCatalog(back);
+			else this.forms.open = false;
 		});
 	}
 

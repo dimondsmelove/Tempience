@@ -23,6 +23,7 @@
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { untrack } from 'svelte';
+	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import type { ContextTab } from './constants';
 	import TraceView from './TraceView.svelte';
 	import { readCollapsed, writeCollapsed } from './sections';
@@ -112,14 +113,15 @@
 	};
 </script>
 
+<!-- One line in every language: the buttons keep their size, the words give way. -->
 <header
 	class={[
-		'cg-toolbar flex shrink-0 flex-wrap items-center border-b border-outline bg-surface',
+		'cg-toolbar flex min-w-0 shrink-0 flex-nowrap items-center border-b border-outline bg-surface',
 		timeInput?.editor && 'time-context-heading'
 	]}
 	data-sheet-drag-handle={onexpand ? true : undefined}
 >
-	<span class="text-[length:var(--cg-text-size-control)] font-semibold">Context</span>
+	<span class="shrink-0 text-[length:var(--cg-text-size-control)] font-semibold">Context</span>
 	<Button
 		size="sm"
 		variant="quiet"
@@ -142,14 +144,19 @@
 		data-testid="history-forward"
 		onclick={() => workbench.forward()}>→</Button
 	>
-	<div class="grow"></div>
-	{#if onexpand}<Button icon variant="quiet" aria-label={t('context.resize')} onclick={onexpand}
-			>↕</Button
+	<div class="min-w-0 grow"></div>
+	{#if onexpand}<Button
+			icon
+			variant="quiet"
+			class="shrink-0"
+			aria-label={t('context.resize')}
+			onclick={onexpand}>↕</Button
 		>{/if}
 	{#if selection.current}
 		<Button
 			size="sm"
 			variant="quiet"
+			class="min-w-0 shrink truncate"
 			title={t('context.restTitle')}
 			data-testid="context-rest"
 			onclick={() => workbench.rest()}>{t('context.rest')}</Button
@@ -159,6 +166,7 @@
 		size="sm"
 		variant="quiet"
 		icon
+		class="shrink-0"
 		aria-label={t('context.close')}
 		title={t('context.close')}
 		data-testid="context-collapse"
@@ -174,6 +182,7 @@
 		timeInput?.editor && 'time-context-body'
 	]}
 	data-testid="context-body"
+	{@attach overlayScrollbar}
 >
 	{#if restore?.committed && restore.readFailure}
 		<!-- The record is back; what could not be read after that is said until it is read. -->
@@ -244,6 +253,10 @@
 		padding: 0;
 		overflow: hidden;
 		gap: 0;
+	}
+	/* The picker fills the panel edge to edge; its own corners belong to a floating sheet. */
+	.time-context-body :global(.time-picker) {
+		border-radius: 0;
 	}
 	.time-context-body :global([data-testid='context-capture']),
 	.time-context-body :global([data-testid='context-trace']),

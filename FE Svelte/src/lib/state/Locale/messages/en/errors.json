@@ -83,6 +83,8 @@
 	"error.backup_restore_target": "Restoring is possible only into a new local database.",
 	"error.backup_not_empty": "The database already holds data. Create a separate copy from the file.",
 	"error.pairing_server_url": "The sync server address is not configured.",
+	"error.pairing_server_invalid": "The server address must be a full URL, for example https://laptop.your-tailnet.ts.net.",
+	"error.pairing_server_insecure": "The server address must start with https:// (http:// is allowed only for localhost).",
 	"error.pairing_code_required": "Enter the pairing code.",
 	"error.pairing_failed": "Pairing failed: {{detail}}",
 	"error.pairing_token": "The server returned an invalid device token.",

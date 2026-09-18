@@ -3,6 +3,18 @@
 	grid-column: 1;
 	grid-row: 1 / span 2;
 }
+/* The lanes never scroll sideways: time moves by the wheel, not by a scrollbar. The bar
+   itself is an overlay thumb (ui/Scrollbar), so a row more or less never shifts the width. */
+.workbench .time-scroller {
+	overflow-x: hidden;
+}
+/* A Kind's table beside the rail: one row, two independent scrollers. */
+.kinds-layout {
+	grid-template-rows: minmax(0, 1fr);
+}
+.kinds-layout .scope-rail {
+	grid-row: 1;
+}
 .mobile-panel {
 	position: absolute;
 	top: 0;

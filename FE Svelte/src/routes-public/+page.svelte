@@ -32,6 +32,16 @@
 		});
 	});
 
+	const finishSetup = (): void => {
+		completed = true;
+		try {
+			localStorage.setItem(ONBOARDING_COMPLETE_KEY, '1');
+		} catch {
+			/* The first saved record or group also prevents setup on the next launch. */
+		}
+		workbench.openCapture();
+	};
+
 	const createFirstGroup = async (name: string): Promise<void> => {
 		const scope = await tempienceRepository.createScope({ name });
 		await workbench.load(loadWorkbenchSnapshot);
@@ -39,14 +49,8 @@
 			throw (
 				workbench.failure ?? new CodedError('records_unreadable', 'the records could not be read')
 			);
-		completed = true;
-		try {
-			localStorage.setItem(ONBOARDING_COMPLETE_KEY, '1');
-		} catch {
-			/* The saved group also prevents setup on the next launch. */
-		}
 		workbench.selectScope(scope.id);
-		workbench.openCapture();
+		finishSetup();
 	};
 </script>
 
@@ -54,7 +58,7 @@
 {#if !ready}
 	<p class="p-6 text-sm text-muted" role="status">{t('public.reading')}</p>
 {:else if needsSetup}
-	<Onboarding oncreate={createFirstGroup} />
+	<Onboarding oncreate={createFirstGroup} onskip={finishSetup} />
 {:else}
 	<Workbench />
 {/if}

@@ -184,6 +184,7 @@
 		{#if mode === 'evidence' && !supplement}<ResultFields {draft} />{/if}
 		{#if !supplement}
 			<TimeFields
+				prefilledTime={draft.entry.mode === 'create' && !draft.entry.preset}
 				bind:draft={
 					() => draft.time,
 					(next) => {

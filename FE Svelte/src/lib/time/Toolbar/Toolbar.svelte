@@ -33,7 +33,7 @@
 	const openKinds = (): void =>
 		draftGuard.exit(() => {
 			workbench.capture = false;
-			workbench.forms.showCatalog();
+			workbench.forms.showCatalog(workbench.forms.data?.kindId);
 			ontogglepanel('context', true);
 		});
 </script>
@@ -50,6 +50,9 @@
 		{#if workbench.forms.data}
 			<button class="mobile-action" onclick={() => workbench.forms.showTimeline()}
 				><CalendarMonthOutline class="h-5 w-5" /><span>{t('kindHistory.timeline')}</span></button
+			>
+			<button class="mobile-action" data-testid="kinds-open" onclick={openKinds}
+				><ClipboardListOutline class="h-5 w-5" /><span>{t(CATALOG_KEY)}</span></button
 			>
 		{:else}
 			<button class="mobile-action" data-testid="kinds-open" onclick={openKinds}
@@ -89,9 +92,9 @@
 			<Button size="sm" onclick={() => workbench.forms.showTimeline()}
 				>{t('kindHistory.timeline')}</Button
 			>
+			<Button size="sm" data-testid="kinds-open" onclick={openKinds}>{t(CATALOG_KEY)}</Button>
 		{/if}
 		{#if !workbench.forms.data}
-			<Button size="sm" data-testid="kinds-open" onclick={openKinds}>{t(CATALOG_KEY)}</Button>
 			<Popover
 				id="time-filters"
 				label={filterCount
@@ -108,7 +111,7 @@
 				{/snippet}
 				{#snippet children(close)}
 					<div class="flex w-64 max-w-full flex-col gap-3">
-						<Legend filters={workbench.filters} />
+						<Legend filters={workbench.filters} scopes={workbench.snapshot.scopes} />
 						<Button
 							size="sm"
 							variant="quiet"
@@ -166,6 +169,8 @@
 					>{t('toolbar.apply', { count: workbench.proposalCounts.accepted })}</Button
 				>
 			{/if}
+			<!-- The catalog sits next to «Записать»: both are entries into the Context (owner, 2026-09-17). -->
+			<Button size="sm" data-testid="kinds-open" onclick={openKinds}>{t(CATALOG_KEY)}</Button>
 		{/if}
 		<Button size="sm" variant="primary" data-testid="capture" onclick={oncapture}>
 			<PlusOutline class="h-4 w-4" />

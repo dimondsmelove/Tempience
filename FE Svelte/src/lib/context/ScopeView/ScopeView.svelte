@@ -28,6 +28,7 @@
 		SECTION_HEADING_CLASS
 	} from '$lib/context/constants';
 	import { explorerEntitiesById } from '$lib/model/Snapshot/Snapshot';
+	import { UNSCOPED_ROW_ID, UNSCOPED_ROW_KEY } from '$lib/model/Projection/constants';
 	import { entityLabel, formatDay } from '$lib/context/labels';
 	import {
 		SCOPE_SECTIONS,
@@ -53,11 +54,13 @@
 	};
 	$effect(() => () => unwatch?.());
 	const context = $derived(workbench.scopeContext);
+	/** The «Без Scope» row chosen: a list of records with nothing to edit, bind or delete. */
+	const unscoped = $derived(context?.record.id === UNSCOPED_ROW_ID);
 	/** The Kinds directly bound to this Scope: shown in their own part, counted by the deletion. */
 	const scopeKinds = new ScopeKindsReader(tempienceRepository);
 	$effect(() => {
 		const scopeId = context?.record.id;
-		if (!scopeId) return;
+		if (!scopeId || scopeId === UNSCOPED_ROW_ID) return;
 		// Read again with the timeline, never for a redisplay in another language.
 		void workbench.loaded;
 		untrack(() => void scopeKinds.load(scopeId));
@@ -163,46 +166,53 @@
 				>{t('scope.subtreeRecords', { count: context.traces.length })}</span
 			>
 			<h2 class="text-lg leading-snug font-semibold break-words" data-testid="selected-title">
-				{context.record.name}
+				{unscoped ? t(UNSCOPED_ROW_KEY) : context.record.name}
 			</h2>
+			{#if unscoped}
+				<p class="text-sm text-muted">{t('scope.unscopedHint')}</p>
+			{/if}
 			<!-- One row of icons; the name of each action is its tooltip and its accessible name. -->
-			<div class="flex items-center gap-1" role="group" aria-label={t('scope.editAction')}>
-				<Button
-					size="sm"
-					icon
+			{#if !unscoped}<div
+					class="flex items-center gap-1"
+					role="group"
 					aria-label={t('scope.editAction')}
-					title={t('scope.editAction')}
-					onclick={startEditing}><PenOutline class="h-4 w-4" /></Button
 				>
-				<Button
-					size="sm"
-					icon
-					aria-label={t('scope.captureHere')}
-					title={t('scope.captureHere')}
-					data-testid="scope-capture-here"
-					onclick={() => workbench.openCapture({ scopeId: context!.record.id })}
-					><PlusOutline class="h-4 w-4" /></Button
-				>
-				<Button
-					size="sm"
-					icon
-					aria-label={t('scope.childNew')}
-					title={t('scope.childNew')}
-					data-testid="scope-child-new"
-					onclick={() => workbench.createScope(context!.record.id)}
-					><CirclePlusOutline class="h-4 w-4" /></Button
-				>
-				<Button
-					size="sm"
-					icon
-					variant="quiet"
-					disabled={removing || scopeKinds.loading}
-					aria-label={t('scope.delete')}
-					title={t('scope.delete')}
-					data-testid="delete-scope"
-					onclick={() => void remove()}><TrashBinOutline class="h-4 w-4" /></Button
-				>
-			</div>
+					<Button
+						size="sm"
+						icon
+						aria-label={t('scope.editAction')}
+						title={t('scope.editAction')}
+						onclick={startEditing}><PenOutline class="h-4 w-4" /></Button
+					>
+					<Button
+						size="sm"
+						icon
+						aria-label={t('scope.captureHere')}
+						title={t('scope.captureHere')}
+						data-testid="scope-capture-here"
+						onclick={() => workbench.openCapture({ scopeId: context!.record.id })}
+						><PlusOutline class="h-4 w-4" /></Button
+					>
+					<Button
+						size="sm"
+						icon
+						aria-label={t('scope.childNew')}
+						title={t('scope.childNew')}
+						data-testid="scope-child-new"
+						onclick={() => workbench.createScope(context!.record.id)}
+						><CirclePlusOutline class="h-4 w-4" /></Button
+					>
+					<Button
+						size="sm"
+						icon
+						variant="quiet"
+						disabled={removing || scopeKinds.loading}
+						aria-label={t('scope.delete')}
+						title={t('scope.delete')}
+						data-testid="delete-scope"
+						onclick={() => void remove()}><TrashBinOutline class="h-4 w-4" /></Button
+					>
+				</div>{/if}
 			{#if refusal}
 				<p
 					role="alert"
@@ -279,7 +289,7 @@
 					>
 				{:else}<p class="text-sm text-muted">{t('scope.noOtherLinks')}</p>{/each}
 			{/snippet}
-			{#each SCOPE_SECTIONS as entry (entry.id)}
+			{#each SCOPE_SECTIONS.filter((entry) => !unscoped || entry.id === 'records') as entry (entry.id)}
 				{@render section(
 					entry.id,
 					t(entry.label),

@@ -36,6 +36,7 @@
 			variant="quiet"
 			aria-label={compact ? t('rows.original') : undefined}
 			title={t('rows.reset')}
+			disabled={value === defaultDevice.rowHeightPx}
 			onclick={() => onchange(defaultDevice.rowHeightPx)}>{compact ? '↺' : t('rows.reset')}</Button
 		>
 	</div>

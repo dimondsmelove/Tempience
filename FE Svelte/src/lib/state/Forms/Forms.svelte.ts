@@ -24,6 +24,11 @@ export class FormsState {
 	newKindScopeIds = $state.raw<readonly string[] | null>(null);
 	/** A new Scope being made in the Context, with the parent it starts under; null when none. */
 	newScope = $state<{ parentId: string | null } | null>(null);
+	/**
+	 * The Kind of the catalog «Записать» was pressed in, if it was: cancelling the form goes
+	 * back to that Kind instead of leaving the Context empty (owner, 2026-09-18).
+	 */
+	captureReturn = $state<string | null>(null);
 
 	/** The Scope the history is filtered by: what «Записать» from it starts with. */
 	get scopeId(): string {

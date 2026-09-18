@@ -54,7 +54,7 @@
 			{@render scopeContent(false)}
 		{:else if panel === 'filters'}
 			<div class="cg-panel flex flex-col gap-3">
-				<Legend filters={workbench.filters} />
+				<Legend filters={workbench.filters} scopes={workbench.snapshot.scopes} />
 				<Button
 					disabled={workbench.filters.activeCount === 0}
 					data-testid="filters-reset"

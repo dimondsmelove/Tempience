@@ -26,4 +26,6 @@ export const BUTTON_ICON_CLASS: Record<ButtonSize, string> = {
 	sm: 'cg-control-icon-sm'
 };
 
-export const BUTTON_PRESSED_CLASS = 'border-accent bg-accent/15 text-ink';
+/** A pressed toggle reads at a glance: accent border and fill, plus an accent line underneath. */
+export const BUTTON_PRESSED_CLASS =
+	'border-accent bg-accent/25 text-ink shadow-[inset_0_-2px_0_0_var(--cg-accent)]';

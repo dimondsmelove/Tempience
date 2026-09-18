@@ -5,12 +5,14 @@
 	import { tempienceRepository as repository } from '$lib/state/triplit';
 	import type { TraceKind } from '$lib/state/triplit/types';
 	import { LEGEND_KEYS, LEGEND_KEY_LABELS } from '$lib/model/Projection/constants';
+	import Button from '$lib/ui/Button/Button.svelte';
 	import { UNAVAILABLE_LEGEND } from './constants';
 	import type { LegendProps } from './types';
 
-	let { filters }: LegendProps = $props();
+	let { filters, scopes = [] }: LegendProps = $props();
 	let kinds = $state.raw<TraceKind[]>([]);
 	let failure = $state.raw<unknown>(null);
+	const hidden = $derived(scopes.filter((scope) => filters.hiddenScopes.has(scope.id)));
 	onMount(() =>
 		repository.subscribeTraceKinds(
 			(rows) => {
@@ -72,4 +74,23 @@
 			{/each}
 		</div>
 	</details>
+{/if}
+{#if hidden.length}
+	<!-- Scopes hidden from the rail with their eye are a filter like any other: named here,
+	     shown again one by one or all at once, and cleared with «Сбросить всё». -->
+	<div class="grid gap-1 border-t border-outline pt-2 text-sm" data-testid="hidden-scopes">
+		<span class="text-xs text-muted" data-testid="hidden-scopes-count"
+			>{t('rail.hidden', { count: hidden.length })}</span
+		>
+		{#each hidden as scope (scope.id)}
+			<Button
+				size="sm"
+				variant="quiet"
+				class="justify-start truncate"
+				aria-label={t('rail.showScope', { name: scope.name })}
+				onclick={() => filters.showScope(scope.id)}>{scope.name}</Button
+			>
+		{/each}
+		<Button size="sm" onclick={() => filters.showAllScopes()}>{t('rail.showAll')}</Button>
+	</div>
 {/if}

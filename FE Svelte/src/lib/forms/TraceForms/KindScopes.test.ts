@@ -1,6 +1,11 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import KindScopes from './KindScopes.svelte';
+
+// The picker reads the Scope tree from the workbench; a server render has no client behind it.
+vi.mock('$lib/state/Workbench/instance.svelte', () => ({
+	workbench: { view: { intersections: [] } }
+}));
 
 const scopes = [
 	{ id: 'a', name: 'A', note: null, parentScopeId: null, startedAt: null, endedAt: null },
@@ -8,23 +13,19 @@ const scopes = [
 ].map((scope) => ({ ...scope, isDeleted: false, createdAt: '', updatedAt: '' }));
 
 describe('KindScopes', () => {
-	it('shows the Kind’s current memberships as chips, offers the rest, and marks only an explicit «Без Scope» as pressed', () => {
+	it('shows the Kind’s current memberships as chips and offers the rest in the picker', () => {
 		const untouched = render(KindScopes, {
 			props: { scopes, value: { scopeIds: ['b'], explicit: false }, onchange: () => {} }
 		}).body;
-		// The chosen Scope is a chip; the picker offers only what is not chosen yet.
-		expect(untouched).toContain('<option value="a">A</option>');
-		expect(untouched).not.toContain('<option value="b">');
-		expect(untouched).toContain('>B</span>');
-		expect(untouched).toContain('aria-pressed="false"');
-		const emptyUntouched = render(KindScopes, {
+		// The chosen Scope is a chip with its ×; the picker lists it as taken and offers A.
+		expect(untouched).toContain('aria-label="Убрать Scope B"');
+		expect(untouched).toMatch(/role="option"[^>]*aria-disabled="true"[^>]*>[\s\S]*?B/);
+		expect(untouched).not.toContain('aria-label="Убрать Scope A"');
+		const empty = render(KindScopes, {
 			props: { scopes, value: { scopeIds: [], explicit: false }, onchange: () => {} }
 		}).body;
-		// Nothing chosen is not yet a choice: the restore of a deleted Scope stays possible.
-		expect(emptyUntouched).toContain('aria-pressed="false"');
-		const explicitNone = render(KindScopes, {
-			props: { scopes, value: { scopeIds: [], explicit: true }, onchange: () => {} }
-		}).body;
-		expect(explicitNone).toContain('aria-pressed="true"');
+		// Nothing chosen shows no chip and no «Без Scope» button: the picker alone.
+		expect(empty).not.toContain('Убрать Scope');
+		expect(empty).toContain('role="combobox"');
 	});
 });

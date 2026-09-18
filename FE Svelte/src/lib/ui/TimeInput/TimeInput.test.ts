@@ -139,3 +139,45 @@ describe('shared timeline time draft', () => {
 		expect(new Date(bounds.end).getDate()).toBe(30);
 	});
 });
+
+describe('prefilled time and another day', () => {
+	it('drops a prefilled, untouched time when another day is chosen, and keeps a time the user set', () => {
+		const prefilled = new TimeInputState(
+			{ start: time(9, 14, 30), end: null, timed: true },
+			{ prefilledTime: true }
+		);
+		prefilled.open();
+		prefilled.chooseDay(time(2, 12));
+		expect(prefilled.draft).toEqual({ start: time(2, 12), end: null, timed: false });
+
+		const touched = new TimeInputState(
+			{ start: time(9, 14, 30), end: null, timed: true },
+			{ prefilledTime: true }
+		);
+		touched.open();
+		touched.clock(9, 15);
+		touched.chooseDay(time(2, 12));
+		expect(touched.draft).toEqual({ start: time(2, 9, 15), end: null, timed: true });
+
+		// An existing record's time is its own: moving its day keeps the clock.
+		const own = new TimeInputState({ start: time(9, 14, 30), end: null, timed: true });
+		own.open();
+		own.chooseDay(time(2, 12));
+		expect(own.draft).toEqual({ start: time(2, 14, 30), end: null, timed: true });
+	});
+});
+
+describe('«Сейчас»', () => {
+	it('sets this day and this minute as a time of the user’s own, whatever the draft held', () => {
+		const state = new TimeInputState(
+			{ start: time(9, 12), end: null, timed: false },
+			{ prefilledTime: true }
+		);
+		state.open();
+		state.now(time(20, 15, 42));
+		expect(state.draft).toEqual({ start: time(20, 15, 42), end: null, timed: true });
+		// A day chosen afterwards keeps the minute: «сейчас» was the user's choice.
+		state.chooseDay(time(21, 12));
+		expect(state.draft).toEqual({ start: time(21, 15, 42), end: null, timed: true });
+	});
+});

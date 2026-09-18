@@ -62,8 +62,8 @@ so nobody on the LAN can connect to it directly either.
 2. **The sync server on the laptop.** Requires Node.js 22.
 
    ```sh
-   git clone https://github.com/dimondsmelove/tempience.git
-   cd tempience
+   git clone https://github.com/dimondsmelove/Tempience.git
+   cd Tempience
    npm ci                                   # root: the server and SQLite
    mkdir -p ~/.config/tempience
    cat > ~/.config/tempience/triplit.env <<ENV
@@ -108,7 +108,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=%h/tempience
+WorkingDirectory=%h/Tempience
 EnvironmentFile=%h/.config/tempience/triplit.env
 ExecStart=/usr/bin/node scripts/triplit-server.mjs
 Restart=always

@@ -1,8 +1,7 @@
 {
-	"kind.scopes": "Scope Trace Kind",
+	"kind.scopes": "Scope",
 	"kind.scopesHint": "Записи по этому виду предлагаются в выбранных Scope. Уже созданные записи и их Scope не меняются.",
 	"kind.scopesNone": "Scope пока нет.",
-	"kind.noScope": "Без Scope",
 	"kind.noScopeHint": "Trace Kind без привязки к Scope; он доступен из общего списка.",
 	"kind.nothingChanged": "Изменений нет.",
 	"kind.renamed": "Название Trace Kind сохранено.",
@@ -45,5 +44,9 @@
 	"scope.hierarchyNone": "Корневой Scope, дочерних нет.",
 	"scope.noOtherLinks": "Других связей нет.",
 	"scope.childNew": "Дочерний Scope",
-	"scope.captureHere": "Записать сюда"
+	"scope.captureHere": "Записать сюда",
+	"picker.search": "Поиск Scope…",
+	"picker.empty": "Ничего не найдено",
+	"picker.taken": "Уже выбран",
+	"picker.create": "Создать Scope «{{name}}»"
 }

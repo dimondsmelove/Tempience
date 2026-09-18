@@ -1,8 +1,7 @@
 {
-	"kind.scopes": "Kind Scopes",
+	"kind.scopes": "Scopes",
 	"kind.scopesHint": "Records of this Kind are offered in the selected Scopes. Existing records and their Scopes stay as they are.",
 	"kind.scopesNone": "No Scopes yet.",
-	"kind.noScope": "No Scope",
 	"kind.noScopeHint": "A Kind without a Scope; it is available from the full list.",
 	"kind.nothingChanged": "Nothing changed.",
 	"kind.renamed": "The Kind name is saved.",
@@ -45,5 +44,9 @@
 	"scope.hierarchyNone": "A root Scope, no nested ones.",
 	"scope.noOtherLinks": "No other links.",
 	"scope.childNew": "Child Scope",
-	"scope.captureHere": "Record here"
+	"scope.captureHere": "Record here",
+	"picker.search": "Search Scopes…",
+	"picker.empty": "Nothing found",
+	"picker.taken": "Already chosen",
+	"picker.create": "Create the Scope “{{name}}”"
 }

@@ -22,6 +22,16 @@
 	const anchor = $derived(snapshot.traces.find((trace) => trace.id === traceId));
 	const scopeName = (id: string): string =>
 		snapshot.scopes.find((scope) => scope.id === id)?.name ?? id;
+	/**
+	 * What the chips say: a distance reads with its side of the anchor, and a shared source
+	 * only when it tells something — every record of the user's own space shares that one.
+	 */
+	const reasonsOf = (item: Neighbor) =>
+		anchor?.origin.kind === 'canonical'
+			? item.reasons.filter((reason) => reason.kind !== 'sharedSource')
+			: item.reasons;
+	const isAfter = (item: Neighbor): boolean =>
+		Boolean(item.time && result?.anchorTime && item.time.start > result.anchorTime.start);
 </script>
 
 {#snippet row(item: Neighbor)}
@@ -37,8 +47,8 @@
 			>
 			<span>{item.label}</span>
 			<span class="flex flex-wrap gap-1">
-				{#each item.reasons as reason (reasonKey(reason))}
-					<span class={CHIP_CLASS}>{reasonLabel(reason, scopeName)}</span>
+				{#each reasonsOf(item) as reason (reasonKey(reason))}
+					<span class={CHIP_CLASS}>{reasonLabel(reason, scopeName, isAfter(item))}</span>
 				{/each}
 			</span>
 		</button>

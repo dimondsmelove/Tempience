@@ -59,8 +59,16 @@ export class TimeInputState {
 	readonly point = $derived(
 		this.edge === 'end' ? (this.draft.end ?? this.draft.start) : this.draft.start
 	);
+	/**
+	 * The time came prefilled («сейчас») and the user has not touched it: a day chosen
+	 * elsewhere drops it, so a record of another day is a day record unless a time is set
+	 * for it (owner, 2026-09-18).
+	 */
+	readonly #prefilledTime: boolean;
+	#timeTouched = false;
 
-	constructor(initial: TimeSelection) {
+	constructor(initial: TimeSelection, options: { prefilledTime?: boolean } = {}) {
+		this.#prefilledTime = Boolean(options.prefilledTime) && initial.timed;
 		this.value = { ...initial };
 		this.draft = { ...initial };
 		this.viewport = new ViewportState(windowAt(initial.start, 'day'), {
@@ -193,6 +201,7 @@ export class TimeInputState {
 		this.windowTo(windowAt(this.point, 'day'), 320);
 	}
 	hours() {
+		this.#timeTouched = true;
 		// Date-only noon is a visual coordinate. Precision changes only on this explicit action.
 		if (!this.draft.timed) {
 			this.draft = {
@@ -208,7 +217,24 @@ export class TimeInputState {
 		if (this.mode === 'minute') {
 			const day = dayWindow(edge === 'end' ? (base.end ?? base.start) : base.start);
 			target = Math.max(day.start, Math.min(day.end - MINUTE, snapped(target, 'minute', step)));
-		} else target = dayAt(target);
+			this.#timeTouched = true;
+		} else {
+			target = dayAt(target);
+			// Another day, with the prefilled time still untouched: the time goes with the day.
+			if (
+				this.#prefilledTime &&
+				!this.#timeTouched &&
+				base.timed &&
+				edge === 'start' &&
+				target !== dayAt(base.start)
+			)
+				base = {
+					...base,
+					start: dayAt(base.start),
+					end: base.end === null ? null : dayAt(base.end),
+					timed: false
+				};
+		}
 		this.edge = edge;
 		this.pickingEnd = false;
 		this.draft =
@@ -218,6 +244,7 @@ export class TimeInputState {
 	translate(target: number, step = MINUTE, base = this.draft) {
 		target = snapped(target, this.mode, step);
 		if (this.mode === 'minute') {
+			this.#timeTouched = true;
 			const bounds = dayWindow(base.start);
 			target = Math.max(bounds.start, Math.min(bounds.end - MINUTE, target));
 		}
@@ -239,6 +266,17 @@ export class TimeInputState {
 		if (!this.draft.timed) this.hours();
 		this.mode = 'minute';
 		this.pick(target);
+	}
+	/** «Сейчас»: this day and this minute, as a time the user set. */
+	now(at = Date.now()) {
+		const target = snapped(at, 'minute', MINUTE);
+		this.mode = 'day';
+		this.pick(dayAt(target));
+		this.hours();
+		this.mode = 'minute';
+		this.pick(target);
+		this.calendar = false;
+		this.windowTo(dayWindow(this.point), 320);
 	}
 	chooseDay(target: number) {
 		this.draft = { ...this.draft, date: undefined };

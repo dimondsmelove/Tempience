@@ -93,7 +93,7 @@
 	"theme.connLocal": "Local · the device is not paired",
 	"theme.connOnline": "Connected · changes sync",
 	"theme.connOffline": "Offline · changes are kept on this device",
-	"rows.height": "Row height",
+	"rows.height": "Timeline row height",
 	"rows.heightShort": "Height",
 	"rows.lower": "Lower rows",
 	"rows.decrease": "Decrease the row height",

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/state/Locale/Locale.svelte';
+	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { FIELD_KINDS, UNIT_IDS } from '$lib/model/TraceForm/constants';
 	import { newTraceField, newChoice } from '$lib/model/TraceForm/TraceForm';
@@ -25,29 +26,48 @@
 	};
 </script>
 
-<div class="@container min-w-0" data-testid="form-field-list">
+<!-- Every field is a card a shade lighter than the page, nested ones a shade darker again:
+     the eye reads the blocks, no dividers needed (owner, 2026-09-18). -->
+<div class="@container grid min-w-0 gap-2" data-testid="form-field-list">
 	{#each fields as field, index (field.id)}
 		<section
-			class="min-w-0 border-b border-outline py-4"
+			class={[
+				'min-w-0 rounded-[var(--cg-radius-surface)] p-3',
+				depth % 2 ? 'bg-canvas' : 'bg-surface'
+			]}
 			aria-label={t('form.fieldN', { n: index + 1 })}
 			data-testid="form-field"
 		>
-			<div class="mb-3 flex flex-wrap items-center gap-2">
-				<span class="mr-auto font-mono text-xs text-muted">{index + 1}</span>
+			<div class="mb-3 flex flex-wrap items-center gap-1">
+				<span class="mr-auto font-mono text-xs text-muted"
+					>{t('form.fieldN', { n: index + 1 })}</span
+				>
 				<Button
 					size="sm"
+					variant="quiet"
+					icon
 					disabled={index === 0}
 					aria-label={t('form.moveUp')}
+					title={t('form.moveUp')}
 					onclick={() => move(index, -1)}>↑</Button
 				>
 				<Button
 					size="sm"
+					variant="quiet"
+					icon
 					disabled={index === fields.length - 1}
 					aria-label={t('form.moveDown')}
+					title={t('form.moveDown')}
 					onclick={() => move(index, 1)}>↓</Button
 				>
-				<Button size="sm" onclick={() => (fields = fields.filter((entry) => entry.id !== field.id))}
-					>{t('form.removeField')}</Button
+				<Button
+					size="sm"
+					variant="quiet"
+					icon
+					aria-label={t('form.removeField')}
+					title={t('form.removeField')}
+					onclick={() => (fields = fields.filter((entry) => entry.id !== field.id))}
+					><TrashBinOutline class="h-4 w-4" /></Button
 				>
 			</div>
 			<div class="grid min-w-0 gap-3 @min-[28rem]:grid-cols-2">
@@ -101,7 +121,7 @@
 						>
 					</div>
 				{/if}
-				<div class="mt-3 min-w-0 border-l border-outline pl-3">
+				<div class="mt-3 min-w-0">
 					<FieldEditor bind:fields={field.fields} depth={depth + 1} />
 				</div>
 			{:else}
@@ -193,7 +213,7 @@
 				</p>{/if}
 		</section>
 	{/each}
-	<div class="mt-4 flex flex-wrap items-end gap-2">
+	<div class="mt-2 flex flex-wrap items-end gap-2">
 		<label class="grid min-w-0 flex-1 gap-1 text-sm"
 			>{depth ? t('form.newNested') : t('form.newField')}
 			<select class="cg-control cg-field" bind:value={addKind}
