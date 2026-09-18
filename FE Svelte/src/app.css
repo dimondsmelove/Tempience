@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+@import '@fontsource/commissioner/cyrillic-400.css';
+@import '@fontsource/commissioner/cyrillic-500.css';
+@import '@fontsource/commissioner/cyrillic-600.css';
+@import '@fontsource/commissioner/cyrillic-700.css';
+@import '@fontsource/commissioner/latin-400.css';
+@import '@fontsource/commissioner/latin-500.css';
+@import '@fontsource/commissioner/latin-600.css';
+@import '@fontsource/commissioner/latin-700.css';
+@import '@fontsource/geist-mono/cyrillic-400.css';
+@import '@fontsource/geist-mono/cyrillic-500.css';
+@import '@fontsource/geist-mono/cyrillic-600.css';
+@import '@fontsource/geist-mono/latin-400.css';
+@import '@fontsource/geist-mono/latin-500.css';
+@import '@fontsource/geist-mono/latin-600.css';
+@import './theme/tokens.css';
+
+@plugin "flowbite/plugin";
+
+@custom-variant dark (&:is([data-theme=dark] *, .dark *));
+
+@source "../src/**/*.{html,js,svelte,ts}";
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+
+@theme inline {
+	--font-sans: var(--cg-font-sans);
+	--font-mono: var(--cg-font-mono);
+	--spacing: var(--cg-space-1);
+
+	--radius-sm: var(--cg-radius-mark);
+	--radius-md: var(--cg-radius-control);
+	--radius-lg: var(--cg-radius-control);
+	--radius-xl: var(--cg-radius-surface);
+	--radius-2xl: var(--cg-radius-surface);
+
+	--color-primary-50: var(--cg-primary-50);
+	--color-primary-100: var(--cg-primary-100);
+	--color-primary-200: var(--cg-primary-200);
+	--color-primary-300: var(--cg-primary-300);
+	--color-primary-400: var(--cg-primary-400);
+	--color-primary-500: var(--cg-primary-500);
+	--color-primary-600: var(--cg-primary-600);
+	--color-primary-700: var(--cg-primary-700);
+	--color-primary-800: var(--cg-primary-800);
+	--color-primary-900: var(--cg-primary-900);
+
+	--color-secondary-50: var(--cg-secondary-50);
+	--color-secondary-100: var(--cg-secondary-100);
+	--color-secondary-200: var(--cg-secondary-200);
+	--color-secondary-300: var(--cg-secondary-300);
+	--color-secondary-400: var(--cg-secondary-400);
+	--color-secondary-500: var(--cg-secondary-500);
+	--color-secondary-600: var(--cg-secondary-600);
+	--color-secondary-700: var(--cg-secondary-700);
+	--color-secondary-800: var(--cg-secondary-800);
+	--color-secondary-900: var(--cg-secondary-900);
+
+	--color-canvas: var(--cg-bg-canvas);
+	--color-surface: var(--cg-bg-surface);
+	--color-raised: var(--cg-bg-raised);
+	--color-outline: var(--cg-border-default);
+	--color-ink: var(--cg-text-primary);
+	--color-muted: var(--cg-text-muted);
+	--color-accent: var(--cg-accent);
+	--color-accent-ink: var(--cg-text-on-accent);
+}
+
+@layer base {
+	html {
+		@apply scroll-smooth;
+	}
+
+	body {
+		@apply min-h-screen antialiased;
+		background-color: var(--cg-bg-canvas);
+		color: var(--cg-text-primary);
+		font-family: var(--cg-font-sans);
+	}
+
+	input[type='search']::-webkit-search-cancel-button {
+		display: none;
+	}
+}

@@ -1,0 +1,162 @@
+/* Shared roles for the new shell; legacy surfaces retain their existing styling. */
+.appearance-shell {
+	font-family: var(--cg-font-sans);
+	font-size: var(--text-base);
+	font-weight: var(--cg-text-weight-regular);
+	line-height: var(--cg-line-height);
+}
+.appearance-shell .cg-control {
+	min-height: var(--cg-control-height);
+	gap: calc(var(--cg-gap) * 0.75);
+	border-radius: var(--cg-radius-control);
+	border-width: var(--cg-border-width);
+	padding: var(--cg-control-padding-y) var(--cg-control-padding-x);
+	font-size: var(--cg-text-size-control);
+	line-height: 1.3;
+}
+.appearance-shell .cg-control:focus-visible {
+	outline: 2px solid var(--cg-focus);
+	outline-offset: 2px;
+}
+.appearance-shell .cg-control-sm {
+	min-height: var(--cg-control-height-sm);
+	padding: calc(var(--cg-control-padding-y) * 0.833333) calc(var(--cg-control-padding-x) * 0.833333);
+	font-size: var(--cg-text-size-caption);
+}
+.appearance-shell .cg-control-icon {
+	width: var(--cg-control-height);
+	padding-inline: 0;
+}
+.appearance-shell .cg-control-icon-sm {
+	width: var(--cg-control-height-sm);
+	padding-inline: 0;
+}
+.appearance-shell .cg-panel {
+	padding: var(--cg-panel-padding);
+	gap: var(--cg-gap);
+	border-radius: var(--cg-radius-surface);
+}
+.appearance-shell .cg-field {
+	width: 100%;
+	background: var(--cg-bg-input);
+	color: var(--cg-text-primary);
+	border: var(--cg-border-width) solid var(--cg-border-default);
+}
+/* Placeholders are hints, while entered values keep the primary text color. */
+.appearance-shell input::placeholder,
+.appearance-shell textarea::placeholder {
+	color: var(--cg-text-muted);
+	opacity: 1;
+}
+.appearance-shell .cg-field:disabled {
+	opacity: 0.5;
+}
+.appearance-shell .cg-label {
+	display: grid;
+	gap: calc(var(--cg-gap) * 0.5);
+	font-size: var(--cg-text-size-caption);
+}
+.appearance-shell .cg-toolbar {
+	min-height: calc(var(--cg-control-height) + var(--cg-gap) * 1.5);
+	gap: var(--cg-gap);
+	padding-inline: calc(var(--cg-panel-padding) * 0.857143);
+}
+.appearance-shell .cg-heading {
+	font-size: var(--cg-text-size-section);
+	font-weight: 600;
+}
+/* Restore native checkbox painting after Flowbite resets appearance. */
+.appearance-shell input[type='checkbox'] {
+	appearance: auto;
+	cursor: pointer;
+}
+.appearance-shell input[type='checkbox']:disabled {
+	cursor: default;
+}
+.appearance-shell input[type='range'],
+.appearance-shell input[type='checkbox'] {
+	accent-color: var(--cg-accent);
+}
+
+.appearance-shell .border-b {
+	border-bottom-width: var(--cg-border-width);
+}
+.appearance-shell .border-t {
+	border-top-width: var(--cg-border-width);
+}
+.appearance-shell .border-r {
+	border-right-width: var(--cg-border-width);
+}
+.appearance-shell ::selection {
+	background: var(--cg-accent-secondary);
+	color: var(--cg-text-on-secondary);
+}
+
+.appearance-shell .data-space-select {
+	height: auto;
+	max-width: 11rem;
+	background: var(--cg-bg-input);
+	color: var(--cg-text-primary);
+	border-color: var(--cg-border-default);
+}
+.appearance-shell .data-space-select[data-kind='scenario'] {
+	background: var(--cg-accent-secondary);
+	color: var(--cg-text-on-secondary);
+	border-color: var(--cg-accent-secondary);
+}
+.appearance-shell .sync-badge {
+	background: var(--cg-bg-raised);
+	color: var(--cg-text-muted);
+	font-size: var(--cg-text-size-caption);
+	border-radius: var(--cg-radius-control);
+}
+.appearance-shell .sync-badge[data-sync-state='online'] {
+	color: var(--cg-success);
+}
+.appearance-shell .sync-badge[data-sync-state='error'],
+.appearance-shell .sync-error {
+	color: var(--cg-danger);
+}
+.appearance-shell .sync-badge[data-sync-state='connecting'],
+.appearance-shell .sync-pending {
+	color: var(--cg-warning);
+}
+.appearance-shell .sync-widget a,
+.appearance-shell .sync-widget button:not(.cg-control) {
+	color: var(--cg-accent);
+}
+.appearance-shell .sync-muted {
+	color: var(--cg-text-muted);
+}
+.appearance-shell .sync-trigger {
+	width: var(--cg-control-height-sm);
+	height: var(--cg-control-height-sm);
+}
+.appearance-shell .sync-widget button:not(.cg-control):hover {
+	background: var(--cg-accent-muted);
+	color: var(--cg-text-primary);
+}
+.appearance-shell .data-space-trigger,
+.appearance-shell .data-space-action {
+	min-width: var(--cg-control-height-sm);
+	min-height: var(--cg-control-height-sm);
+	padding: var(--cg-control-padding-y) var(--cg-control-padding-x);
+	background: var(--cg-bg-raised);
+	color: var(--cg-text-primary);
+	border-radius: var(--cg-radius-control);
+	border-color: var(--cg-warning);
+	border-width: var(--cg-border-width);
+}
+.appearance-shell .data-space-danger {
+	background: var(--cg-danger);
+	color: var(--cg-text-on-accent);
+}
+.appearance-shell .cg-popover {
+	background: var(--cg-bg-popover);
+	color: var(--cg-text-primary);
+	border-radius: var(--cg-radius-surface);
+	border-color: var(--cg-border-default);
+	border-width: var(--cg-border-width);
+	padding: var(--cg-panel-padding);
+	box-shadow: var(--cg-shadow);
+}

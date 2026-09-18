@@ -1,0 +1,85 @@
+.clock-panel {
+	padding: 12px;
+	width: 260px;
+	text-align: center;
+}
+.clock-wheels {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	min-width: 0;
+}
+.time-wheel {
+	flex: 1;
+	min-width: 0;
+	width: 96px;
+}
+.wheel-label {
+	display: block;
+	font-size: 11px;
+	color: var(--cg-text-muted);
+	margin: 5px 0 12px;
+}
+.wheel-frame {
+	height: var(--time-wheel-height, 220px);
+	position: relative;
+}
+.wheel-list {
+	height: var(--time-wheel-height, 220px);
+	padding: var(--time-wheel-padding, 88px) 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scroll-snap-type: y mandatory;
+	scrollbar-width: none;
+	touch-action: pan-y;
+	mask-image: linear-gradient(
+		transparent,
+		var(--cg-text-primary) 30%,
+		var(--cg-text-primary) 70%,
+		transparent
+	);
+}
+.wheel-list::-webkit-scrollbar {
+	display: none;
+}
+.wheel-list button {
+	position: relative;
+	z-index: 1;
+	display: block;
+	width: 100%;
+	height: 44px;
+	flex-shrink: 0;
+	scroll-snap-align: center;
+	font: 24px var(--cg-font-mono);
+	color: var(--cg-text-muted);
+	cursor: pointer;
+	border: 0;
+	padding: 0 4px;
+	background: transparent;
+}
+.wheel-list button:focus-visible {
+	outline: 2px solid var(--cg-accent);
+	outline-offset: -3px;
+	border-radius: 8px;
+}
+.wheel-list button[aria-disabled='true'] {
+	opacity: 0.35;
+	cursor: default;
+}
+.compact-wheel .wheel-list button {
+	font-size: 14px;
+}
+.wheel-list button[aria-selected='true'] {
+	color: var(--cg-accent);
+	font-weight: 500;
+}
+.wheel-focus {
+	position: absolute;
+	top: var(--time-wheel-padding, 88px);
+	height: 44px;
+	width: 100%;
+	pointer-events: none;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--cg-accent) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--cg-accent) 30%, transparent);
+}

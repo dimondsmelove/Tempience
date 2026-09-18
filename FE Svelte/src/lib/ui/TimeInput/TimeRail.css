@@ -1,0 +1,271 @@
+.time-input-rail {
+	position: relative;
+	min-height: 230px;
+	overflow: hidden;
+	touch-action: none;
+	user-select: none;
+	cursor: grab;
+	color: var(--cg-text-primary);
+	background: var(--cg-bg-canvas);
+}
+.time-input-rail[data-dragging] {
+	cursor: grabbing;
+}
+.time-input-rail.time-input-overlay {
+	position: absolute;
+	inset: 0;
+	min-height: 100%;
+	background: color-mix(in srgb, var(--cg-bg-canvas) 32%, transparent);
+	z-index: 5;
+}
+.input-baseline {
+	position: absolute;
+	top: 66px;
+	inset-inline: 0;
+	border-top: 1px solid var(--cg-border-default);
+}
+.input-tick {
+	position: absolute;
+	top: 58px;
+	bottom: 0;
+	width: 1px;
+	background: linear-gradient(to bottom, var(--cg-border-default) 0 8px, transparent 8px);
+	pointer-events: none;
+}
+.input-tick.major {
+	top: 50px;
+	background: linear-gradient(
+		to bottom,
+		var(--cg-border-default) 0 16px,
+		color-mix(in srgb, var(--cg-border-default) 30%, transparent) 16px
+	);
+}
+.input-tick-label {
+	position: absolute;
+	top: -47px;
+	left: 0;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 2px;
+	min-width: 44px;
+	height: 44px;
+	font: inherit;
+	font-size: 13px;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+.input-tick-label small {
+	font-size: 10px;
+	color: var(--cg-text-muted);
+}
+.input-handle {
+	position: absolute;
+	top: 67px;
+	bottom: 42px;
+	width: 44px;
+	transform: translateX(-50%);
+	background: transparent;
+	border: 0;
+	padding: 0;
+	cursor: ew-resize;
+	z-index: 3;
+}
+.input-handle::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	left: 21px;
+	background: var(--cg-accent);
+	opacity: 0.5;
+}
+.input-handle.active::before {
+	width: 3px;
+	opacity: 1;
+}
+.input-pin {
+	position: absolute;
+	top: 0;
+	left: 14px;
+	width: 16px;
+	height: 24px;
+	border: 2px solid var(--cg-accent);
+	border-radius: 5px 5px 9px 9px;
+	background: var(--cg-bg-surface);
+}
+.input-handle.active .input-pin {
+	background: var(--cg-accent);
+}
+.input-handle.end {
+	top: 96px;
+}
+.input-handle.end::before {
+	top: -29px;
+}
+.input-value {
+	position: absolute;
+	top: 32px;
+	left: 50%;
+	transform: translateX(-50%);
+	white-space: nowrap;
+	border: 1px solid var(--cg-border-default);
+	background: var(--cg-bg-surface);
+	padding: 6px 9px;
+	border-radius: 8px;
+	font-size: 12px;
+	font-weight: 600;
+	box-shadow: 0 3px 14px color-mix(in srgb, var(--cg-text-primary) 8%, transparent);
+}
+.input-range {
+	position: absolute;
+	top: 67px;
+	bottom: 42px;
+	min-width: 2px;
+	border: 0;
+	background: color-mix(in srgb, var(--cg-accent) 13%, transparent);
+	cursor: grab;
+}
+.input-range span {
+	position: absolute;
+	bottom: 12px;
+	left: 50%;
+	font-size: 20px;
+	color: var(--cg-accent);
+}
+.input-rail-hint {
+	position: absolute;
+	bottom: 12px;
+	inset-inline: 0;
+	text-align: center;
+	pointer-events: none;
+	color: var(--cg-text-muted);
+	font-size: 12px;
+}
+.time-input-overlay .input-rail-hint {
+	bottom: 24px;
+}
+.input-tick-label:focus-visible,
+.input-handle:focus-visible,
+.input-range:focus-visible {
+	outline: 2px solid var(--cg-accent);
+	outline-offset: 2px;
+}
+
+.input-ruler {
+	position: relative;
+	height: 67px;
+	overflow: hidden;
+	background: var(--cg-bg-canvas);
+}
+.input-ruler .input-baseline {
+	top: auto;
+	bottom: 0;
+}
+.time-input-overlay .input-handle,
+.time-input-overlay .input-range {
+	top: 0;
+}
+.time-input-overlay .input-handle.end {
+	top: 29px;
+}
+.input-guide {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	pointer-events: none;
+	background: color-mix(in srgb, var(--cg-border-default) 30%, transparent);
+}
+
+.input-extend {
+	position: absolute;
+	top: 62px;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--cg-accent);
+	cursor: ew-resize;
+	z-index: 4;
+}
+.time-input-overlay .input-extend {
+	top: 0;
+}
+.time-input-overlay .extend-grip {
+	top: 0;
+}
+.time-input-overlay .extend-line {
+	top: 12px;
+}
+.extend-line {
+	position: absolute;
+	left: -8px;
+	right: 22px;
+	top: 17px;
+	border-top: 1px dashed var(--cg-accent);
+	opacity: 0.65;
+	pointer-events: none;
+}
+.extend-grip {
+	position: absolute;
+	top: 5px;
+	right: 4px;
+	width: 18px;
+	height: 24px;
+	display: grid;
+	place-items: center;
+	border: 1px dashed var(--cg-accent);
+	border-radius: 5px;
+	font-size: 20px;
+	line-height: 1;
+	background: var(--cg-bg-surface);
+}
+.input-extend:hover .extend-grip,
+.input-extend:focus-visible .extend-grip,
+.input-extend.armed .extend-grip {
+	border-style: solid;
+	background: var(--cg-accent);
+	color: var(--cg-bg-canvas);
+}
+.input-extend:focus-visible {
+	outline: 2px solid var(--cg-accent);
+	outline-offset: 2px;
+	border-radius: 6px;
+}
+.extend-tip {
+	display: none;
+	position: absolute;
+	top: 42px;
+	right: 0;
+	padding: 5px 8px;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 6px;
+	background: var(--cg-bg-surface);
+	color: var(--cg-text-muted);
+	font-size: 11px;
+	white-space: nowrap;
+}
+@media (hover: hover) {
+	.input-extend:hover .extend-tip,
+	.input-extend:focus-visible .extend-tip {
+		display: block;
+	}
+}
+.time-input-rail.picking-end {
+	cursor: crosshair;
+}
+.time-input-rail.picking-end .input-rail-hint {
+	color: var(--cg-accent);
+}
+
+.input-range.input-window {
+	border-style: dashed;
+	background: transparent;
+}

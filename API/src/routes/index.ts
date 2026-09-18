@@ -1,0 +1,44 @@
+import { Hono } from 'hono';
+import { mountLegacyGone } from '../middleware/legacy-gone';
+import { captureRoutes } from './capture';
+import { dayRoutes } from './days';
+import { healthRoutes } from './health';
+import { inboxRoutes } from './inbox';
+import { inquiryRoutes } from './inquiries';
+import { lensRoutes } from './lens';
+import { nowRoutes } from './now';
+import { scopeRoutes } from './scopes';
+import { searchRoutes } from './search';
+import { semanticRoutes } from './semantic';
+import { spaceProfileRoutes } from './space-profile';
+import { lifeMapRoutes } from './life-map';
+import { tagRoutes } from './tags';
+import { traceRoutes } from './traces';
+import { triggerRoutes } from './triggers';
+
+export const api = new Hono();
+
+api.route('/', healthRoutes);
+api.route('/traces', traceRoutes);
+api.route('/capture', captureRoutes);
+api.route('/days', dayRoutes);
+api.route('/inbox', inboxRoutes);
+api.route('/lens', lensRoutes);
+api.route('/inquiries', inquiryRoutes);
+api.route('/now', nowRoutes);
+api.route('/triggers', triggerRoutes);
+api.route('/semantic', semanticRoutes);
+api.route('/scopes', scopeRoutes);
+api.route('/search', searchRoutes);
+api.route('/space-profile', spaceProfileRoutes);
+api.route('/life-map', lifeMapRoutes);
+api.route('/tags', tagRoutes);
+
+mountLegacyGone(api, '/areas', 'areas');
+mountLegacyGone(api, '/projects', 'projects');
+mountLegacyGone(api, '/tasks', 'tasks');
+mountLegacyGone(api, '/links', 'links');
+mountLegacyGone(api, '/stitches', 'stitches');
+mountLegacyGone(api, '/period-closures', 'period-closures');
+mountLegacyGone(api, '/continuities', 'continuities');
+mountLegacyGone(api, '/attachments', 'tasks');

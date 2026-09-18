@@ -1,0 +1,376 @@
+.time-picker {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	width: 100%;
+	background: var(--cg-bg-surface);
+	color: var(--cg-text-primary);
+	overflow: hidden;
+	border-radius: 12px;
+	container-type: inline-size;
+}
+.time-picker:focus {
+	outline: none;
+}
+.time-picker button {
+	min-height: 44px;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+.time-picker button:focus-visible {
+	outline: 2px solid var(--cg-accent);
+	outline-offset: -3px;
+	border-radius: 8px;
+}
+.picker-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px 4px;
+	flex-shrink: 0;
+}
+.picker-heading > div {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+}
+.picker-heading strong {
+	font-size: 16px;
+	font-weight: 550;
+}
+.picker-heading span {
+	font-size: 12px;
+	color: var(--cg-text-muted);
+}
+.picker-dismiss {
+	width: 44px;
+	font-size: 26px;
+}
+.picker-boundaries {
+	display: flex;
+	gap: 8px;
+	padding: 0 12px 8px;
+	flex-shrink: 0;
+}
+.picker-boundary {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 12px;
+}
+.picker-boundary.active {
+	border-color: color-mix(in srgb, var(--cg-accent) 50%, var(--cg-border-default));
+	background: color-mix(in srgb, var(--cg-accent) 7%, var(--cg-bg-surface));
+}
+.picker-boundary > button:first-child {
+	flex: 1;
+	min-width: 0;
+	text-align: left;
+	padding: 10px 12px;
+}
+.picker-boundary small {
+	display: block;
+	color: var(--cg-text-muted);
+	font-size: 11px;
+	margin-bottom: 4px;
+}
+.picker-boundary span {
+	font-size: 14px;
+}
+.picker-boundary b {
+	display: block;
+	font-size: 16px;
+	font-weight: 550;
+	margin-top: 3px;
+}
+.picker-boundary .remove-end {
+	width: 44px;
+	flex-shrink: 0;
+	font-size: 20px;
+}
+.pending-boundary {
+	flex-direction: column;
+	padding: 8px 10px 0;
+}
+.pending-boundary span {
+	font-size: 11px;
+	color: var(--cg-text-muted);
+}
+.pending-boundary strong {
+	font-size: 13px;
+	font-weight: 500;
+}
+.pending-boundary button {
+	font-size: 11px;
+	text-align: left;
+	padding: 0;
+}
+.picker-body {
+	flex: 1;
+	padding: 0 12px 8px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	min-height: 0;
+}
+.picker-navigation {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+.picker-navigation > button:first-child {
+	text-align: left;
+	font-size: 14px;
+	padding: 0 8px;
+}
+.picker-navigation > button:first-child span {
+	margin-left: 8px;
+	color: var(--cg-accent);
+	font-size: 20px;
+}
+.picker-today {
+	font-size: 12px;
+	padding: 0 8px;
+}
+.picker-columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.5fr);
+	gap: 8px;
+	align-items: start;
+}
+.picker-columns > .time-wheel {
+	width: auto;
+}
+.picker-clock {
+	min-width: 0;
+}
+.picker-clock > .time-wheel {
+	width: 100%;
+}
+.picker-options {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 14px;
+}
+.picker-view-toggle {
+	display: flex;
+	padding: 3px;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 10px;
+}
+.picker-view-toggle button {
+	padding: 0 14px;
+	font-size: 12px;
+	border-radius: 7px;
+}
+.picker-view-toggle button[aria-pressed='true'] {
+	background: var(--cg-bg-raised);
+	color: var(--cg-accent);
+}
+.date-only-hint,
+.clear-clock {
+	font-size: 12px;
+	color: var(--cg-text-muted);
+}
+.picker-add-end {
+	font-size: 13px;
+	color: var(--cg-text-muted);
+	padding: 0 8px;
+	margin-top: 6px;
+}
+.picker-footer {
+	display: flex;
+	justify-content: space-between;
+	gap: 4px;
+	padding: 8px;
+	flex-shrink: 0;
+	border-top: 1px solid var(--cg-border-default);
+}
+.picker-footer button {
+	flex: 1;
+	min-width: 0;
+	min-height: 44px;
+	padding: 0 6px;
+	font-size: 12px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--cg-text-primary);
+	cursor: pointer;
+}
+.picker-footer button:focus-visible {
+	outline: 2px solid var(--cg-accent);
+	outline-offset: -3px;
+}
+.picker-on-scale {
+	flex: 0 0 auto;
+}
+.picker-scale-hint {
+	font-size: 12px;
+	color: var(--cg-text-muted);
+	margin: 4px 0 8px;
+}
+.picker-footer .picker-apply {
+	background: var(--cg-accent);
+	color: var(--cg-text-on-accent);
+	font-weight: 550;
+}
+.time-list .wheel-focus {
+	display: none;
+}
+.time-list .wheel-list {
+	padding: 0;
+	mask-image: none;
+	scroll-snap-type: none;
+}
+.time-list .wheel-list button {
+	scroll-snap-align: none;
+	font-size: 15px;
+	border-radius: 8px;
+}
+.time-list .wheel-list button[aria-selected='true'] {
+	background: color-mix(in srgb, var(--cg-accent) 12%, transparent);
+}
+.calendar-columns {
+	grid-template-columns: 1fr;
+}
+.calendar-columns .picker-clock {
+	width: 66%;
+	justify-self: end;
+}
+.time-picker-calendar {
+	min-width: 0;
+}
+.time-picker-calendar > div {
+	display: block !important;
+	width: 100%;
+}
+.time-picker-calendar [role='dialog'] {
+	width: 100%;
+	padding: 0 !important;
+	background: transparent !important;
+	color: var(--cg-text-primary) !important;
+	box-shadow: none;
+}
+.time-picker-calendar button {
+	background: transparent !important;
+	color: var(--cg-text-primary) !important;
+	min-height: 44px;
+	padding: 0 !important;
+	border: 0 !important;
+}
+.time-picker-calendar button:hover {
+	background: var(--cg-bg-raised) !important;
+}
+.time-picker-calendar button[aria-selected='true'] {
+	background: var(--cg-accent) !important;
+	color: var(--cg-text-on-accent) !important;
+}
+.time-picker-calendar [role='columnheader'] {
+	color: var(--cg-text-muted);
+	font-size: 11px;
+}
+.back-to-days {
+	font-size: 12px;
+	width: 100%;
+}
+@container (max-width: 350px) {
+	.picker-body {
+		padding-inline: 6px;
+	}
+	.picker-heading > div {
+		gap: 8px;
+	}
+	.picker-heading span {
+		font-size: 11px;
+	}
+	.picker-boundaries {
+		padding-inline: 6px;
+	}
+	.picker-boundary > button:first-child {
+		padding: 8px;
+	}
+	.picker-options {
+		margin-top: 8px;
+	}
+	.picker-view-toggle button {
+		padding-inline: 10px;
+	}
+}
+
+.single-boundary .picker-boundary > button:first-child {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	column-gap: 8px;
+	align-items: baseline;
+}
+.single-boundary small {
+	grid-column: 1 / -1;
+}
+.single-boundary b {
+	margin: 0;
+	font-size: 14px;
+}
+
+.picker-detail-toggle {
+	display: flex;
+	gap: 4px;
+	padding: 0 12px 8px;
+	flex-shrink: 0;
+}
+.picker-detail-toggle button {
+	flex: 1;
+	min-width: 0;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 8px;
+	font-size: 13px;
+}
+.picker-detail-toggle button[aria-pressed='true'] {
+	background: var(--cg-bg-raised);
+	color: var(--cg-accent);
+	border-color: var(--cg-accent);
+}
+.duration-notice {
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--cg-text-muted);
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+@media (max-height: 700px) {
+	.time-picker {
+		--time-wheel-height: 132px;
+		--time-wheel-padding: 44px;
+	}
+	.picker-heading {
+		display: none;
+	}
+	.picker-boundaries {
+		padding-bottom: 4px;
+	}
+	.single-boundary small {
+		display: none;
+	}
+	.single-boundary .picker-boundary > button:first-child {
+		padding: 6px 8px;
+	}
+	.picker-detail-toggle {
+		padding-bottom: 4px;
+	}
+	.picker-navigation {
+		margin-bottom: 0;
+	}
+	.time-picker .wheel-label {
+		margin: 4px 0;
+	}
+}

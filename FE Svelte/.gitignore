@@ -1,0 +1,40 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+/build-public
+
+# Capacitor / Tauri (generated after cap add / tauri init)
+/android
+/ios
+/src-tauri
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# PWA dev
+dev-dist
+
+e2e/artifacts/
+test-results/
+playwright-report/
+
+
+# Generated data packs, selected per build profile
+/static/packs/

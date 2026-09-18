@@ -1,0 +1,15 @@
+[Unit]
+Description=Tempience public static frontend
+After=network.target
+
+[Service]
+Type=simple
+Environment="TEMPIENCE_PUBLIC_ROOT=%h/.local/share/tempience-public/current"
+Environment=TEMPIENCE_PUBLIC_PORT=4177
+ExecStart=%h/.local/bin/caddy run --config %h/.config/tempience-public/Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,32 @@
+{
+  "name": "tempience-chronograph",
+  "private": true,
+  "workspaces": [
+    "API",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dead-files:audit": "tsx scripts/dead-file-audit.ts",
+    "test:dead-files": "node --test scripts/dead-file-audit.test.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "npm run dev -w @chronograph/api",
+    "dev:fe": "npm run dev --prefix \"FE Svelte\"",
+    "tunnel:verify": "node scripts/verify-nice-scope-tunnel.mjs",
+    "tunnel:seed": "node scripts/seed-nice-scope-manual-test.mjs",
+    "sync:triplit": "node scripts/triplit-server.mjs",
+    "experiment:semantic-compatibility": "node scripts/semantic-compatibility/evaluate.mjs",
+    "test:semantic-compatibility": "node --test scripts/semantic-compatibility/experiment.test.mjs",
+    "test:triplit": "node --test scripts/triplit-auth.test.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.17",
+    "@hono/node-ws": "^1.3.1",
+    "@triplit/server": "^1.1.8",
+    "better-sqlite3": "^12.11.1",
+    "hono": "^4.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.0"
+  }
+}

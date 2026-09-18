@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content="Tempience" />
+		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest?v=logo-09" />
+		<meta name="theme-color" content="#0F1418" />
+		<link
+			rel="apple-touch-icon"
+			href="%sveltekit.assets%/icons/apple-touch-icon.png?v=logo-09"
+			sizes="180x180"
+		/>
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico?v=logo-09" sizes="16x16 32x32 48x48" />
+		<link
+			rel="icon"
+			href="%sveltekit.assets%/favicon.svg?v=logo-09"
+			type="image/svg+xml"
+			sizes="any"
+		/>
+		<script>
+			(function () {
+				try {
+					var key = 'chronograph-theme';
+					var legacy = localStorage.getItem('THEME_PREFERENCE_KEY');
+					var pref = localStorage.getItem(key);
+					if (!pref && (legacy === 'light' || legacy === 'dark')) {
+						pref = legacy;
+						localStorage.setItem(key, legacy);
+						localStorage.removeItem('THEME_PREFERENCE_KEY');
+					}
+					var root = document.documentElement;
+					if (pref === 'light') {
+						root.setAttribute('data-theme', 'light');
+						root.classList.remove('dark');
+					} else if (pref === 'dark') {
+						root.setAttribute('data-theme', 'dark');
+						root.classList.add('dark');
+					} else {
+						root.removeAttribute('data-theme');
+						if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+							root.classList.add('dark');
+						} else {
+							root.classList.remove('dark');
+						}
+					}
+				} catch (_err) {}
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

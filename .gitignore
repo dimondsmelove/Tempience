@@ -1,0 +1,12 @@
+data/
+uploads/
+exports/
+*.tesseract-bundle
+node_modules/
+.env
+*.db
+*.db-journal
+control-plane/reports/*
+!control-plane/reports/.gitkeep
+reports/dead-files-audit.json
+reports/dead-files-audit.md

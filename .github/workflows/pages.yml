@@ -1,0 +1,52 @@
+name: Deploy public PWA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FE Svelte
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            FE Svelte/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: .
+      - run: npm ci
+      - run: npm run check:public
+      - run: npm test
+      - run: npm run build:public
+      # SPA fallback for deep links (/time, /pair) and no Jekyll processing of _app/.
+      - run: cp build-public/index.html build-public/404.html && touch build-public/.nojekyll
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: FE Svelte/build-public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

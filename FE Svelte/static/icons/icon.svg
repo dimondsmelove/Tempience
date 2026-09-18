@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 400 400">
+  <title>Tempience</title>
+  <rect id="background" width="400" height="400" rx="70" fill="#0F1418"/>
+  <!-- Variant 09: keep the central junction and the secondary shoulder/stem cuts fixed. -->
+  <g id="mark" stroke-width="0.3" stroke-linejoin="miter" transform="translate(0 8)">
+    <path fill="#35CDB9" stroke="#35CDB9" d="M35 99 35 172 125 224Z"/>
+    <path fill="#47DAC6" stroke="#47DAC6" d="M35 99 200 179 125 224Z"/>
+    <path fill="#8BF5E2" stroke="#8BF5E2" d="M35 99 100 64 200 179Z"/>
+    <path fill="#4EE1CD" stroke="#4EE1CD" d="M100 64 202 115 200 179Z"/>
+    <path fill="#80F4E0" stroke="#80F4E0" d="M202 115 300 66 251 147 200 179Z"/>
+    <path fill="#3FD5C0" stroke="#3FD5C0" d="M300 66 359 99 251 147Z"/>
+    <path fill="#1B8E83" stroke="#1B8E83" d="M251 147 359 99 359 172 272 224Z"/>
+    <path fill="#157871" stroke="#157871" d="M200 179 251 147 272 224Z"/>
+    <path fill="#115B58" stroke="#115B58" d="M200 179 272 224 272 305 258 315Z"/>
+    <path fill="#14746E" stroke="#14746E" d="M200 179 258 315 205 351Z"/>
+    <path fill="#33CBB6" stroke="#33CBB6" d="M200 179 205 351 163 268Z"/>
+    <path fill="#45DBC5" stroke="#45DBC5" d="M163 268 205 351 140 315Z"/>
+    <path fill="#5EE8D4" stroke="#5EE8D4" d="M125 224 200 179 163 268 140 315 127 306Z"/>
+  </g>
+</svg>

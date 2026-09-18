@@ -1,0 +1,202 @@
+.time-prototype {
+	min-height: 100dvh;
+	color: var(--cg-text-primary);
+	background: var(--cg-bg-canvas);
+}
+.prototype-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 20px 28px;
+	border-bottom: 1px solid var(--cg-border-default);
+	font-size: 13px;
+	color: var(--cg-text-muted);
+}
+.prototype-header > :first-child {
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--cg-text-primary);
+}
+.prototype-form {
+	width: min(100% - 40px, 660px);
+	margin: 48px auto;
+	display: flex;
+	flex-direction: column;
+	gap: 22px;
+}
+.prototype-form h1 {
+	margin: 0;
+	font-size: 24px;
+	font-weight: 550;
+}
+.prototype-text {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--cg-text-muted);
+}
+.prototype-text textarea {
+	resize: vertical;
+	width: 100%;
+	min-height: 96px;
+	color: var(--cg-text-primary);
+}
+.prototype-time-field {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	text-align: left;
+	background: var(--cg-bg-surface);
+	border: 1px solid var(--cg-border-default);
+	border-radius: 12px;
+	padding: 15px;
+	color: var(--cg-text-primary);
+	cursor: pointer;
+}
+.prototype-time-field small {
+	font-size: 12px;
+	color: var(--cg-text-muted);
+}
+.prototype-time-field > span {
+	max-width: 100%;
+	font-size: 15px;
+}
+.prototype-time-field .field-edit {
+	font-size: 12px;
+	color: var(--cg-accent);
+}
+.prototype-note {
+	font-size: 12px;
+	color: var(--cg-text-muted);
+	margin: 0;
+}
+.standalone-time-editor {
+	border: 1px solid var(--cg-border-default);
+	border-radius: 16px;
+	overflow: hidden;
+	background: var(--cg-bg-surface);
+}
+@media (max-width: 600px) {
+	.prototype-header {
+		padding: 16px;
+		font-size: 11px;
+	}
+	.prototype-form {
+		width: calc(100% - 24px);
+		margin: 24px auto;
+		gap: 16px;
+	}
+}
+
+.prototype-form-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.prototype-form-heading > span {
+	font-size: 11px;
+	color: var(--cg-text-muted);
+}
+.prototype-workbench {
+	height: 100dvh;
+	min-height: 0;
+}
+.prototype-workbench .prototype-form {
+	width: 100%;
+	margin: 0;
+	padding: 20px;
+	gap: 20px;
+	overflow: auto;
+}
+.prototype-workbench .prototype-form h1 {
+	font-size: 20px;
+}
+.prototype-variant {
+	font-size: 12px;
+	color: var(--cg-accent);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.prototype-workbench .context-panel {
+	overflow: auto;
+}
+.prototype-workbench .input-clock {
+	font-size: 19px;
+	font-weight: 550;
+}
+@media (max-width: 600px) {
+	.prototype-workbench .prototype-form {
+		padding: 18px 16px;
+		gap: 18px;
+	}
+}
+
+.prototype-form.editing {
+	min-height: 0;
+	height: 100%;
+	gap: 12px;
+	overflow: hidden;
+}
+.prototype-form.editing > .prototype-form-heading,
+.prototype-form.editing > .prototype-text {
+	flex-shrink: 0;
+}
+.prototype-form.editing textarea {
+	min-height: 56px;
+	resize: none;
+}
+.prototype-workbench .prototype-form.editing {
+	padding: 12px;
+}
+.prototype-form.phone-form.editing {
+	padding: 0;
+	gap: 0;
+}
+.prototype-form.phone-form.editing > .prototype-form-heading,
+.prototype-form.phone-form.editing > .prototype-text {
+	display: none;
+}
+.phone-form.editing .time-picker {
+	border-radius: 0;
+}
+.phone-form.choosing-on-scale .picker-heading {
+	display: none;
+}
+.phone-form.choosing-on-scale .picker-boundaries {
+	padding-top: 4px;
+}
+.phone-form.choosing-on-scale .picker-on-scale {
+	flex-shrink: 1;
+	overflow-y: auto;
+}
+.prototype-mobile-actions {
+	grid-column: 1 / -1;
+	position: relative;
+	z-index: 45;
+	background: var(--cg-bg-surface);
+}
+.prototype-mobile-actions .picker-footer {
+	padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+.time-prototype:not(.prototype-workbench) main {
+	height: calc(100dvh - 66px);
+}
+.time-prototype:not(.prototype-workbench) .prototype-form.editing {
+	margin-block: 0;
+	padding-block: 12px;
+}
+
+@media (max-width: 575px) {
+	.time-prototype:not(.prototype-workbench) .prototype-form.editing > .prototype-text,
+	.time-prototype:not(.prototype-workbench) .prototype-form.editing > .prototype-form-heading {
+		display: none;
+	}
+	.time-prototype:not(.prototype-workbench) .prototype-form.editing {
+		width: 100%;
+		padding: 0;
+	}
+}

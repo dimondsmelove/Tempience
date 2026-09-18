@@ -1,0 +1,10 @@
+@import './tokens.generated.css';
+
+/* Ledger geometry is runtime configuration, not part of the visual token set. */
+[data-theme='dark'] {
+	--cg-ledger-pool-width: 248px;
+	--cg-ledger-px-per-min-week: 0.88;
+	--cg-ledger-px-per-min-day: 0.9;
+	--cg-ledger-hour-gutter-week: 36px;
+	--cg-ledger-hour-gutter-day: 44px;
+}

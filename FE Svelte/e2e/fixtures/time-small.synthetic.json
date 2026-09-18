@@ -1,0 +1,257 @@
+{
+	"schemaVersion": "tempience.calibration-review.v2",
+	"manifestId": "synthetic-calibration-timeline",
+	"title": "Synthetic Scope × Time fixture",
+	"sourceIds": ["source:synthetic"],
+	"claimRefs": ["claim:work", "claim:scope", "claim:start", "claim:outside", "claim:phase"],
+	"claimEvidence": [
+		{
+			"claimRef": "claim:work",
+			"statement": "Работа является верхним контекстом проекта.",
+			"sourceWording": "Рабочий контекст",
+			"sourceRefs": [
+				{
+					"sourceId": "source:synthetic",
+					"title": "Synthetic source",
+					"locator": "work fragment"
+				}
+			]
+		},
+		{
+			"claimRef": "claim:scope",
+			"statement": "Проект является самостоятельной рамкой.",
+			"sourceWording": "Отдельный проект",
+			"sourceRefs": [
+				{
+					"sourceId": "source:synthetic",
+					"title": "Synthetic source",
+					"locator": "scope fragment"
+				}
+			]
+		},
+		{
+			"claimRef": "claim:start",
+			"statement": "Проект начался 6 сентября 2025 года.",
+			"sourceWording": "6 сентября в 10:00 начал проект",
+			"sourceRefs": [
+				{
+					"sourceId": "source:synthetic",
+					"title": "Synthetic source",
+					"locator": "start fragment"
+				}
+			]
+		},
+		{
+			"claimRef": "claim:outside",
+			"statement": "В октябре произошло отдельное событие.",
+			"sourceWording": "2 октября событие",
+			"sourceRefs": [
+				{
+					"sourceId": "source:synthetic",
+					"title": "Synthetic source",
+					"locator": "outside fragment"
+				}
+			]
+		},
+		{
+			"claimRef": "claim:phase",
+			"statement": "Первая фаза проекта длилась в сентябре.",
+			"sourceWording": "первая фаза",
+			"sourceRefs": [
+				{
+					"sourceId": "source:synthetic",
+					"title": "Synthetic source",
+					"locator": "phase fragment"
+				}
+			]
+		}
+	],
+	"candidates": [
+		{
+			"candidateId": "cal:scope:work",
+			"role": "scope",
+			"proposed": {
+				"name": "Работа",
+				"note": null,
+				"startedAt": null,
+				"endedAt": null
+			},
+			"claimRefs": ["claim:work"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:scope:project",
+			"role": "scope",
+			"proposed": {
+				"name": "Проект",
+				"note": null,
+				"startedAt": null,
+				"endedAt": null
+			},
+			"claimRefs": ["claim:scope"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:trace:start",
+			"role": "trace",
+			"proposed": {
+				"content": "Начал проект",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "minute",
+					"certainty": "exact",
+					"start": "2025-09-06T10:00:00+02:00",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": ["claim:start"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:trace:stage",
+			"role": "trace",
+			"proposed": {
+				"content": "Работал над первой фазой",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2025-09-06",
+					"end": "2025-09-30"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": ["claim:phase"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:trace:outside",
+			"role": "trace",
+			"proposed": {
+				"content": "Событие вне периода",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "approximate",
+					"start": "2025-10-02",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": ["claim:outside"],
+			"gate": "review-required",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:trace:follow-up",
+			"role": "trace",
+			"proposed": {
+				"content": "Подвёл итоги после первой фазы",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "relative",
+					"precision": "unknown",
+					"anchorTraceId": "cal:trace:stage",
+					"relation": "after"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "deferred",
+			"reason": "Relative time stays off the absolute axis"
+		},
+		{
+			"candidateId": "cal:period:september",
+			"role": "period",
+			"proposed": {
+				"name": "Сентябрь 2025",
+				"time": {
+					"precision": "month",
+					"start": "2025-09",
+					"end": "2025-09"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:intersection:project-work",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "cal:scope:project",
+				"toId": "cal:scope:work",
+				"kind": "child_of",
+				"context": null
+			},
+			"claimRefs": ["claim:work", "claim:scope"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:intersection:start-scope",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "cal:trace:start",
+				"toId": "cal:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": ["claim:start"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:intersection:stage-scope",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "cal:trace:stage",
+				"toId": "cal:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": ["claim:phase"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:intersection:outside-scope",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "cal:trace:outside",
+				"toId": "cal:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": ["claim:outside"],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "cal:intersection:follow-up-scope",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "cal:trace:follow-up",
+				"toId": "cal:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "deferred",
+			"reason": null
+		}
+	]
+}

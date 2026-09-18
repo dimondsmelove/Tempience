@@ -1,0 +1,35 @@
+.scope-rail {
+	position: relative;
+	grid-column: 1;
+	grid-row: 1 / span 2;
+}
+.mobile-panel {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: min(90%, 24rem);
+	z-index: 30;
+	box-shadow: var(--cg-shadow);
+}
+.scope-rail.mobile-panel {
+	left: 0;
+}
+.context-panel.mobile-panel {
+	right: 0;
+}
+.workbench .context-panel .cg-panel {
+	gap: calc(var(--cg-gap) * 1.5);
+}
+
+.phone-workbench {
+	grid-template-rows: minmax(0, 1fr) auto;
+}
+.phone-workbench [aria-label='Time'] {
+	border-right: 0;
+}
+.phone-workbench .bottom-sheet .cg-toolbar {
+	flex-wrap: nowrap;
+}
+.phone-workbench .bottom-sheet .cg-toolbar button {
+	min-height: 44px;
+}

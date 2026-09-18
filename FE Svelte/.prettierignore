@@ -1,0 +1,17 @@
+# Package Managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
+# Miscellaneous
+/static/
+
+# Pinned source data and generated runtime tokens
+src/theme/presets.source.json
+src/theme/tokens.generated.json
+
+# Vendored skill docs and pinned e2e data fixtures
+/skills/
+e2e/fixtures/*.backup.json
