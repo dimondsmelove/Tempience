@@ -104,6 +104,8 @@ export class WorkbenchState {
 	exitGuard: ExitGuard = { exit: (then) => then() };
 	/** A Trace form («Записать» or an edit) is open; the Context stays alive for it. */
 	readonly formOpen = $derived(this.capture || this.forms.editingId !== null);
+	/** Input is under way in the Context — a Trace form or a new Scope: a read from outside waits for it. */
+	readonly inputOpen = $derived(this.formOpen || this.forms.newScope !== null);
 
 	/** The live snapshot plus the preview of the proposals: what the ribbon and the Context read. */
 	readonly view: ExplorerSnapshot = $derived(
@@ -229,6 +231,24 @@ export class WorkbenchState {
 		} catch (cause: unknown) {
 			this.failure = cause ?? new Error();
 			this.status = 'error';
+		}
+	}
+
+	/**
+	 * The space read again behind a ribbon that stays as it is until the new snapshot is in —
+	 * for a change from another device (owner, 2026-09-20): no «Загрузка…», the selection and
+	 * the window untouched. A read that fails leaves the ribbon as it was; the next change
+	 * reads again. Before the first load, or after a failed one, this is the load itself.
+	 */
+	async refresh(loader: () => Promise<ExplorerSnapshot>): Promise<void> {
+		if (this.status === 'loading') return;
+		if (this.status !== 'ready') return this.load(loader);
+		this.stale = false;
+		try {
+			this.snapshot = await loader();
+			this.loaded += 1;
+		} catch (cause: unknown) {
+			console.warn('[tempience:inbound] the read after a change elsewhere failed', cause);
 		}
 	}
 

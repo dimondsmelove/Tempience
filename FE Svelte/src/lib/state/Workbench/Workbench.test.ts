@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PULSE_MS } from '$lib/model/Pulse/constants';
 import { ViewportState } from '$lib/state/Viewport/Viewport.svelte';
+import { EMPTY_SNAPSHOT } from './constants';
 import { WorkbenchState } from './Workbench.svelte';
 
 const window = {
@@ -171,5 +172,60 @@ describe('the hover and the Context (loop 008, C3, D)', () => {
 		expect(workbench.hover.target).toEqual({ kind: 'row', rowId: 'r1' });
 		workbench.selectPeriod({ unit: 'month', start: window.start, end: window.end }, 'axis');
 		expect(workbench.hover.target).toEqual({ kind: 'row', rowId: 'r1' });
+	});
+});
+
+describe('WorkbenchState.refresh — the read after a change from another device (2026-09-20)', () => {
+	const scopes = (name: string) => ({
+		...EMPTY_SNAPSHOT,
+		scopes: [
+			{
+				id: 's1',
+				name,
+				note: null,
+				startedAt: null,
+				endedAt: null,
+				colorHue: null,
+				colorChroma: null,
+				colorDepth: null,
+				origin: { kind: 'canonical' as const, sourceId: 'canonical' }
+			}
+		]
+	});
+
+	it('replaces the snapshot in place: the status stays ready, the selection and the window stay', async () => {
+		const workbench = new WorkbenchState(new ViewportState(window));
+		await workbench.load(async () => scopes('Было'));
+		workbench.selectScope('s1', 'rail');
+		const before = { ...workbench.viewport.window };
+		const loaded = workbench.loaded;
+		let statusDuring: string | undefined;
+		const read = workbench.refresh(async () => {
+			statusDuring = workbench.status;
+			return scopes('Стало');
+		});
+		expect(workbench.status).toBe('ready');
+		await read;
+		expect(statusDuring).toBe('ready');
+		expect(workbench.snapshot.scopes[0].name).toBe('Стало');
+		expect(workbench.loaded).toBe(loaded + 1);
+		expect(workbench.selection.scopeId).toBe('s1');
+		expect(workbench.viewport.window).toEqual(before);
+		expect(workbench.stale).toBe(false);
+	});
+
+	it('leaves the ribbon as it was when the read fails, and is the load itself before the first one', async () => {
+		const workbench = new WorkbenchState(new ViewportState(window));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		await workbench.refresh(async () => scopes('Первое'));
+		expect(workbench.status).toBe('ready');
+		expect(workbench.snapshot.scopes[0].name).toBe('Первое');
+		await workbench.refresh(async () => {
+			throw new Error('unreadable');
+		});
+		expect(workbench.status).toBe('ready');
+		expect(workbench.snapshot.scopes[0].name).toBe('Первое');
+		expect(warn).toHaveBeenCalled();
+		warn.mockRestore();
 	});
 });

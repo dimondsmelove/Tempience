@@ -6,7 +6,9 @@
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { activeDataSpace } from '$lib/state/triplit/client';
 	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
+	import { inbound } from '$lib/state/Workbench/inbound.svelte';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
+	import { inboundFeed } from '$lib/state/triplit/inbound-sync-instance';
 	import { consumeOpenAt } from '$lib/state/Workbench/open-at';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { MIN_ROWS_HEIGHT_PX } from '$lib/model/Layout/constants';
@@ -59,6 +61,8 @@
 				: undefined)
 	);
 	const viewport = $derived(interaction?.viewport ?? workbench.viewport);
+	/** Input is under way in the Context: a read from another device waits, with «Обновить» offered instead. */
+	const inputUnderWay = (): boolean => workbench.inputOpen || draftGuard.dirty;
 	onMount(() => {
 		workbench.viewport.motionEnabled = true;
 		if (preview) {
@@ -70,7 +74,16 @@
 			// A seed or an import asked, once, to open on a record: the Context and the ribbon go there.
 			if (!preview && workbench.status === 'ready') consumeOpenAt(workbench, localStorage);
 		});
+		// Changes from other devices reach the ribbon for as long as the workbench is shown.
+		const stopInbound = preview
+			? () => {}
+			: inbound.follow(inboundFeed, {
+					workbench,
+					loader: loadWorkbenchSnapshot,
+					deferred: inputUnderWay
+				});
 		return () => {
+			stopInbound();
 			workbench.viewport.motionEnabled = false;
 			workbench.viewport.set(workbench.viewport.window);
 		};
@@ -207,6 +220,11 @@
 	$effect(() => {
 		if (workbench.timelineCovered || !workbench.stale) return;
 		untrack(() => void workbench.load(loadWorkbenchSnapshot));
+	});
+	// A read owed to another device's change follows by itself once the input it waited for ends.
+	$effect(() => {
+		if (!inbound.pending || inputUnderWay()) return;
+		untrack(() => inbound.schedule());
 	});
 	// A form started outside the toolbar (a Context action, the catalog route) shows the panel too.
 	$effect(() => {

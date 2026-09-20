@@ -14,3 +14,6 @@ export const EMPTY_SNAPSHOT: ExplorerSnapshot = Object.freeze({
  * workbench once after its first successful load, and removed either way.
  */
 export const WORKBENCH_OPEN_AT_KEY = 'tempience.workbench.open-at';
+
+/** A change from another device reads the snapshot again after this quiet spell: many rows of one change, one read. */
+export const INBOUND_REFRESH_DEBOUNCE_MS = 500;

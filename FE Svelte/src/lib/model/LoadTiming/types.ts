@@ -1,7 +1,15 @@
 /** A timed step of the Time surface read path, in the order the steps run. */
 /** The steps of the read path; the snapshot's own parts are marked inside it. */
 export type LoadStep =
-	'storage' | 'seed' | 'snapshot' | 'catalogs' | 'records' | 'links' | 'display';
+	| 'storage'
+	| 'seed'
+	/** The wait for the server's rows of the snapshot's collections, bounded (inbound sync). */
+	| 'inbound'
+	| 'snapshot'
+	| 'catalogs'
+	| 'records'
+	| 'links'
+	| 'display';
 
 /** The part of `performance` the timing relies on; null where the platform lacks it. */
 export interface LoadTimingClock {

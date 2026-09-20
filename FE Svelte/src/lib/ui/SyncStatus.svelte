@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import BackupImport from './BackupImport/BackupImport.svelte';
 	import DemoMenu from './DemoMenu/DemoMenu.svelte';
+	import ServerRead from './SyncInbound/ServerRead.svelte';
+	import SyncInbound from './SyncInbound/SyncInbound.svelte';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { dateTimeFormat, numberFormat } from '$lib/state/Locale/format';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
@@ -12,6 +14,7 @@
 	import { dataSpaceBackup } from '$lib/state/triplit';
 	import { activeDataSpace, triplit } from '$lib/state/triplit/client';
 	import { syncStatus } from '$lib/state/triplit/sync-status-instance';
+	import { inbound } from '$lib/state/Workbench/inbound.svelte';
 	import {
 		getSyncDiagnostics,
 		type SyncCollectionName,
@@ -165,6 +168,8 @@
 				{t('sync.pending', { count: $syncStatus.pending })}
 			</span>
 		{/if}
+		<!-- Rows from other devices are waiting for the open form to end: read on click instead. -->
+		<SyncInbound pending={inbound.pending} onrefresh={() => inbound.refresh()} />
 		{#if !quiet && $syncStatus.lastSyncedAt}
 			<span class="sync-muted hidden whitespace-nowrap text-gray-500 sm:inline">
 				{t('sync.last', { time: formatTimestamp($syncStatus.lastSyncedAt) })}
@@ -244,6 +249,12 @@
 				</div>
 			{:else}
 				<p>{t('sync.collecting')}</p>
+			{/if}
+			<!-- The badge speaks of the outbox and the connection; this line of the rows that came in. -->
+			{#if syncConfigured}
+				<div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+					<ServerRead lastReadAt={inbound.lastReadAt} />
+				</div>
 			{/if}
 			<div class="mt-3 space-y-2 border-t border-outline pt-2">
 				<button
