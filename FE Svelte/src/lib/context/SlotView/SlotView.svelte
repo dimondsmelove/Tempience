@@ -4,6 +4,7 @@
 	import { formatDay } from '$lib/context/labels';
 	import { traceTimeLabel } from '$lib/model/Projection/marks';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 
 	let { workbench }: { workbench: WorkbenchState } = $props();
 	const slot = $derived(workbench.slot);
@@ -30,8 +31,10 @@
 						type="button"
 						class={LIST_BUTTON_CLASS}
 						aria-current={trace.id === workbench.selection.traceId}
+						data-testid="slot-record"
 						onclick={() =>
 							workbench.selection.select({ kind: 'trace', traceId: trace.id }, 'canvas')}
+						{@attach lensSource(workbench.hover, { kind: 'trace', traceId: trace.id })}
 					>
 						<span>{trace.content}</span>
 						<span class="font-mono text-xs text-muted">{traceTimeLabel(trace, locale.current)}</span

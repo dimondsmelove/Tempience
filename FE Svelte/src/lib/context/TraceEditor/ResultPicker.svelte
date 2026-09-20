@@ -7,6 +7,7 @@
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 	import { openKey, outcomeKey } from './results';
 
 	let { draft, onclose }: { draft: TraceDraftState; onclose: () => void } = $props();
@@ -107,6 +108,7 @@
 						})}
 						data-testid="result-candidate"
 						onkeydown={walk}
+						{@attach lensSource(workbench.hover, { kind: 'trace', traceId: candidate.trace.id })}
 						onclick={() =>
 							chosen
 								? draft.results.remove(candidate.trace.id)

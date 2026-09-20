@@ -8,3 +8,7 @@ export const EDGE_GRIP_PX = 5;
 export const MIN_FRAME_PX = 6;
 export const DENSITY_MAX_ALPHA = 0.85;
 export const FRAME_FILL_ALPHA = 0.14;
+/** A colour inlay of the strip is this wide (Q2-E). */
+export const INLAY_WIDTH_PX = 2;
+/** A record shown only as a roll-up draws its inlay at this alpha. */
+export const INLAY_ROLLUP_ALPHA = 0.55;

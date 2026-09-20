@@ -15,17 +15,17 @@ export type Neighbor = Readonly<{
 	traceId: string;
 	label: string;
 	time: MarkTime | null;
+	/**
+	 * Every Scope the record belongs to, each once: the ones shared with the anchor first, then
+	 * the rest, both by name — so a neighbour says where it comes from (owner, 2026-09-20).
+	 */
 	scopeIds: readonly string[];
 	reasons: readonly NeighborReason[];
 }>;
 
-/** «В этих Scope / Во всех». */
-export type NeighborhoodFilter = 'these' | 'all';
-
 export type NeighborhoodOptions = Readonly<{
 	/** Records taken on each side of the anchor by time (DP14). */
 	radius: number;
-	filter: NeighborhoodFilter;
 }>;
 
 export type Neighborhood = Readonly<{

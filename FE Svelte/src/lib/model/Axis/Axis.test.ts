@@ -9,10 +9,10 @@ import {
 	periodAt,
 	periodTitle,
 	prevUnit,
-	pxPerDay,
-	stickyLabel
+	tickLabel,
+	unitBoundaries
 } from './Axis';
-import { DAY_MS } from './constants';
+import { DAY_MS, LABEL_PADDING_PX } from './constants';
 
 const D = (year: number, month: number, day: number): number => Date.UTC(year, month - 1, day);
 
@@ -53,41 +53,86 @@ describe('isoWeek', () => {
 
 describe('axisSpec', () => {
 	it('picks rows by fixed pixel-per-day bands', () => {
-		expect(axisSpec(0.2)).toMatchObject({ major: 'year', minor: null, step: 1 });
-		expect(axisSpec(1.2)).toMatchObject({ major: 'year', minor: 'month', step: 1 });
+		expect(axisSpec(0.2)).toMatchObject({ band: 'years', major: 'year', minor: null, step: 1 });
+		expect(axisSpec(1.2)).toMatchObject({ band: 'months', major: 'year', minor: 'month', step: 1 });
 		expect(axisSpec(0.6)).toMatchObject({ major: 'year', minor: 'month', step: 2 });
-		expect(axisSpec(2)).toMatchObject({ major: 'month', minor: 'week', step: 2 });
-		expect(axisSpec(4)).toMatchObject({ major: 'month', minor: 'week', step: 1 });
+		expect(axisSpec(2)).toMatchObject({ band: 'weeks', major: 'month', minor: 'week', step: 4 });
+		expect(axisSpec(4)).toMatchObject({ major: 'month', minor: 'week', step: 2 });
+		expect(axisSpec(5)).toMatchObject({ major: 'month', minor: 'week', step: 1 });
 		expect(axisSpec(1.7)).toMatchObject({ major: 'month', minor: 'week', step: 4 });
-		expect(axisSpec(10)).toMatchObject({ major: 'month', middle: 'week', minor: 'day', step: 5 });
+		expect(axisSpec(10)).toMatchObject({ band: 'days', middle: 'week', minor: 'day', step: 5 });
 		expect(axisSpec(18)).toMatchObject({ minor: 'day', step: 5 });
 		expect(axisSpec(30)).toMatchObject({ minor: 'day', step: 1, weekdays: false });
-		expect(axisSpec(50)).toMatchObject({ minor: 'day', step: 1, weekdays: true });
+		expect(axisSpec(50)).toMatchObject({ band: 'weekdays', minor: 'day', step: 1, weekdays: true });
+	});
+
+	it('chooses the step by the measured width of the widest label plus paddings', () => {
+		// «н10…н52» at 2.2 px/day: a 21 px label needs 33 px, a week is 15.4 px, two weeks 30.8.
+		const weeks = axisSpec(2.2, { widths: { week: 21 } });
+		expect(weeks).toMatchObject({ band: 'weeks', minor: 'week', step: 4 });
+		expect(weeks.step * 7 * 2.2).toBeGreaterThanOrEqual(21 + LABEL_PADDING_PX);
+		expect(2 * 7 * 2.2).toBeLessThan(21 + LABEL_PADDING_PX);
+		expect(axisSpec(2.2, { widths: { week: 12 } }).step).toBe(2);
+		expect(axisSpec(0.5, { widths: { month: 21 } })).toMatchObject({ minor: 'month', step: 3 });
+		expect(axisSpec(0.5, { widths: { month: 14 } }).step).toBe(2);
+		expect(axisSpec(20, { widths: { day: 14 } }).step).toBe(5);
+		expect(axisSpec(26, { widths: { day: 14 } }).step).toBe(1);
+		expect(axisSpec(0.005, { widths: { decade: 42 } })).toMatchObject({ major: 'decade', step: 5 });
+	});
+
+	it('gives days their weekday only once a day fits «пн 31»', () => {
+		expect(axisSpec(44, { widths: { weekday: 35 } })).toMatchObject({ band: 'days', step: 1 });
+		expect(axisSpec(48, { widths: { weekday: 35 } })).toMatchObject({ band: 'weekdays', step: 1 });
+	});
+
+	it('holds the previous band within 4 % of a threshold', () => {
+		expect(axisSpec(1.63, { previous: 'months' }).band).toBe('months');
+		expect(axisSpec(1.67, { previous: 'months' }).band).toBe('weeks');
+		expect(axisSpec(1.57, { previous: 'weeks' }).band).toBe('weeks');
+		expect(axisSpec(1.53, { previous: 'weeks' }).band).toBe('months');
+		expect(axisSpec(1.57).band).toBe('months');
+		expect(axisSpec(1.63, { previous: 'days' }).band).toBe('weeks');
+		expect(axisSpec(7.2, { previous: 'weeks' })).toMatchObject({ band: 'weeks', step: 1 });
+		expect(axisSpec(6.8, { previous: 'days' })).toMatchObject({ band: 'days', step: 5 });
+	});
+
+	it('scales the thresholds and the baseline widths with the text', () => {
+		expect(axisSpec(2, { textScale: 1.5 }).band).toBe('months');
+		expect(axisSpec(2.5, { textScale: 1.5 })).toMatchObject({ band: 'weeks', step: 4 });
+		expect(axisSpec(2.5, { textScale: 1.5, widths: { week: 21 } }).step).toBe(2);
 	});
 });
 
 describe('axisTicks', () => {
+	it('lists every cell of the row and marks the ones on the step', () => {
+		const spec = axisSpec(0.5);
+		const ticks = axisTicks({ start: D(2026, 1, 1), end: D(2026, 7, 1) }, 'month', spec.step, {
+			spec
+		});
+		expect(ticks.map((t) => t.label)).toEqual(['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл']);
+		expect(ticks.filter((t) => t.labelled).map((t) => t.label)).toEqual(['янв', 'апр', 'июл']);
+		expect(unitBoundaries({ start: D(2026, 1, 1), end: D(2026, 7, 1) }, 'month')).toHaveLength(7);
+	});
+
 	it('anchors day steps to the calendar, not to the window edge', () => {
 		const spec = axisSpec(10);
-		const context = { spec, ppd: 10 };
-		const a = axisTicks({ start: D(2026, 8, 3), end: D(2026, 9, 2) }, 'day', spec.step, context);
-		const b = axisTicks({ start: D(2026, 8, 7), end: D(2026, 9, 6) }, 'day', spec.step, context);
-		const labelsA = a
-			.filter((t) => t.start >= D(2026, 8, 7) && t.start < D(2026, 9, 2))
-			.map((t) => t.label);
-		const labelsB = b
-			.filter((t) => t.start >= D(2026, 8, 7) && t.start < D(2026, 9, 2))
-			.map((t) => t.label);
-		expect(labelsA).toEqual(labelsB);
-		expect(labelsA).toEqual(['10', '15', '20', '25', '1']);
+		const context = { spec };
+		const labels = (window: { start: number; end: number }) =>
+			axisTicks(window, 'day', spec.step, context)
+				.filter((t) => t.labelled && t.start >= D(2026, 8, 7) && t.start < D(2026, 9, 2))
+				.map((t) => t.label);
+		const a = labels({ start: D(2026, 8, 3), end: D(2026, 9, 2) });
+		const b = labels({ start: D(2026, 8, 7), end: D(2026, 9, 6) });
+		expect(a).toEqual(b);
+		expect(a).toEqual(['10', '15', '20', '25', '1']);
 	});
 
 	it('labels the minor month row without the year and the major month row with it only in January', () => {
-		const yearScale = { spec: axisSpec(1), ppd: 1 };
+		const yearScale = { spec: axisSpec(1) };
 		const minor = axisTicks({ start: D(2025, 12, 15), end: D(2026, 2, 15) }, 'month', 1, yearScale);
 		expect(minor.map((t) => t.label)).toEqual(['дек', 'янв', 'фев']);
 
-		const monthScale = { spec: axisSpec(3), ppd: 3 };
+		const monthScale = { spec: axisSpec(3) };
 		const major = axisTicks(
 			{ start: D(2025, 12, 15), end: D(2026, 2, 15) },
 			'month',
@@ -97,29 +142,36 @@ describe('axisTicks', () => {
 		expect(major.map((t) => t.label)).toEqual(['дек', 'янв 2026', 'фев']);
 	});
 
+	it('gives a month of the major row the year when the row asks for it', () => {
+		const context = { spec: axisSpec(3) };
+		expect(tickLabel(D(2026, 9, 1), 'month', context)).toBe('сен');
+		expect(tickLabel(D(2026, 9, 1), 'month', context, true)).toBe('сен 2026');
+		expect(tickLabel(D(2026, 1, 1), 'month', context, true)).toBe('янв 2026');
+		expect(tickLabel(D(2026, 9, 1), 'month', { spec: axisSpec(1) }, true)).toBe('сен');
+	});
+
 	it('labels weeks by ISO number, adding the Monday date only when there is room', () => {
-		const tight = { spec: axisSpec(2), ppd: 2 };
-		const wide = { spec: axisSpec(6), ppd: 6 };
+		const tight = { spec: axisSpec(2) };
+		const wide = { spec: axisSpec(6) };
 		const window = { start: D(2026, 8, 31), end: D(2026, 9, 14) };
-		expect(axisTicks(window, 'week', tight.spec.step, tight).map((t) => t.label)).toEqual([
-			'н36',
-			'н38'
-		]);
-		expect(axisTicks(window, 'week', wide.spec.step, wide).map((t) => t.label)).toEqual([
-			'н36',
-			'н37',
-			'н38'
-		]);
+		const labelled = (context: { spec: ReturnType<typeof axisSpec> }) =>
+			axisTicks(window, 'week', context.spec.step, context)
+				.filter((t) => t.labelled)
+				.map((t) => t.label);
+		expect(labelled(tight)).toEqual(['н36']);
+		expect(labelled(wide)).toEqual(['н36', 'н37', 'н38']);
+		const dated = { spec: axisSpec(6, { widths: { weekDate: 20 } }) };
+		expect(labelled(dated)).toEqual(['н36 · 31', 'н37 · 7', 'н38 · 14']);
 	});
 
 	it('adds weekdays on the deepest scale', () => {
-		const context = { spec: axisSpec(60), ppd: 60 };
+		const context = { spec: axisSpec(60) };
 		const ticks = axisTicks({ start: D(2026, 9, 4), end: D(2026, 9, 6) }, 'day', 1, context);
 		expect(ticks.map((t) => t.label)).toEqual(['пт 4', 'сб 5', 'вс 6']);
 	});
 });
 
-describe('axisRows and sticky label', () => {
+describe('axisRows', () => {
 	it('adds the week row only on the day scale', () => {
 		const window = { start: D(2026, 8, 1), end: D(2026, 9, 1) };
 		const rows = axisRows(window, 31 * 12);
@@ -129,16 +181,12 @@ describe('axisRows and sticky label', () => {
 		expect(yearRows.middle).toEqual([]);
 	});
 
-	it('names the period under the left edge with the week when weeks are visible', () => {
-		const window = { start: D(2026, 8, 20), end: D(2026, 9, 20) };
-		const ppd = pxPerDay(window, 1100);
-		expect(stickyLabel(window, axisSpec(ppd), ppd)).toBe('авг 2026 · н34');
-		const yearWindow = { start: D(2025, 3, 10), end: D(2026, 3, 10) };
-		const yearPpd = pxPerDay(yearWindow, 1100);
-		expect(stickyLabel(yearWindow, axisSpec(yearPpd), yearPpd)).toBe('мар 2025 · н11');
-		const farWindow = { start: D(2024, 3, 10), end: D(2027, 3, 10) };
-		const farPpd = pxPerDay(farWindow, 1100);
-		expect(stickyLabel(farWindow, axisSpec(farPpd), farPpd)).toBe('2024');
+	it('keeps every month of the minor row as a cell at far scales', () => {
+		const rows = axisRows({ start: D(2024, 1, 1), end: D(2027, 1, 1) }, 815);
+		expect(rows.spec).toMatchObject({ band: 'months', minor: 'month', step: 2 });
+		expect(rows.minor).toHaveLength(37);
+		expect(rows.minor.filter((t) => t.labelled)).toHaveLength(19);
+		expect(rows.minor[1]).toMatchObject({ label: 'фев', labelled: false });
 	});
 });
 
@@ -180,23 +228,27 @@ describe('far calendar scales', () => {
 	});
 	it('thins decade labels at a calendar-anchored step, accounting for enlarged text', () => {
 		const window = { start: D(1990, 1, 1), end: D(2100, 1, 1) };
-		const rows = axisRows(window, 320, 1.5);
+		const rows = axisRows(window, 320, { textScale: 1.5 });
 		expect(rows.spec.step).toBe(5);
-		for (let i = 1; i < rows.major.length; i++) {
+		const labelled = rows.major.filter((t) => t.labelled);
+		for (let i = 1; i < labelled.length; i++) {
 			const spacing =
-				((rows.major[i].start - rows.major[i - 1].start) / (window.end - window.start)) * 320;
+				((labelled[i].start - labelled[i - 1].start) / (window.end - window.start)) * 320;
 			expect(spacing).toBeGreaterThan(64 * 1.5);
 		}
-		const shifted = axisRows({ start: D(1991, 1, 1), end: D(2101, 1, 1) }, 320, 1.5);
-		expect(shifted.major.map((t) => t.start)).toEqual(rows.major.map((t) => t.start));
+		const shifted = axisRows({ start: D(1991, 1, 1), end: D(2101, 1, 1) }, 320, { textScale: 1.5 });
+		expect(shifted.major.filter((t) => t.labelled).map((t) => t.start)).toEqual(
+			labelled.map((t) => t.start)
+		);
 	});
 });
 
 it('thins week labels to every fourth ISO week when enlarged text leaves no room', () => {
 	const window = { start: D(2026, 2, 18), end: D(2026, 10, 16) };
-	const rows = axisRows(window, 600, 1.5);
+	const rows = axisRows(window, 600, { textScale: 1.5 });
 	expect(rows.spec).toMatchObject({ major: 'month', minor: 'week', step: 4 });
-	expect(rows.minor.length).toBeGreaterThan(3);
-	for (const tick of rows.minor) expect(isoWeek(tick.start) % 4).toBe(0);
+	const labelled = rows.minor.filter((t) => t.labelled);
+	expect(labelled.length).toBeGreaterThan(3);
+	for (const tick of labelled) expect(isoWeek(tick.start) % 4).toBe(0);
 	expect(axisRows(window, 600).spec.step).toBe(2);
 });

@@ -6,10 +6,16 @@ import type { Locale, LocaleStorage, MessageKey } from './types';
 export { hasMessage, isLocale, translate } from './messages';
 
 /** Russian browsers stay Russian; every other preference reads the English interface. */
+/**
+ * The interface has two languages, and English is the fallback anyway, so a browser that lists
+ * Russian anywhere among its preferred languages reads Russian — not only when it comes first
+ * (a Russian interface often reports `en-US` first from the system locale). No list at all keeps
+ * the default.
+ */
 export const detectLocale = (languages: readonly string[] | undefined): Locale => {
-	const primary = languages?.[0]?.trim().toLowerCase();
-	if (!primary) return DEFAULT_LOCALE;
-	return primary === 'ru' || primary.startsWith('ru-') ? 'ru' : 'en';
+	const known = (languages ?? []).map((language) => language.trim().toLowerCase()).filter(Boolean);
+	if (known.length === 0) return DEFAULT_LOCALE;
+	return known.some((language) => language === 'ru' || language.startsWith('ru-')) ? 'ru' : 'en';
 };
 
 /**

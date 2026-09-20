@@ -4,7 +4,8 @@ import {
 	ACTIVATE_UPDATE,
 	CACHE_PREFIX,
 	CLIENT_VERSION,
-	NAVIGATION_TIMEOUT_MS
+	NAVIGATION_TIMEOUT_MS,
+	WORKER_VERSION
 } from './lib/state/Pwa/constants';
 
 const worker = self as unknown as ServiceWorkerGlobalScope;
@@ -56,7 +57,15 @@ const cacheFirst = async (request: Request): Promise<Response> =>
 	(await cachedResponse(request)) ?? cacheResponse(request, await fetch(request));
 
 worker.addEventListener('install', (event: ExtendableEvent): void => {
-	event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll([...precache, `${base}/`])));
+	// Navigations are network-first, so a reloaded tab already runs this build before this
+	// worker is in charge; the worker takes over as soon as its cache is complete. Tabs still
+	// on older chunks are served from the previous caches until every tab reports this build.
+	event.waitUntil(
+		caches
+			.open(cacheName)
+			.then((cache) => cache.addAll([...precache, `${base}/`]))
+			.then(() => worker.skipWaiting())
+	);
 });
 
 worker.addEventListener('activate', (event: ExtendableEvent): void => {
@@ -66,6 +75,7 @@ worker.addEventListener('activate', (event: ExtendableEvent): void => {
 
 worker.addEventListener('message', (event: ExtendableMessageEvent): void => {
 	if (event.data?.type === ACTIVATE_UPDATE) {
+		// Pages of older builds still ask for it; the worker has activated itself already.
 		event.waitUntil(worker.skipWaiting());
 	} else if (
 		event.data?.type === CLIENT_VERSION &&
@@ -73,6 +83,8 @@ worker.addEventListener('message', (event: ExtendableMessageEvent): void => {
 		event.source &&
 		'id' in event.source
 	) {
+		// The page compares this build with its own to know whether a reload changes anything.
+		event.source.postMessage({ type: WORKER_VERSION, version });
 		clientVersions.set(event.source.id, event.data.version);
 		event.waitUntil(
 			(async () => {

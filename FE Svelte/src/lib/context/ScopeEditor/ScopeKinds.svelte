@@ -2,6 +2,7 @@
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import type { TraceKind } from '$lib/state/triplit/types';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { getLens, lensSource } from '$lib/ui/LensSource';
 
 	let {
 		kinds,
@@ -18,6 +19,8 @@
 		/** Starts a new Kind with this Scope shown as its membership (TRACE_FORMS navigation). */
 		oncreate?: () => void;
 	} = $props();
+	/** Under the workbench a Kind's row lights its records on the ribbon (loop 008, C3). */
+	const hover = getLens();
 </script>
 
 <!-- The Kinds directly bound to this Scope (core/trace-scope): no subtree, no legacy suggestions.
@@ -26,7 +29,7 @@
 	{#if !busy}
 		<ul class="grid gap-1" aria-label={t('scope.kinds')}>
 			{#each kinds as kind (kind.id)}
-				<li data-testid="scope-kind">
+				<li data-testid="scope-kind" {@attach lensSource(hover, { kind: 'kind', kindId: kind.id })}>
 					{#if onopen}
 						<button
 							type="button"

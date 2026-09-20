@@ -35,6 +35,8 @@ const unscopedContext = (snapshot: ExplorerSnapshot): ScopeContext => {
 			note: null,
 			startedAt: null,
 			endedAt: null,
+			colorHue: null,
+			colorChroma: null,
 			origin: { kind: 'canonical', sourceId: '' }
 		},
 		parent: null,

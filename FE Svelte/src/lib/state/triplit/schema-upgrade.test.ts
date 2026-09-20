@@ -305,3 +305,156 @@ it('opens a stored schema without the transfer binding, keeps rows and Log, then
 		client.disconnect();
 	}
 });
+
+it('opens a stored schema without any Scope colour, keeps rows and Log, then accepts a colour edit', async () => {
+	const withoutColour = S.Collections({
+		...schema,
+		scopes: {
+			schema: S.Schema(
+				Object.fromEntries(
+					Object.entries(schema.scopes.schema.properties).filter(
+						([key]) => key !== 'colorHue' && key !== 'colorChroma' && key !== 'colorSlot'
+					)
+				) as never
+			)
+		}
+	});
+	const storage = new BTreeKVStore();
+	const oldClient = new TriplitClient({ schema: withoutColour, storage, autoConnect: false });
+	const oldRepo = createTriplitRepository(oldClient as never);
+	const stored = await oldRepo.createScope({ name: 'Белград', note: 'до цвета' });
+	const rows = {
+		scopes: await oldClient.fetch(oldClient.query('scopes')),
+		logs: await oldClient.fetch(oldClient.query('logs'))
+	};
+	oldClient.disconnect();
+
+	const events: string[] = [];
+	const client = new TriplitClient({
+		schema,
+		storage,
+		autoConnect: false,
+		experimental: {
+			onDatabaseInit: (_db, event) => {
+				events.push(event.type);
+			}
+		}
+	});
+	try {
+		await client.ready;
+		expect(events).toEqual(['SUCCESS']);
+		expect((await client.getSchema())?.collections.scopes.schema.properties).toHaveProperty(
+			'colorHue'
+		);
+		// Nothing is rewritten: the stored rows and Log are read as they were, the hue as null.
+		expect(await client.fetch(client.query('scopes'))).toEqual(rows.scopes);
+		expect(await client.fetch(client.query('logs'))).toEqual(rows.logs);
+		const repo = createTriplitRepository(client);
+		// A Scope stored before the third ring reads with no depth (0 to the ribbon), never rewritten.
+		expect(await repo.listScopes()).toEqual([
+			{ ...stored, colorHue: null, colorChroma: null, colorDepth: null }
+		]);
+		const coloured = await repo.editScope(stored.id, {
+			colorHue: 267,
+			colorChroma: 40,
+			colorDepth: 2
+		});
+		expect(coloured).toMatchObject({
+			id: stored.id,
+			name: 'Белград',
+			colorHue: 267,
+			colorChroma: 40,
+			colorDepth: 2
+		});
+		expect((await repo.listScopes())[0]).toMatchObject({
+			colorHue: 267,
+			colorChroma: 40,
+			colorDepth: 2
+		});
+		expect(await repo.listLogs()).toHaveLength(rows.logs.length + 1);
+		const cleared = await repo.editScope(stored.id, { colorHue: null, colorChroma: null });
+		expect(cleared).toMatchObject({ colorHue: null, colorChroma: null });
+	} finally {
+		await client.clear({ full: true });
+		client.disconnect();
+	}
+});
+
+it('reads a loop-005 row with a colour slot as the hue of the Графит wheel, then a hue save retires the slot', async () => {
+	// The schema of loop 005: the slot, no hue.
+	const withSlot = S.Collections({
+		...schema,
+		scopes: {
+			schema: S.Schema(
+				Object.fromEntries(
+					Object.entries(schema.scopes.schema.properties).filter(
+						([key]) => key !== 'colorHue' && key !== 'colorChroma'
+					)
+				) as never
+			)
+		}
+	});
+	const storage = new BTreeKVStore();
+	const oldClient = new TriplitClient({ schema: withSlot, storage, autoConnect: false });
+	const timestamp = '2026-09-12T12:00:00.000Z';
+	for (const [id, colorSlot] of [
+		['slot-3', 3],
+		['slot-1', 1],
+		['slot-12', 12]
+	] as const)
+		await oldClient.insert('scopes', {
+			id,
+			name: id,
+			colorSlot,
+			isDeleted: false,
+			createdAt: timestamp,
+			updatedAt: timestamp
+		});
+	await oldClient.insert('scopes', {
+		id: 'plain',
+		name: 'plain',
+		isDeleted: false,
+		createdAt: timestamp,
+		updatedAt: timestamp
+	});
+	const before = await oldClient.fetch(oldClient.query('scopes'));
+	oldClient.disconnect();
+
+	const client = new TriplitClient({ schema, storage, autoConnect: false });
+	try {
+		await client.ready;
+		// Read-time only: the rows stay as the old build wrote them.
+		expect(await client.fetch(client.query('scopes'))).toEqual(before);
+		const repo = createTriplitRepository(client);
+		const scopes = await repo.listScopes();
+		const hues = Object.fromEntries(scopes.map((scope) => [scope.id, scope.colorHue]));
+		// 212° + (n − 1)·27.5°, rounded to the degree: slot 3 → 267°, slot 12 → 514.5° ≡ 155°;
+		// the saturation of a slot is the default.
+		expect(hues).toEqual({ 'slot-1': 212, 'slot-3': 267, 'slot-12': 155, plain: null });
+		expect(scopes.every((scope) => scope.colorChroma === null)).toBe(true);
+		// A hue save writes the hue and clears the slot in the same update, so «без цвета» holds.
+		const coloured = await repo.editScope('slot-3', { colorHue: 90 });
+		expect(coloured.colorHue).toBe(90);
+		expect(await client.fetchById('scopes', 'slot-3')).toMatchObject({
+			colorHue: 90,
+			colorSlot: null
+		});
+		const cleared = await repo.editScope('slot-1', { colorHue: null });
+		expect(cleared.colorHue).toBeNull();
+		expect((await repo.listScopes()).find((scope) => scope.id === 'slot-1')?.colorHue).toBeNull();
+		expect(await client.fetchById('scopes', 'slot-1')).toMatchObject({ colorSlot: null });
+		// A save of another field leaves the slot and its fallback alone.
+		await repo.editScope('slot-12', { note: 'renamed' });
+		expect((await repo.listScopes()).find((scope) => scope.id === 'slot-12')?.colorHue).toBe(155);
+		expect(await client.fetchById('scopes', 'slot-12')).toMatchObject({ colorSlot: 12 });
+		// The Log names the retired slot with the hue.
+		const log = (await repo.listLogs()).find((entry) => entry.entityId === 'slot-3');
+		expect(log?.patch).toMatchObject({
+			colorHue: { before: null, after: 90 },
+			colorSlot: { before: 3, after: null }
+		});
+	} finally {
+		await client.clear({ full: true });
+		client.disconnect();
+	}
+});

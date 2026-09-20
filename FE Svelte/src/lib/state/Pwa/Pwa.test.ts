@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PwaState } from './Pwa.svelte';
-import { ACTIVATE_UPDATE, CLIENT_VERSION, PERSISTENCE_REQUEST_KEY } from './constants';
+import { CLIENT_VERSION, PERSISTENCE_REQUEST_KEY, WORKER_VERSION } from './constants';
 
 afterEach(() => vi.unstubAllGlobals());
 
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const controller = () => ({ postMessage: vi.fn() });
+
 const harness = () => {
 	const registration = Object.assign(new EventTarget(), {
-		waiting: null as (EventTarget & { postMessage: ReturnType<typeof vi.fn> }) | null,
-		installing: new EventTarget(),
+		waiting: null as object | null,
+		installing: null as object | null,
 		update: vi.fn(async () => {})
 	});
-	const container = Object.assign(new EventTarget(), { controller: { postMessage: vi.fn() } });
+	const container = Object.assign(new EventTarget(), { controller: controller() });
 	vi.stubGlobal('document', new EventTarget());
 	const state = new PwaState();
 	const reload = vi.fn();
@@ -20,36 +23,101 @@ const harness = () => {
 		'v1',
 		reload
 	);
-	return { state, registration, container, reload, disconnect };
+	/** The controlling worker answers with the build it serves. */
+	const answer = (version: string) =>
+		container.dispatchEvent(
+			new MessageEvent('message', { data: { type: WORKER_VERSION, version } })
+		);
+	return { state, registration, container, reload, disconnect, answer };
 };
 
-describe('PWA lifecycle', () => {
-	it('waits for an explicit update and reloads only the accepting tab', () => {
-		const { state, registration, container, reload } = harness();
-		registration.waiting = Object.assign(new EventTarget(), { postMessage: vi.fn() });
-		registration.installing.dispatchEvent(new Event('statechange'));
-		expect(state.available).toBe(true);
-		expect(reload).not.toHaveBeenCalled();
-		state.apply();
-		expect(registration.waiting.postMessage).toHaveBeenCalledWith({ type: ACTIVATE_UPDATE });
-		container.dispatchEvent(new Event('controllerchange'));
-		expect(reload).toHaveBeenCalledOnce();
-	});
-	it('keeps another open tab running and reports the version of its loaded code', () => {
-		const { state, container, reload, disconnect } = harness();
-		container.dispatchEvent(new Event('controllerchange'));
-		expect(state.available).toBe(true);
-		expect(reload).not.toHaveBeenCalled();
-		expect(container.controller.postMessage).toHaveBeenLastCalledWith({
+describe('PWA update prompt', () => {
+	it('reports its build to the controlling worker and stays quiet when the worker serves it too', async () => {
+		const { state, registration, container, answer } = harness();
+		expect(container.controller.postMessage).toHaveBeenCalledWith({
 			type: CLIENT_VERSION,
 			version: 'v1'
 		});
-		disconnect();
-		state.available = false;
+		answer('v1');
+		await flush();
+		expect(state.available).toBe(false);
+		expect(registration.update).not.toHaveBeenCalled();
+	});
+	it('offers the reload when the worker serves another build and the server has nothing newer', async () => {
+		const { state, registration, reload, answer } = harness();
+		state.notice = 'pwa.checked';
+		answer('v2');
+		await vi.waitFor(() => expect(state.available).toBe(true));
+		expect(state.notice).toBeNull();
+		expect(registration.update).toHaveBeenCalledOnce();
+		expect(reload).not.toHaveBeenCalled();
+		state.apply();
+		expect(reload).toHaveBeenCalledOnce();
+	});
+	it('waits for a newer worker that is installing instead of offering a reload to a current page', async () => {
+		const { state, registration, container, answer } = harness();
+		registration.update.mockImplementationOnce(async () => {
+			registration.installing = {};
+		});
+		answer('v0');
+		await flush();
+		expect(state.available).toBe(false);
+		// The newer worker took over and is asked again; it serves this page's build.
+		registration.installing = null;
+		container.controller = controller();
 		container.dispatchEvent(new Event('controllerchange'));
+		expect(container.controller.postMessage).toHaveBeenCalledWith({
+			type: CLIENT_VERSION,
+			version: 'v1'
+		});
+		answer('v1');
+		await flush();
 		expect(state.available).toBe(false);
 	});
-	it('reports a failed manual update without discarding the waiting version', async () => {
+	it('asks the new controller after a takeover and offers the reload only for a different build', async () => {
+		const { state, container, answer } = harness();
+		container.dispatchEvent(new Event('controllerchange'));
+		answer('v1');
+		await flush();
+		expect(state.available).toBe(false);
+		container.dispatchEvent(new Event('controllerchange'));
+		answer('v2');
+		await vi.waitFor(() => expect(state.available).toBe(true));
+	});
+	it('leaves a page alone whose mismatch cannot be settled with the server', async () => {
+		const { state, registration, answer } = harness();
+		registration.update.mockRejectedValueOnce(new Error('offline'));
+		answer('v2');
+		await flush();
+		expect(state.available).toBe(false);
+	});
+	it('says that a manual check found nothing when no other build was reported', async () => {
+		const { state, registration } = harness();
+		await state.check();
+		expect(registration.update).toHaveBeenCalledOnce();
+		expect(state.notice).toBe('pwa.checked');
+		expect(state.available).toBe(false);
+	});
+	it('does not read a waiting worker as an update', () => {
+		const { state, registration } = harness();
+		registration.waiting = {};
+		registration.dispatchEvent(new Event('updatefound'));
+		expect(state.available).toBe(false);
+		state.apply();
+		expect(state.available).toBe(false);
+	});
+	it('stops listening once disconnected', async () => {
+		const { state, container, disconnect, answer } = harness();
+		disconnect();
+		container.controller.postMessage.mockClear();
+		container.dispatchEvent(new Event('controllerchange'));
+		expect(container.controller.postMessage).not.toHaveBeenCalled();
+		answer('v2');
+		await flush();
+		expect(state.available).toBe(false);
+		expect(state.registration).toBeNull();
+	});
+	it('reports a failed manual update without discarding an offered one', async () => {
 		const { state, registration } = harness();
 		state.available = true;
 		registration.update.mockRejectedValueOnce(new Error('offline'));

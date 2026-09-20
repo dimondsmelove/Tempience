@@ -68,7 +68,7 @@ export const prepareTraceTemporalPlacement = async (
 	return {
 		aboutKind,
 		aboutTime,
-		...exactTraceTimeProjection(aboutKind, aboutTime),
+		...exactTraceTimeProjection(aboutKind, aboutTime, statedDuration),
 		statedDuration,
 		aboutTraceId
 	};

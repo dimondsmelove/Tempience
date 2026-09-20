@@ -12,6 +12,8 @@ export type TimeSelection = {
 	approximate?: boolean;
 	/** End bounds the possible start, rather than the end of the event. */
 	window?: boolean;
+	/** «Длится»: the record has started and has no end yet; `end` is null and no duration is stated. */
+	ongoing?: boolean;
 };
 export type RailTick = { value: number; label: string; detail: string; major?: boolean };
 export type DragKind = 'pan' | 'start' | 'end' | 'move' | 'extend';

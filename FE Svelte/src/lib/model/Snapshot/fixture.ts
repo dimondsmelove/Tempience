@@ -82,6 +82,8 @@ export const createExplorerConformanceSnapshot = (): ExplorerSnapshot => {
 		note: 'Synthetic Explorer data-shape coverage; not user biography.',
 		startedAt: null,
 		endedAt: null,
+		colorHue: null,
+		colorChroma: null,
 		origin
 	};
 	const traces = [

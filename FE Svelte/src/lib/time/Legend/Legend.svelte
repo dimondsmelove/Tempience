@@ -1,96 +1,169 @@
 <script lang="ts">
-	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
-	import { onMount } from 'svelte';
-	import { tempienceRepository as repository } from '$lib/state/triplit';
-	import type { TraceKind } from '$lib/state/triplit/types';
-	import { LEGEND_KEYS, LEGEND_KEY_LABELS } from '$lib/model/Projection/constants';
-	import Button from '$lib/ui/Button/Button.svelte';
-	import { UNAVAILABLE_LEGEND } from './constants';
+	import {
+		LEGEND_KEY_LABELS,
+		LEGEND_STATES,
+		LEGEND_STATE_LABELS
+	} from '$lib/model/Legend/constants';
+	import { listedLegendKeys } from '$lib/model/Legend/Legend';
 	import type { LegendProps } from './types';
 
-	let { filters, scopes = [] }: LegendProps = $props();
-	let kinds = $state.raw<TraceKind[]>([]);
-	let failure = $state.raw<unknown>(null);
-	const hidden = $derived(scopes.filter((scope) => filters.hiddenScopes.has(scope.id)));
-	onMount(() =>
-		repository.subscribeTraceKinds(
-			(rows) => {
-				kinds = rows;
-			},
-			(cause) => {
-				failure = cause ?? new Error();
-			}
-		)
-	);
+	let { filters, present, id, hidden = false }: LegendProps = $props();
+	/** The kinds on offer in the view, plus a hidden or soloed one so it can be undone (research п. 17). */
+	const listed = $derived(listedLegendKeys(present, filters));
 </script>
 
-<div
-	class="grid grid-cols-2 items-center gap-1 text-xs text-muted"
-	role="group"
-	aria-label={t('legend.show')}
-	data-testid="legend"
->
-	<span class="col-span-2 mb-1">{t('legend.show')}</span>
-	{#each LEGEND_KEYS as key (key)}
-		{@const unavailable = UNAVAILABLE_LEGEND.includes(key)}
-		{@const shown = filters.isShown(key)}
+<!-- The legend on the ribbon is the filter too: click = only this kind, the same click = all,
+     Shift+click = hide one kind (struck through while no solo is on). The swatches repeat the
+     mark language in an ink tone, never a Scope colour; state items explain, they never filter. -->
+<div {id} {hidden} class="legend" role="group" aria-label={t('legend.title')} data-testid="legend">
+	{#each listed as key (key)}
 		<button
 			type="button"
-			class={[
-				'text-left cursor-pointer rounded-[var(--cg-radius-control)] px-1.5 py-0.5 transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-default disabled:opacity-40',
-				shown ? 'text-ink hover:bg-accent/10' : 'text-muted line-through hover:text-ink'
-			]}
-			aria-pressed={shown}
-			disabled={unavailable}
-			title={unavailable ? t('legend.unavailable') : shown ? t('legend.hide') : t('legend.reveal')}
+			class={['item', !filters.soloLegend && filters.hiddenLegend.has(key) && 'off']}
+			aria-pressed={filters.soloLegend === key}
 			data-legend={key}
-			onclick={() => filters.toggleLegend(key)}
+			onclick={(event) =>
+				event.shiftKey ? filters.toggleLegend(key) : filters.soloLegendKind(key)}
 		>
-			{t(LEGEND_KEY_LABELS[key])}
+			<span class="swatch k-{key}" aria-hidden="true"></span>{t(LEGEND_KEY_LABELS[key])}
 		</button>
 	{/each}
+	{#each LEGEND_STATES as key (key)}
+		<span class="item" data-legend-state={key}>
+			<span class="swatch s-{key}" aria-hidden="true"></span>{t(LEGEND_STATE_LABELS[key])}
+		</span>
+	{/each}
+	<span class="hint">{t('legend.hint')}</span>
 </div>
 
-{#if failure !== null}<p role="alert">{errorText(failure)}</p>{/if}
-{#if kinds.length}
-	<!-- Typed records are off the ribbon until a Kind is ticked here; the list stays folded
-	     until asked for (owner, 2026-09-15). -->
-	<details class="border-t border-outline pt-2 text-sm" data-testid="kind-filters">
-		<summary class="cursor-pointer text-muted hover:text-ink"
-			>{t('legend.kinds')}{#if filters.shownKindIds.size}
-				<span class="font-mono text-xs"> · {filters.shownKindIds.size}</span>{/if}</summary
-		>
-		<div class="mt-2 grid gap-1">
-			{#each kinds as kind (kind.id)}
-				<label class="flex min-h-7 items-center gap-2">
-					<input
-						type="checkbox"
-						checked={filters.shownKindIds.has(kind.id)}
-						onchange={() => filters.toggleKind(kind.id)}
-					/>
-					<span class="min-w-0 break-words">{kind.name}</span>
-				</label>
-			{/each}
-		</div>
-	</details>
-{/if}
-{#if hidden.length}
-	<!-- Scopes hidden from the rail with their eye are a filter like any other: named here,
-	     shown again one by one or all at once, and cleared with «Сбросить всё». -->
-	<div class="grid gap-1 border-t border-outline pt-2 text-sm" data-testid="hidden-scopes">
-		<span class="text-xs text-muted" data-testid="hidden-scopes-count"
-			>{t('rail.hidden', { count: hidden.length })}</span
-		>
-		{#each hidden as scope (scope.id)}
-			<Button
-				size="sm"
-				variant="quiet"
-				class="justify-start truncate"
-				aria-label={t('rail.showScope', { name: scope.name })}
-				onclick={() => filters.showScope(scope.id)}>{scope.name}</Button
-			>
-		{/each}
-		<Button size="sm" onclick={() => filters.showAllScopes()}>{t('rail.showAll')}</Button>
-	</div>
-{/if}
+<style>
+	.legend {
+		--legend-ink: var(--cg-text-secondary);
+		--legend-ink-30: color-mix(in srgb, var(--legend-ink) 30%, transparent);
+		--legend-ink-45: color-mix(in srgb, var(--legend-ink) 45%, transparent);
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: calc(var(--cg-gap) * 0.75) calc(var(--cg-gap) * 2.25);
+		padding: calc(var(--cg-gap) * 0.75) calc(var(--cg-panel-padding) * 0.857143);
+		border-bottom: var(--cg-border-width) solid var(--cg-border-default);
+		background: var(--cg-bg-surface);
+		color: var(--cg-text-muted);
+		font-size: var(--cg-text-size-caption);
+		line-height: 1.3;
+	}
+	.legend[hidden] {
+		display: none;
+	}
+	.item {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+	}
+	button.item {
+		font: inherit;
+		color: inherit;
+		background: none;
+		border: 0;
+		cursor: pointer;
+		border-radius: var(--cg-radius-control);
+		padding: 1px 4px;
+		margin: -1px -4px;
+		text-align: left;
+	}
+	button.item:hover {
+		color: var(--cg-text-primary);
+	}
+	button.item:focus-visible {
+		outline: 2px solid var(--cg-focus);
+		outline-offset: 1px;
+	}
+	button.item[aria-pressed='true'] {
+		color: var(--cg-text-primary);
+		background: color-mix(in srgb, var(--cg-accent) 12%, transparent);
+	}
+	button.item.off {
+		text-decoration: line-through;
+		opacity: 0.55;
+	}
+	.hint {
+		margin-left: auto;
+		font-size: calc(var(--cg-text-size-caption) * 0.92);
+	}
+	/* Swatches: the mark language at 14 px, as the approved mock draws it. */
+	.swatch {
+		display: inline-block;
+		flex: none;
+		height: 14px;
+		border-radius: 2px;
+		background: var(--legend-ink);
+	}
+	.k-fact {
+		width: 3px;
+	}
+	.k-interval {
+		width: 22px;
+		background: linear-gradient(90deg, var(--legend-ink) 0 3px, var(--legend-ink-30) 3px);
+	}
+	.k-open {
+		width: 34px;
+		background: linear-gradient(90deg, var(--legend-ink) 0 3px, var(--legend-ink-30) 3px);
+	}
+	.k-fuzzy {
+		width: 22px;
+		background: var(--legend-ink-30);
+	}
+	.k-intent,
+	.k-overdue {
+		width: 3px;
+		background: repeating-linear-gradient(180deg, var(--legend-ink) 0 3px, transparent 3px 5px);
+	}
+	.k-closed {
+		width: 3px;
+		background: repeating-linear-gradient(
+			180deg,
+			var(--legend-ink) 0 3px,
+			var(--legend-ink-45) 3px 5px
+		);
+	}
+	.k-fuzzyIntent {
+		width: 22px;
+		background:
+			repeating-linear-gradient(180deg, var(--legend-ink) 0 3px, transparent 3px 5px) 0 0 / 3px 100%
+				no-repeat,
+			linear-gradient(90deg, var(--legend-ink-30), var(--legend-ink-30)) 3px 0 / calc(100% - 3px)
+				100% no-repeat;
+	}
+	.k-proposal {
+		width: 7px;
+		background: transparent;
+		border: 1px solid var(--legend-ink);
+	}
+	.k-rollup {
+		width: 3px;
+		opacity: 0.3;
+	}
+	.k-multi {
+		width: 4px;
+		background: linear-gradient(180deg, var(--legend-ink) 0 50%, var(--cg-text-muted) 50%);
+	}
+	.s-selected {
+		width: 3px;
+		outline: 1px solid var(--cg-text-primary);
+		outline-offset: 2px;
+	}
+	.s-projections {
+		width: 1px;
+		background: repeating-linear-gradient(180deg, var(--cg-accent) 0 2px, transparent 2px 6px);
+	}
+	.s-link {
+		width: 18px;
+		height: 8px;
+		background: transparent;
+		border: 1px solid var(--cg-text-primary);
+		border-top: 0;
+		border-radius: 0;
+	}
+</style>

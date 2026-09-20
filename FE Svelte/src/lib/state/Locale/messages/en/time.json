@@ -103,5 +103,9 @@
 	"time.unknownTime": "time unknown",
 	"time.traceRef": "reference to a record",
 	"time.incompatible": "time incompatible",
-	"time.hours": "Hours"
+	"time.hours": "Hours",
+	"time.ongoingSince": "since {{start}} — ongoing",
+	"time.ongoing": "Ongoing",
+	"time.ongoingHint": "No end yet: a band up to «now» on the ribbon. No duration is stated meanwhile.",
+	"time.ongoingWithDuration": "With a duration, «ongoing» is not marked: the length is known, not an open end."
 }

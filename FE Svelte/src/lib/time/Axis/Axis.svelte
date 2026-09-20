@@ -2,15 +2,20 @@
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import { periodTitle } from '$lib/model/Axis/Axis';
+	import type { AxisBand, PeriodRef } from '$lib/model/Axis/types';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { drawAxis, hitAt } from './draw';
 	import { WHEEL_LINE_PX } from './constants';
 	import type { AxisHit, AxisMetrics, AxisPalette, AxisProps } from './types';
 
-	let { window, now, selected = null, onselectperiod, onpan }: AxisProps = $props();
+	let { window, now, selected = null, hasNote, onselectperiod, onpan }: AxisProps = $props();
 
-	/** Label areas of the last draw; the DOM twin below mirrors them for keyboard and readers. */
+	/** Cell areas of the last draw; the DOM twin below mirrors them for keyboard and readers. */
 	let hits = $state.raw<AxisHit[]>([]);
+	/** The cell under the pointer or keyboard focus: off the step, its label shows as a ghost. */
+	let hover = $state.raw<PeriodRef | null>(null);
+	/** The rows of the last draw, so a threshold is crossed only once the scale is clearly past it. */
+	let band: AxisBand | null = null;
 
 	let signature = '';
 	let paletteCache: AxisPalette | null = null;
@@ -60,7 +65,7 @@
 		return { palette: paletteCache, metrics: metricsCache };
 	};
 
-	/** Redraws whenever the window, «сейчас», selection or the element size change. */
+	/** Redraws whenever the window, «сейчас», selection, hover or the element size change. */
 	const render: Attachment<HTMLCanvasElement> = (canvas) => {
 		const draw = (): void => {
 			const widthPx = canvas.clientWidth;
@@ -70,16 +75,21 @@
 			canvas.height = Math.round(canvas.clientHeight * dpr);
 			const context = canvas.getContext('2d');
 			if (!context) return;
-			hits = drawAxis({
+			const drawn = drawAxis({
 				context,
 				widthPx,
 				dpr,
 				window,
 				now,
 				selected,
+				hasNote,
+				hover,
+				previousBand: band,
 				language: locale.current,
 				...readAppearance(canvas)
 			});
+			band = drawn.band;
+			hits = drawn.hits;
 		};
 		draw();
 		const frame = requestAnimationFrame(draw);
@@ -110,8 +120,20 @@
 		return () => element.removeEventListener('wheel', onwheel);
 	};
 
-	const select = (hit: AxisHit): void =>
-		onselectperiod?.({ unit: hit.unit, start: hit.start, end: hit.end });
+	const periodOf = (hit: AxisHit): PeriodRef => ({
+		unit: hit.unit,
+		start: hit.start,
+		end: hit.end
+	});
+	const select = (hit: AxisHit): void => onselectperiod?.(periodOf(hit));
+	const isSame = (period: PeriodRef | null, hit: AxisHit): boolean =>
+		period !== null && period.unit === hit.unit && period.start === hit.start;
+	const enter = (hit: AxisHit): void => {
+		if (!isSame(hover, hit)) hover = periodOf(hit);
+	};
+	const leave = (hit: AxisHit): void => {
+		if (isSame(hover, hit)) hover = null;
+	};
 
 	const onclick = (event: MouseEvent): void => {
 		const rect = (event.currentTarget as HTMLCanvasElement).getBoundingClientRect();
@@ -127,7 +149,7 @@
 		{onclick}
 		{@attach render}
 	></canvas>
-	<!-- Every drawn label is a period: the twin gives the same click, focus ring and name in the DOM. -->
+	<!-- Every cell is a period: the twin gives the same click, hover, focus ring and name in the DOM. -->
 	<div class="absolute inset-0" role="group" aria-label={t('axis.labels')}>
 		{#each hits as hit, index (index)}
 			<button
@@ -139,8 +161,16 @@
 				style:height="{hit.y1 - hit.y0}px"
 				data-row={hit.row}
 				data-unit={hit.unit}
+				data-drawn={hit.drawn || undefined}
+				data-pinned={hit.pinned || undefined}
+				data-note={hit.note || undefined}
+				data-hover={isSame(hover, hit) || undefined}
 				aria-label={periodTitle(hit, locale.current)}
-				aria-pressed={selected?.unit === hit.unit && selected.start === hit.start}
+				aria-pressed={isSame(selected, hit)}
+				onpointerenter={() => enter(hit)}
+				onpointerleave={() => leave(hit)}
+				onfocus={() => enter(hit)}
+				onblur={() => leave(hit)}
 				onclick={() => select(hit)}>{hit.label}</button
 			>
 		{/each}

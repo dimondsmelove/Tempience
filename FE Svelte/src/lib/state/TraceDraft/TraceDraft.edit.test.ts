@@ -94,6 +94,36 @@ describe('TraceDraftState — editing a saved Trace', () => {
 		expect(after.relation).toBe('intend');
 	});
 
+	it('keeps a saved intention’s planned date when it is switched to a fact and back (T1)', async () => {
+		// Owner review 2026-09-19: «Итог намерения» on an existing intention turned it into a fact
+		// dated «now»; the planned date is the record's own and the switch must leave it alone.
+		const planned = dayTime('2026-09-25');
+		const saved = await fx.repository.createTrace(plainDraft('Продлить визу', 'intend', planned));
+		const draft = await fx.open({ mode: 'edit', traceId: saved.id });
+		expect(draft.time).toEqual({ mode: 'keep' });
+		draft.setRelation('actual');
+		expect(draft.relation).toBe('actual');
+		expect(draft.time).toEqual({ mode: 'keep' });
+		expect(draft.values.placement.aboutTime).toEqual(planned);
+		expect(draft.dirty).toBe(true);
+		// The way back keeps it too, and the untouched record reads as unchanged.
+		draft.setRelation('intend');
+		expect(draft.values.placement.aboutTime).toEqual(planned);
+		expect(draft.dirty).toBe(false);
+		// Saving the switch stores the fact at its planned day, not at «now».
+		draft.setRelation('actual');
+		await draft.save(async () => {});
+		const after = (await fx.repository.getTrace(saved.id))!;
+		expect([after.relation, after.aboutTime]).toEqual(['actual', planned]);
+		// A saved fact switched to an intention keeps its date as well.
+		const fact = await fx.repository.createTrace(
+			plainDraft('Пробежка', 'actual', dayTime('2026-09-01'))
+		);
+		const factDraft = await fx.open({ mode: 'edit', traceId: fact.id });
+		factDraft.setRelation('intend');
+		expect(factDraft.values.placement.aboutTime).toEqual(dayTime('2026-09-01'));
+	});
+
 	it('keeps an old typed intention’s relation and own version; its description is the content', async () => {
 		const { kind, version: first } = await fx.kind('Вес', numberKind('Вес', 'weight'));
 		const next = await fx.repository.createTraceKindV(kind.id, {

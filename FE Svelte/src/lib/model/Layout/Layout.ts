@@ -1,3 +1,4 @@
+import { captionTier } from '$lib/model/Labels/budget';
 import { placeLabels } from '$lib/model/Labels/Labels';
 import { LABEL_FONT_PX } from '$lib/model/Labels/constants';
 import type { MarkBox } from '$lib/model/Labels/types';
@@ -6,7 +7,6 @@ import {
 	MAX_POINT_WIDTH_PX,
 	MIN_INTERVAL_WIDTH_PX,
 	MIN_POINT_WIDTH_PX,
-	ROW_BOTTOM_RESERVE_PX,
 	ROW_HEIGHT_MIN_PX,
 	TRACK_TOP_MIN_PX
 } from '$lib/model/Packing/constants';
@@ -18,7 +18,7 @@ import {
 } from '$lib/model/Packing/Packing';
 import type { PackItem } from '$lib/model/Packing/types';
 import type { ProjectedRow } from '$lib/model/Projection/types';
-import { FUZZY_BAND_OFFSET_PX, FUZZY_BAND_PX, MIN_ROWS_HEIGHT_PX } from './constants';
+import { MIN_ROWS_HEIGHT_PX } from './constants';
 import type { LayoutOptions, RibbonLayout, RowLayout } from './types';
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -28,8 +28,9 @@ const clamp = (value: number, min: number, max: number): number =>
  * Pixel geometry of the ribbon for one window: rows of `rowHeightPx` (52 px
  * as chosen on the device), marks packed into tracks by `model/Packing`
  * over every record of the row at the current scale, captions by
- * `model/Labels`. Fuzzy dates become an underlay band at the bottom of the
- * row and take no track.
+ * `model/Labels` within the row's caption budget at the tier of the window's
+ * span (Q1-A). A fuzzy date is a span like an interval: its window is a
+ * track box at the full mark height (research п. 14, decision A 2026-09-18).
  */
 export const layoutRibbon = (
 	rows: readonly ProjectedRow[],
@@ -42,20 +43,17 @@ export const layoutRibbon = (
 	const pxPerDay = widthPx / (span / DAY_MS);
 	const pointWidth = clamp(pxPerDay, MIN_POINT_WIDTH_PX, MAX_POINT_WIDTH_PX);
 	const fontPx = options.fontPx ?? LABEL_FONT_PX;
+	const tier = captionTier(span / DAY_MS);
 
 	const layouts: RowLayout[] = rows.map((row, index) => {
 		const y0 = index * rowHeightPx;
 		const y1 = y0 + rowHeightPx;
-		const items: PackItem[] = [];
-		for (const mark of row.marks) {
-			if (mark.kind === 'fuzzy') continue;
-			items.push({
-				id: mark.id,
-				start: mark.start,
-				end: mark.kind === 'moment' ? null : mark.end,
-				kind: mark.kind === 'moment' ? 'point' : 'interval'
-			});
-		}
+		const items: PackItem[] = row.marks.map((mark) => ({
+			id: mark.id,
+			start: mark.start,
+			end: mark.kind === 'moment' ? null : mark.end,
+			kind: mark.kind === 'moment' ? 'point' : 'interval'
+		}));
 		const packed = packTracks(items, { pxPerDay, maxTracks: trackCapacity(rowHeightPx, fontPx) });
 		const visibleIds = items
 			.filter(
@@ -66,24 +64,9 @@ export const layoutRibbon = (
 		const tracks = visibleTracks(packed.trackOf, visibleIds);
 		const { pitchPx, trackHeightPx: trackHeight } = trackGeometry(rowHeightPx, tracks, fontPx);
 		const blockHeight = (tracks - 1) * pitchPx + trackHeight;
-		const top =
-			y0 +
-			Math.max(
-				TRACK_TOP_MIN_PX,
-				Math.round((rowHeightPx - ROW_BOTTOM_RESERVE_PX - blockHeight) / 2)
-			);
+		const top = y0 + Math.max(TRACK_TOP_MIN_PX, Math.round((rowHeightPx - blockHeight) / 2));
 
 		const boxes: MarkBox[] = row.marks.map((mark) => {
-			if (mark.kind === 'fuzzy') {
-				return {
-					mark,
-					track: -1,
-					x0: x(mark.start),
-					x1: Math.max(x(mark.end), x(mark.start) + FUZZY_BAND_PX),
-					y0: y1 - FUZZY_BAND_OFFSET_PX - FUZZY_BAND_PX,
-					y1: y1 - FUZZY_BAND_OFFSET_PX
-				};
-			}
 			const track = packed.trackOf.get(mark.id) ?? 0;
 			const ty0 = top + track * pitchPx;
 			if (mark.kind === 'moment') {
@@ -105,7 +88,9 @@ export const layoutRibbon = (
 			selectedTraceId: options.selectedTraceId,
 			widthPx,
 			fontPx,
-			bounds: { top: y0, bottom: y1 }
+			bounds: { top: y0, bottom: y1 },
+			tier,
+			linked: options.linked
 		});
 		const rangeX =
 			row.range && x(row.range.end) >= 0 && x(row.range.start) <= widthPx

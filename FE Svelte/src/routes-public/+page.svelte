@@ -5,16 +5,18 @@
 	import Workbench from '$lib/time/Workbench/Workbench.svelte';
 	import Onboarding from '$lib/time/Onboarding/Onboarding.svelte';
 	import { ONBOARDING_COMPLETE_KEY } from '$lib/time/Onboarding/constants';
+	import FirstGroup from '$lib/time/FirstGroup/FirstGroup.svelte';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import { tempienceRepository } from '$lib/state/triplit';
 	import { activeDataSpace } from '$lib/state/triplit/client';
+	import { openDemoAndReload } from '$lib/state/triplit/demo-actions';
 
 	let ready = $state(false);
 	let completed = $state(false);
-	const needsSetup = $derived(
-		!completed &&
-			activeDataSpace.kind === 'canonical' &&
+	/** Own space with nothing in it: the tour first, then the first Scope until something is kept. */
+	const empty = $derived(
+		activeDataSpace.kind === 'canonical' &&
 			workbench.status === 'ready' &&
 			workbench.snapshot.traces.length === 0 &&
 			workbench.snapshot.scopes.length === 0
@@ -32,14 +34,28 @@
 		});
 	});
 
-	const finishSetup = (): void => {
+	const remember = (): void => {
 		completed = true;
 		try {
 			localStorage.setItem(ONBOARDING_COMPLETE_KEY, '1');
 		} catch {
-			/* The first saved record or group also prevents setup on the next launch. */
+			/* The first saved record or Scope also prevents the tour on the next launch. */
 		}
+	};
+
+	const finishIntro = (): void => {
+		remember();
+	};
+
+	const finishSetup = (): void => {
+		remember();
 		workbench.openCapture();
+	};
+
+	/** «Записная книжка доктора Ватсона» / «Открыть записную книжку Ватсона»: the tour counts as seen; the app reloads into the demo (no form is open on these screens). */
+	const openDemo = (): void => {
+		remember();
+		openDemoAndReload();
 	};
 
 	const createFirstGroup = async (name: string): Promise<void> => {
@@ -50,15 +66,19 @@
 				workbench.failure ?? new CodedError('records_unreadable', 'the records could not be read')
 			);
 		workbench.selectScope(scope.id);
-		finishSetup();
+		remember();
+		// The first record starts inside the first Scope: the entry names it, as «Записать сюда» does.
+		workbench.openCapture({ scopeId: scope.id });
 	};
 </script>
 
 <svelte:head><title>Tempience</title></svelte:head>
 {#if !ready}
 	<p class="p-6 text-sm text-muted" role="status">{t('public.reading')}</p>
-{:else if needsSetup}
-	<Onboarding oncreate={createFirstGroup} onskip={finishSetup} />
+{:else if empty && !completed}
+	<Onboarding onstart={finishIntro} ondemo={openDemo} />
+{:else if empty}
+	<FirstGroup oncreate={createFirstGroup} onskip={finishSetup} ondemo={openDemo} />
 {:else}
 	<Workbench />
 {/if}

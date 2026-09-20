@@ -5,6 +5,7 @@ import type {
 	ScenarioImportReceipt
 } from '$lib/state/triplit/scenario-import-repository';
 import {
+	E2E_SYNTHETIC_LEGACY_SLOTS_KEY,
 	E2E_SYNTHETIC_MANIFEST_KEY,
 	E2E_SYNTHETIC_SEED_MARKER_KEY,
 	bootstrapE2eSyntheticSeed,
@@ -107,6 +108,44 @@ describe('e2e synthetic scenario seed bootstrap', () => {
 			E2E_SYNTHETIC_SEED_MARKER_KEY,
 			'synthetic-unit-manifest'
 		);
+	});
+
+	it('stamps a loop-005 colour slot onto a seeded Scope when the harness asks, before the marker', async () => {
+		const target = storage({
+			[E2E_SYNTHETIC_MANIFEST_KEY]: manifestText,
+			[E2E_SYNTHETIC_LEGACY_SLOTS_KEY]: JSON.stringify({ 'scope-alpha': 3, 'scope-missing': 5 })
+		});
+		const stamp = vi.fn(async () => {});
+		const apply = vi.fn(async (batch: ScenarioImportBatch) => receipt(batch));
+
+		const result = await bootstrapE2eSyntheticSeed({
+			dataSpace: DATA_SPACES['e2e-synthetic'],
+			importRepository: { apply },
+			clock: () => clockValue,
+			storage: target,
+			stampLegacySlot: stamp
+		});
+
+		expect(result.status).toBe('applied');
+		const batch = apply.mock.calls[0][0];
+		// Only a seeded candidate is stamped, with the id the import gave it.
+		expect(stamp).toHaveBeenCalledExactlyOnceWith(batch.mapping['scope-alpha'], 3);
+		expect(target.setItem).toHaveBeenCalledExactlyOnceWith(
+			E2E_SYNTHETIC_SEED_MARKER_KEY,
+			'synthetic-unit-manifest'
+		);
+		// Without a stamp writer the key is inert.
+		const plain = storage({
+			[E2E_SYNTHETIC_MANIFEST_KEY]: manifestText,
+			[E2E_SYNTHETIC_LEGACY_SLOTS_KEY]: JSON.stringify({ 'scope-alpha': 3 })
+		});
+		await bootstrapE2eSyntheticSeed({
+			dataSpace: DATA_SPACES['e2e-synthetic'],
+			importRepository: { apply },
+			clock: () => clockValue,
+			storage: plain
+		});
+		expect(plain.setItem).toHaveBeenCalledOnce();
 	});
 
 	it('re-imports nothing after a reload and keeps the marker on failed applies', async () => {

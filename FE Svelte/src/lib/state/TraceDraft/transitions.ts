@@ -30,8 +30,8 @@ export const singleHead = (versions: readonly TraceKindV[], kindId: string): str
 };
 
 /**
- * The time a relation switch assigns: «Факт → Намерение» removes the date, «Намерение → Факт»
- * takes «now». Any other change of relation leaves the chosen time alone.
+ * The time a relation switch assigns to a new input: «Факт → Намерение» removes the date,
+ * «Намерение → Факт» takes «now». Any other change of relation leaves the chosen time alone.
  */
 export const switchedTime = (
 	from: TraceRelation | null,
@@ -44,8 +44,11 @@ export const switchedTime = (
 };
 
 /**
- * «Факт → Намерение» clears the date, the reverse assigns «now»; opening changes nothing, and a
- * saved supplement keeps its marker because it has no date of its own to take.
+ * In a new input «Факт → Намерение» clears the date and the reverse assigns «now»; a saved
+ * record keeps its stored time whichever way it is switched — the switch says what the
+ * record is, not when (owner review 2026-09-19, T1: «Итог намерения» on an existing
+ * intention must not replace its planned date). Opening changes nothing, and a saved
+ * supplement keeps its marker because it has no date of its own to take.
  * Kind input has no relation switch; a relation an active evidence link forbids is not
  * switched, the form shows the link instead. Either switch drops the chosen results and
  * their statements: they belong to the other role, and nothing hidden comes back.
@@ -54,7 +57,8 @@ export const switchRelation = (draft: TraceDraftState, next: TraceRelation, now?
 	if (draft.typed && draft.entry.mode === 'create') return;
 	if (next === draft.relation || draft.blockedRelation?.relation === next) return;
 	// A supplement is placed by its original, not by a date of its own: the marker stays as it is.
-	if (draft.supplement === null) draft.time = switchedTime(draft.relation, next, now) ?? draft.time;
+	if (draft.supplement === null && draft.entry.mode === 'create')
+		draft.time = switchedTime(draft.relation, next, now) ?? draft.time;
 	draft.relation = next;
 	draft.results.reset();
 	draft.touch('time');

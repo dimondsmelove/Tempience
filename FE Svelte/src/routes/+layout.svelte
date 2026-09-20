@@ -5,8 +5,13 @@
 	import { browser, dev, version } from '$app/environment';
 	import { base } from '$app/paths';
 	import type { ResolvedPathname } from '$app/types';
+	import type { Attachment } from 'svelte/attachments';
+	import Onboarding from '$lib/time/Onboarding/Onboarding.svelte';
+	import { appearance } from '$lib/theme/appearance.svelte';
+	import { tour } from '$lib/state/Tour/Tour.svelte';
+	import { openDemoAndReload } from '$lib/state/triplit/demo-actions';
 	import { pwa } from '$lib/state/Pwa/Pwa.svelte';
-	import { locale } from '$lib/state/Locale/Locale.svelte';
+	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { themeState } from '$lib/theme/theme.svelte';
 
@@ -41,6 +46,18 @@
 		themeState.sync();
 	});
 
+	/** The demo card of the tour: the app reloads into the demo, so an open form is asked about first. */
+	const openDemoFromTour = (): void => {
+		draftGuard.exitReloading(() => {
+			tour.hide();
+			openDemoAndReload();
+		});
+	};
+	/** Keyboard users land inside the overlay; Tab then reaches «Закрыть» first. */
+	const focusOnMount: Attachment<HTMLElement> = (element) => {
+		element.focus();
+	};
+
 	// A route change ends an open form like any other exit; a changed one asks first and
 	// the same navigation is issued once after «Отбросить изменения». Leaving the page
 	// (reload, close) cannot show the app's question: the cancelled navigation lets the
@@ -65,4 +82,27 @@
 	});
 </script>
 
+<!-- Escape closes the tour unless the draft guard's own question is up: that one keeps editing. -->
+<svelte:window
+	onkeydown={(event) => {
+		if (tour.open && event.key === 'Escape' && !draftGuard.request) tour.hide();
+	}}
+/>
+
 {@render children()}
+
+<!-- The tour from the menu, over the app, in both builds. The overlay sits outside the shell,
+     so it carries the shell's appearance itself: the same roles and tokens as everything under it. -->
+{#if tour.open}
+	<div
+		class="appearance-shell fixed inset-0 z-50 bg-canvas text-ink"
+		style={appearance.style}
+		role="dialog"
+		aria-label={t('onboarding.title')}
+		tabindex="-1"
+		data-testid="tour-overlay"
+		{@attach focusOnMount}
+	>
+		<Onboarding onstart={tour.hide} ondemo={openDemoFromTour} onclose={tour.hide} />
+	</div>
+{/if}

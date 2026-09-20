@@ -3,14 +3,15 @@
 	import type { TraceDraftState } from '$lib/state/TraceDraft/TraceDraft.svelte';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { ScopeChip, ScopePicker, scopeAncestors, scopeOptionsOf } from '$lib/ui/ScopePicker';
+	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
+	import { ScopePicker, scopeAncestors, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { PlusOutline } from 'flowbite-svelte-icons';
 
 	let { draft }: { draft: TraceDraftState } = $props();
 	// The draft's own catalog names the Scopes; the timeline's links give them their tree.
 	const options = $derived(scopeOptionsOf(draft.scopeList, workbench.view.intersections));
-	const nameOf = (id: string): string =>
-		draft.scopeList.find((scope) => scope.id === id)?.name ?? t('draft.scopeUnavailable');
+	const scopeOf = (id: string) => draft.scopeList.find((scope) => scope.id === id);
+	const nameOf = (id: string): string => scopeOf(id)?.name ?? t('draft.scopeUnavailable');
 </script>
 
 <!-- Memberships of the record itself: the entry's, the Kind's and the user's own choices.
@@ -46,6 +47,9 @@
 					<ScopeChip
 						{id}
 						{name}
+						colorHue={scopeOf(id)?.colorHue ?? null}
+						colorChroma={scopeOf(id)?.colorChroma ?? null}
+						colorDepth={scopeOf(id)?.colorDepth ?? null}
 						path={scopeAncestors(options, id)}
 						removeLabel={t('draft.scopeRemove', { name })}
 						onremove={() => draft.removeScope(id)}

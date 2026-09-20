@@ -2,17 +2,34 @@ import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 import Onboarding from './Onboarding.svelte';
 
-describe('first-launch introduction', () => {
-	it('explains local ownership and the next action without ontology terms', () => {
-		const oncreate = vi.fn(async () => {});
-		const onskip = vi.fn();
-		const { body } = render(Onboarding, { props: { oncreate, onskip } });
-		const text = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
-		expect(text).toContain('Начать');
-		expect(text).toContain('Данные хранятся в браузере на этом устройстве');
-		expect(text).toContain('Экспортировать данные');
-		expect(text).not.toMatch(/\b(Trace|Scope|Intersection|DataSpace)\b/);
-		expect(oncreate).not.toHaveBeenCalled();
-		expect(onskip).not.toHaveBeenCalled();
+const textOf = (body: string): string => body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+
+describe('first-launch tour', () => {
+	it('opens on «Что такое Tempience» naming the three words', () => {
+		const onstart = vi.fn();
+		const { body } = render(Onboarding, { props: { onstart } });
+		const text = textOf(body);
+		expect(text).toContain('1 из 5');
+		expect(text).toContain('Что такое Tempience');
+		expect(text).toMatch(/\bTrace\b/);
+		expect(text).toMatch(/\bScope\b/);
+		expect(text).toMatch(/\bIntersection\b/);
+		expect(text).toContain('Далее');
+		expect(text).toContain('Пропустить');
+		expect(text).not.toContain('Назад');
+		expect(text).not.toContain('Закрыть');
+		expect(onstart).not.toHaveBeenCalled();
+	});
+
+	it('renders the marks of the copy as elements, never as text or HTML', () => {
+		const { body } = render(Onboarding, { props: { onstart: vi.fn() } });
+		expect(body).toContain('<strong class="font-semibold text-ink">Trace</strong>');
+		expect(body).not.toContain('**');
+		expect(body).not.toContain('{@html');
+	});
+
+	it('offers «Закрыть» only when opened from the menu', () => {
+		const { body } = render(Onboarding, { props: { onstart: vi.fn(), onclose: vi.fn() } });
+		expect(textOf(body)).toContain('Закрыть');
 	});
 });

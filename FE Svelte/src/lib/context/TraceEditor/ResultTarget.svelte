@@ -12,10 +12,13 @@
 	import type { ResultTarget } from '$lib/state/TraceDraft/types';
 	import type { IntentionOutcome } from '$lib/state/triplit/IntentionAssessments/types';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { getLens, lensSource } from '$lib/ui/LensSource';
 	import { OUTCOME_KEYS, STATE_KEYS, openKey, outcomeControlValue, outcomeKey } from './results';
 
 	let { draft, target }: { draft: TraceDraftState; target: ResultTarget } = $props();
 	const id = $props.id();
+	/** Under the workbench the chosen record lights on the ribbon (loop 008, C3). */
+	const hover = getLens();
 	const role = $derived(draft.targetContext.role);
 	const row = $derived(draft.results.rowOf(target.otherId));
 	/** A record with nothing readable to name it says so rather than showing a blank line. */
@@ -57,6 +60,7 @@
 	data-testid="result-target"
 	data-target={target.otherId}
 	data-link={target.linkId ?? undefined}
+	{@attach lensSource(hover, { kind: 'trace', traceId: target.otherId })}
 >
 	<div class="flex items-start gap-2">
 		<div class="min-w-0 flex-1">

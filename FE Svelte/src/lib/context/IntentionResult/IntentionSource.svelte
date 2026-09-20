@@ -11,6 +11,7 @@
 	import { activeDataSpace } from '$lib/state/triplit/client';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 	import SourceEdit from './SourceEdit.svelte';
 	import { INELIGIBLE_KEYS } from './constants';
 
@@ -66,7 +67,10 @@
 					data-testid="source-fact"
 					disabled={!source.factId}
 					onclick={() => source.factId && workbench.selectTrace(source.factId, 'context')}
-					>{t('result.byFact', { title: factTitle })}</button
+					{@attach lensSource(
+						workbench.hover,
+						source.factId ? { kind: 'trace', traceId: source.factId } : null
+					)}>{t('result.byFact', { title: factTitle })}</button
 				>
 			{/if}
 		</span>

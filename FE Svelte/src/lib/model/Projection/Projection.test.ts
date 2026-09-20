@@ -18,6 +18,8 @@ const scope = (id: string): ExplorerScope => ({
 	note: null,
 	startedAt: null,
 	endedAt: null,
+	colorHue: null,
+	colorChroma: null,
 	origin
 });
 const trace = (
@@ -110,6 +112,72 @@ describe('traceMarkTime', () => {
 		)!;
 		expect(minute.start).toBe(Date.UTC(2026, 2, 12, 10, 30));
 	});
+
+	it('a moment keeps the end of its whole window for «просроченное»; a span already ends there', () => {
+		expect(traceMarkTime(snapshot.traces[0])!.until).toBe(Date.UTC(2026, 2, 11));
+		const minute = traceMarkTime(
+			trace('m', 'instant', absolute('2026-03-12T10:30:00.000Z', 'minute'))
+		)!;
+		expect(minute.until).toBe(Date.UTC(2026, 2, 12, 11, 0));
+		expect(traceMarkTime(snapshot.traces[1])!.until).toBeUndefined();
+		expect(traceMarkTime(snapshot.traces[2])!.until).toBeUndefined();
+	});
+
+	it('an open interval runs from its start to «сейчас»; one that has not started is its start alone', () => {
+		const now = Date.UTC(2026, 8, 6, 12);
+		const reading = traceMarkTime(trace('o', 'interval', absolute('2026-08-10')), now)!;
+		expect(reading).toMatchObject({ kind: 'interval', open: true, intent: false });
+		expect(reading.start).toBe(Date.UTC(2026, 7, 10));
+		expect(reading.end).toBe(now);
+		expect(reading.until).toBeUndefined();
+		const ahead = traceMarkTime(trace('f', 'interval', absolute('2026-10-01')), now)!;
+		expect(ahead).toMatchObject({ kind: 'interval', open: true });
+		expect(ahead.start).toBe(Date.UTC(2026, 9, 1));
+		expect(ahead.end).toBe(ahead.start);
+		// A coarse start keeps the fuzzy silhouette; the band still reaches «сейчас».
+		const month = traceMarkTime(trace('m', 'interval', absolute('2026-07', 'month')), now)!;
+		expect(month).toMatchObject({ kind: 'fuzzy', open: true, end: now });
+		// A stated duration with no end is the located start, not an open interval.
+		const amount = traceMarkTime(
+			{
+				...trace('d', 'interval', absolute('2026-08-10')),
+				statedDuration: { amount: 2, unit: 'day' }
+			},
+			now
+		)!;
+		expect(amount.open).toBeUndefined();
+		expect(amount.kind).toBe('moment');
+	});
+});
+
+describe('projectSnapshot with an open interval', () => {
+	it('projects it to the projection «сейчас», lists «длится» in the legend and never parks it', () => {
+		const now = Date.UTC(2026, 8, 6, 12);
+		const open = trace('o', 'interval', absolute('2026-08-10'));
+		const projection = projectSnapshot(
+			{
+				...snapshot,
+				traces: [...snapshot.traces, open],
+				intersections: [...snapshot.intersections, link('o', 'a', 'belongs_to')]
+			},
+			state({ expanded: new Set(['a']), now })
+		);
+		const mark = projection.marksByTraceId.get('o')![0];
+		expect(mark).toMatchObject({ open: true, kind: 'interval', end: now });
+		expect(mark.timeLabel).toBe('с 10 авг. 2026 г. — длится');
+		expect(projection.legendKeys.has('open')).toBe(true);
+		expect(projection.parked.some((entry) => entry.traceId === 'o')).toBe(false);
+		// «Длится» solo keeps the open interval and nothing else.
+		const solo = projectSnapshot(
+			{
+				...snapshot,
+				traces: [...snapshot.traces, open],
+				intersections: [...snapshot.intersections, link('o', 'a', 'belongs_to')]
+			},
+			state({ expanded: new Set(['a']), now, soloLegend: 'open' })
+		);
+		expect([...solo.marksByTraceId.keys()]).toEqual(['o']);
+	});
 });
 
 describe('projectSnapshot', () => {
@@ -177,6 +245,9 @@ describe('projectSnapshot', () => {
 		);
 		expect(legend.rows[0].marks.map((mark) => mark.traceId).sort()).toEqual(['t1', 't2']);
 		expect(legend.rows[0].range?.start).toBe(Date.UTC(2026, 2, 1));
+		// The numbers say what the ribbon shows: the hidden intention leaves both counts; the subtree
+		// still counts its records (they would stand in their own rows once the group is expanded).
+		expect(legend.rows[0]).toMatchObject({ directCount: 2, subtreeCount: 4 });
 
 		const hidden = projectSnapshot(snapshot, state({ hiddenScopes: new Set(['b']) }));
 		expect(hidden.rows[0]).toMatchObject({ hasChildren: false, subtreeCount: 3 });
@@ -187,6 +258,46 @@ describe('projectSnapshot', () => {
 			state({ onlyScopes: new Set(['b']), expanded: new Set(['a']) })
 		);
 		expect(only.rows.map((row) => row.id)).toEqual(['a', 'b']);
+	});
+
+	it('marks a record in several Scopes as «multi» in every row it projects into', () => {
+		const projection = projectSnapshot(snapshot, state({ expanded: new Set(['a']) }));
+		const t2 = projection.marksByTraceId.get('t2') ?? [];
+		expect(t2.map((mark) => mark.rowId)).toEqual(['a', 'b']);
+		expect(t2.every((mark) => mark.multi === true)).toBe(true);
+		expect(projection.marksByTraceId.get('t1')?.[0].multi).toBeUndefined();
+	});
+
+	it('«соло» leaves only the marks of one kind, wins over the hidden set, and the counts follow', () => {
+		const now = Date.UTC(2026, 8, 6, 12);
+		const solo = projectSnapshot(
+			snapshot,
+			state({ soloLegend: 'intent', hiddenLegend: new Set(['intent']), now })
+		);
+		expect(solo.rows[0].marks.map((mark) => mark.traceId)).toEqual(['t4']);
+		expect(solo.rows[0]).toMatchObject({ directCount: 1, subtreeCount: 1 });
+		expect(solo.rows[2].marks).toEqual([]);
+		// The kinds on offer before the filter are what the legend lists: the solo hides nothing from it.
+		expect([...solo.legendKeys].sort()).toEqual(
+			['fact', 'fuzzy', 'interval', 'intent', 'multi', 'overdue', 'rollup'].sort()
+		);
+		// Roll-ups follow the same rule: soloing them keeps the collapsed subtree alone.
+		const rollups = projectSnapshot(snapshot, state({ soloLegend: 'rollup', now }));
+		expect(rollups.rows[0].marks.map((mark) => mark.traceId).sort()).toEqual(['t3', 't7']);
+	});
+
+	it('an open intention behind «сейчас» is overdue; the same one ahead of it is not', () => {
+		const behind = projectSnapshot(snapshot, state({ now: Date.UTC(2026, 8, 6, 12) }));
+		expect(behind.legendKeys.has('overdue')).toBe(true);
+		expect(
+			projectSnapshot(
+				snapshot,
+				state({ hiddenLegend: new Set(['overdue']), now: Date.UTC(2026, 8, 6) })
+			).rows[0].marks.some((mark) => mark.traceId === 't4')
+		).toBe(false);
+		const ahead = projectSnapshot(snapshot, state({ now: Date.UTC(2026, 3, 1) }));
+		expect(ahead.legendKeys.has('overdue')).toBe(false);
+		expect(ahead.legendKeys.has('intent')).toBe(true);
 	});
 
 	it('parks records without an absolute time and counts the rest', () => {
@@ -274,7 +385,8 @@ describe('projectSnapshot', () => {
 			snapshot,
 			state({
 				grouping: 'kind',
-				hiddenLegend: new Set(['moment', 'rollup']),
+				// A moment row holds facts and intentions alike: the eye hides facts, the legend the rest.
+				hiddenLegend: new Set(['fact', 'intent', 'rollup']),
 				hiddenScopes: new Set(['b'])
 			})
 		);

@@ -15,6 +15,7 @@
 		onscrollrows,
 		interaction,
 		linksShown = true,
+		veil = 0,
 		// eslint-disable-next-line no-useless-assignment -- the owner reads it through `bind:element`
 		element = $bindable(null)
 	}: TimelineSurfaceProps = $props();
@@ -40,10 +41,20 @@
 			window={viewport.window}
 			now={viewport.now}
 			selectedTraceId={workbench.selection.traceId}
-			links={linksShown ? projection.links : []}
-			showScopeRange={workbench.filters.isShown('scopeRange')}
+			links={projection.links}
+			{linksShown}
+			lit={workbench.lit.traceIds}
+			focus={workbench.focus}
+			hover={workbench.hover.target}
+			lens={workbench.lens}
+			{veil}
+			moving={viewport.moving}
+			pulse={workbench.canvasPulse}
+			dimmed={workbench.dimmed}
+			searching={workbench.searching}
 			{rowHeightPx}
 			onselect={(traceId, source) => workbench.selectTrace(traceId, source)}
+			onhover={(target) => workbench.hover.set(target)}
 			onzoomto={(range, traceIds) => workbench.zoomToCluster(range, traceIds)}
 			{onempty}
 		/>

@@ -1,0 +1,495 @@
+{
+	"schemaVersion": "tempience.calibration-review.v2",
+	"manifestId": "synthetic-ribbon-language",
+	"title": "Synthetic ribbon vocabulary fixture (loop 005, C2): every mark of the legend around «сейчас» 2026-09-06; «Пробная неделя» (Dec 2025) in three Scopes for the weave (loop 006, C3)",
+	"sourceIds": ["source:synthetic"],
+	"claimRefs": [],
+	"claimEvidence": [],
+	"candidates": [
+		{
+			"candidateId": "rib:scope:belgrade",
+			"role": "scope",
+			"proposed": { "name": "Белград", "note": null, "startedAt": null, "endedAt": null },
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:scope:work",
+			"role": "scope",
+			"proposed": { "name": "Работа", "note": null, "startedAt": null, "endedAt": null },
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:scope:project",
+			"role": "scope",
+			"proposed": { "name": "Проект", "note": null, "startedAt": null, "endedAt": null },
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:move",
+			"role": "trace",
+			"proposed": {
+				"content": "Переезд в Белград",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-03-10",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:course",
+			"role": "trace",
+			"proposed": {
+				"content": "Курс сербского",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-04-06",
+					"end": "2026-06-12"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:summer",
+			"role": "trace",
+			"proposed": {
+				"content": "Лето в горах",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "month",
+					"certainty": "exact",
+					"start": "2026-07",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:papers",
+			"role": "trace",
+			"proposed": {
+				"content": "Сдать документы",
+				"relation": "intend",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-08-19",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:permit",
+			"role": "trace",
+			"proposed": {
+				"content": "Оформить ВНЖ",
+				"relation": "intend",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-08-26",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:visa",
+			"role": "trace",
+			"proposed": {
+				"content": "Продлить визу",
+				"relation": "intend",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-09-24",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:holiday",
+			"role": "trace",
+			"proposed": {
+				"content": "Отпуск",
+				"relation": "intend",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "month",
+					"certainty": "exact",
+					"start": "2026-10",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:offer",
+			"role": "trace",
+			"proposed": {
+				"content": "Оффер",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-05-28",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:interview",
+			"role": "trace",
+			"proposed": {
+				"content": "Собеседование",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-05-14",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:sprint",
+			"role": "trace",
+			"proposed": {
+				"content": "Спринт",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-06-01",
+					"end": "2026-06-19"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:dentist",
+			"role": "trace",
+			"proposed": {
+				"content": "Стоматолог",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-04-20",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:trace:trial",
+			"role": "trace",
+			"proposed": {
+				"content": "Пробная неделя",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2025-12-15",
+					"end": "2025-12-24"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:project-work",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:scope:project",
+				"toId": "rib:scope:work",
+				"kind": "child_of",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:move-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:move",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:course-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:course",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:summer-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:summer",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:papers-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:papers",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:permit-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:permit",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:visa-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:visa",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:holiday-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:holiday",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:offer-work",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:offer",
+				"toId": "rib:scope:work",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:offer-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:offer",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:interview-project",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:interview",
+				"toId": "rib:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:sprint-project",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:sprint",
+				"toId": "rib:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:trial-belgrade",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:trial",
+				"toId": "rib:scope:belgrade",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:trial-work",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:trial",
+				"toId": "rib:scope:work",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:intersection:trial-project",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:trial",
+				"toId": "rib:scope:project",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:link:course-move",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:course",
+				"toId": "rib:trace:move",
+				"kind": "part_of",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "rib:link:course-interview",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "rib:trace:course",
+				"toId": "rib:trace:interview",
+				"kind": "part_of",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		}
+	]
+}

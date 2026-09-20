@@ -9,12 +9,15 @@ import type { MarkTime, ParkedReason } from './types';
  * Classifies a record for the label language (DESIGN.md §5), repeating the
  * semantics of the previous front: an absolute `instant` is a moment, an
  * absolute `interval` with known boundaries is an interval, and a coarse date (month, season, year)
- * is a fuzzy underlay. An `approximate` certainty is read as a fuzzy date too.
+ * is a fuzzy date — a band of its window in a track (decision A). An `approximate` certainty is read as a fuzzy date too.
  * `relation: 'intend'` hollows the silhouette; legacy relations read as actual.
  * Relative, unknown and trace-referenced times have no place on the axis.
  * A stated amount locates its start only; the glyph never invents an end from that amount.
+ * A moment keeps the end of its whole window in `until`, so «просроченное» waits for the day to pass (research п. 11).
+ * An interval without an end is open («длится», п. 8): its box runs from the start to `now`,
+ * and collapses to the start alone while the start still lies ahead — a head only.
  */
-export const traceMarkTime = (trace: ExplorerTrace): MarkTime | null => {
+export const traceMarkTime = (trace: ExplorerTrace, now: number = Date.now()): MarkTime | null => {
 	const aboutTime = trace.aboutTime;
 	if (trace.aboutKind === 'trace_ref' || aboutTime?.basis !== 'absolute') return null;
 	let bounds: { start: number; end: number } | null;
@@ -36,13 +39,16 @@ export const traceMarkTime = (trace: ExplorerTrace): MarkTime | null => {
 		: trace.aboutKind === 'interval' && !trace.statedDuration
 			? 'interval'
 			: 'moment';
+	const open = trace.aboutKind === 'interval' && aboutTime.end === null && !trace.statedDuration;
 	// A day-precision moment sits in the middle of its day rather than at midnight.
 	const at = precision === 'minute' ? bounds.start : (bounds.start + bounds.end) / 2;
 	return {
 		kind,
 		intent: trace.relation === 'intend',
 		start: kind === 'moment' ? at : bounds.start,
-		end: kind === 'moment' ? at : bounds.end,
+		end: open ? Math.max(bounds.start, now) : kind === 'moment' ? at : bounds.end,
+		...(kind === 'moment' ? { until: bounds.end } : {}),
+		...(open ? { open: true } : {}),
 		precision,
 		certainty
 	};
@@ -77,6 +83,9 @@ const tracePlacementLabel = (
 			(trace.statedDuration ? translate(language, 'time.startPrefix') : '') +
 			(aboutTime.certainty === 'approximate' ? '≈ ' : '');
 		const start = formatTemporalValue(aboutTime.start, aboutTime.precision, language);
+		// «С <начала> — длится»: an interval that has no end yet (research п. 8).
+		if (trace.aboutKind === 'interval' && aboutTime.end === null && !trace.statedDuration)
+			return `${prefix}${translate(language, 'time.ongoingSince', { start })}`;
 		if (aboutTime.end === null || aboutTime.end === aboutTime.start) return `${prefix}${start}`;
 		return `${prefix}${start} — ${formatTemporalValue(aboutTime.end, aboutTime.precision, language)}`;
 	} catch {

@@ -80,5 +80,31 @@ describe('appearance contract', () => {
 		expect(device.contextWidth).toBe(600);
 		expect(panelWidths(1600, device)).toEqual({ context: 600, rail: 480 });
 		expect(parseDevice({ ...device, density: Infinity })).toBeNull();
+		// An older cache without the legend flag reads as «shown»; a wrong type is refused.
+		const { legendOpen: _legendOpen, ...older } = device;
+		void _legendOpen;
+		expect(parseDevice(older)?.legendOpen).toBe(true);
+		expect(parseDevice({ ...device, legendOpen: false })?.legendOpen).toBe(false);
+		expect(parseDevice({ ...device, legendOpen: 'yes' })).toBeNull();
+		// The row arrangement (loop 006): absent or null is the default order, a saved one is copied, a malformed one refused.
+		const noRows = Object.fromEntries(
+			Object.entries(device).filter(([key]) => key !== 'rowArrangement')
+		);
+		expect(parseDevice(noRows)?.rowArrangement).toBeNull();
+		expect(parseDevice({ ...device, rowArrangement: null })?.rowArrangement).toBeNull();
+		const lanes = { lanes: [{ members: ['a', 'b'], name: 'AB' }, { members: ['c'] }] };
+		expect(parseDevice({ ...device, rowArrangement: lanes })?.rowArrangement).toEqual(lanes);
+		expect(parseDevice({ ...device, rowArrangement: { lanes: [{ members: [] }] } })).toBeNull();
+		expect(parseDevice({ ...device, rowArrangement: 'rows' })).toBeNull();
+		// The lens strength (loop 008): absent reads as the default 55, 0 turns the veil off, out of range or wrong type is refused.
+		const { lens: _lens, ...noLens } = device;
+		void _lens;
+		expect(parseDevice(noLens)?.lens).toBe(55);
+		expect(defaultDevice.lens).toBe(55);
+		expect(parseDevice({ ...device, lens: 0 })?.lens).toBe(0);
+		expect(parseDevice({ ...device, lens: 100 })?.lens).toBe(100);
+		expect(parseDevice({ ...device, lens: 101 })).toBeNull();
+		expect(parseDevice({ ...device, lens: -1 })).toBeNull();
+		expect(parseDevice({ ...device, lens: '55' })).toBeNull();
 	});
 });

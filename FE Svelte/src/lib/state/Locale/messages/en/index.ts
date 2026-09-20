@@ -16,6 +16,9 @@ import timeline from './timeline.json';
 
 import life from './life.json';
 
+import onboarding from './onboarding.json';
+import demo from './demo.json';
+
 /** The English catalog: one JSON per area, one flat key space. */
 export const en = {
 	...common,
@@ -30,5 +33,7 @@ export const en = {
 	...time,
 	...context,
 	...timeline,
-	...life
+	...life,
+	...onboarding,
+	...demo
 };

@@ -10,7 +10,9 @@ export const selectionKey = (target: SelectionTarget): string =>
 				? `intersection:${target.intersectionId}`
 				: target.kind === 'period-record'
 					? `period-record:${target.periodId}`
-					: `period:${target.period.unit}:${target.period.start}`;
+					: target.kind === 'row'
+						? `row:${target.rowId}`
+						: `period:${target.period.unit}:${target.period.start}`;
 
 /**
  * The selected record or period with back/forward history (DESIGN.md §8).
@@ -45,6 +47,12 @@ export class SelectionState {
 	get period(): PeriodRef | null {
 		const current = this.current;
 		return current?.kind === 'period' ? current.period : null;
+	}
+
+	/** The merged row chosen in the rail (C5), by its row id. */
+	get rowId(): string | null {
+		const current = this.current;
+		return current?.kind === 'row' ? current.rowId : null;
 	}
 
 	get entityId(): string | null {

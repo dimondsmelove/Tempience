@@ -11,6 +11,7 @@
 	import { RestoreEpisodes } from '$lib/context/Deleted/restore.svelte';
 	import PeriodView from '$lib/context/PeriodView/PeriodView.svelte';
 	import ProposalView from '$lib/context/ProposalView/ProposalView.svelte';
+	import RowView from '$lib/context/RowView/RowView.svelte';
 	import NewScope from '$lib/context/ScopeEditor/NewScope.svelte';
 	import ScopeView from '$lib/context/ScopeView/ScopeView.svelte';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
@@ -22,8 +23,8 @@
 	import { explorerTraceOf } from '$lib/state/Workbench/snapshot';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { untrack } from 'svelte';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
+	import { untrack } from 'svelte';
 	import type { ContextTab } from './constants';
 	import TraceView from './TraceView.svelte';
 	import { readCollapsed, writeCollapsed } from './sections';
@@ -175,7 +176,9 @@
 		<CloseOutline class="h-4 w-4" />
 	</Button>
 </header>
-<!-- The navigator on the right (DESIGN.md §8): capture, a period, a record with its parts, or the neutral placeholder at rest. -->
+<!-- The navigator on the right (DESIGN.md §8): capture, a period, a record with its parts, or the neutral placeholder at rest.
+     One scroller with one bar (owner review 2026-09-19, п. 26; pack 3, P7): the overlay bar every surface shares —
+     the ribbon, the rail, the Kind table — now grabbable, so the native bar is hidden here as there. -->
 <div
 	class={[
 		'cg-panel flex min-h-0 flex-1 flex-col gap-3 overflow-auto',
@@ -222,6 +225,9 @@
 				<DeletedScope {workbench} scopeId={selection.scopeId} />
 			{/if}
 		{/key}
+	{:else if selection.rowId}
+		<!-- A merged row of the rail (C5): its members, its records, the fold and the split. -->
+		{#key selection.rowId}<RowView {workbench} rowId={selection.rowId} />{/key}
 	{:else if selection.period}
 		<PeriodView {workbench} period={selection.period} />
 	{:else if trace && workbench.proposalOf(trace.id)}

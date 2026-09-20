@@ -2,8 +2,12 @@ import type { VersionSummary } from '$lib/model/TraceForm/summary-fields';
 import type { TempienceRepository, TraceRepository } from '$lib/state/triplit/repository';
 import type { IntentionAssessment, Trace } from '$lib/state/triplit/types';
 import type { IntentionOutcome } from '$lib/state/triplit/IntentionAssessments/types';
-import { evaluateIntention } from '$lib/state/triplit/IntentionAssessments/result';
+import {
+	evaluateIntention,
+	type IntentionSourceState
+} from '$lib/state/triplit/IntentionAssessments/result';
 import { isIntentionRelation } from '$lib/state/triplit/Traces/roles';
+import { traceMarkTime } from '$lib/model/Projection/marks';
 import type {
 	ExplorerIntersection,
 	ExplorerOrigin,
@@ -34,6 +38,30 @@ export const explorerTraceOf = (trace: Trace, origin: ExplorerOrigin): ExplorerT
 	data: trace.data,
 	origin
 });
+
+/** An intention's derived result as the snapshot carries it: open or closed, its outcome, and when it closed. */
+type IntentionState = Readonly<{
+	open: boolean;
+	outcome: IntentionOutcome | null;
+	closedAt: string | null;
+}>;
+
+/**
+ * The instant an intention was closed at (loop 008, C4): a direct source's action time; for
+ * an evidence source the fact where the ribbon places it — the start of its mark, so the
+ * closing marker lands on the fact — or the fact's event key when no mark can be built.
+ */
+const closedAtOf = (
+	source: IntentionSourceState,
+	tracesById: ReadonlyMap<string, Trace>,
+	origin: ExplorerOrigin
+): string | null => {
+	const { assessment, orderedAt } = source;
+	if (assessment.source === 'direct') return orderedAt;
+	const fact = assessment.factId ? tracesById.get(assessment.factId) : undefined;
+	const time = fact ? traceMarkTime(explorerTraceOf(fact, origin)) : null;
+	return time ? new Date(time.start).toISOString() : orderedAt;
+};
 
 export type ExplorerRepositoryReader = Pick<
 	TraceRepository,
@@ -82,7 +110,9 @@ export const buildRepositoryExplorerSnapshot = async (
 	const assessments: readonly IntentionAssessment[] = repository.listIntentionAssessments
 		? await repository.listIntentionAssessments()
 		: [];
-	const results = new Map<string, { open: boolean; outcome: IntentionOutcome | null }>();
+	const results = new Map<string, IntentionState>();
+	/** The intentions each fact closed as the effective evidence of their openness (C4). */
+	const closes = new Map<string, string[]>();
 	if (assessments.length) {
 		const tracesById = new Map(traces.map((trace) => [trace.id, trace] as const));
 		const intersectionsById = new Map(intersections.map((link) => [link.id, link] as const));
@@ -93,7 +123,17 @@ export const buildRepositoryExplorerSnapshot = async (
 		}
 		for (const [intentionId, own] of byIntention) {
 			const result = evaluateIntention(intentionId, own, { tracesById, intersectionsById });
-			results.set(intentionId, { open: result.open.value, outcome: result.outcome.value });
+			// The source whose explicit value closed it: where and when the closing happened.
+			const closer = result.open.value
+				? undefined
+				: result.sources.find((source) => source.assessment.id === result.open.sourceId);
+			results.set(intentionId, {
+				open: result.open.value,
+				outcome: result.outcome.value,
+				closedAt: closer ? closedAtOf(closer, tracesById, origin) : null
+			});
+			const factId = closer?.assessment.source === 'evidence' ? closer.assessment.factId : null;
+			if (factId) (closes.get(factId) ?? closes.set(factId, []).get(factId))!.push(intentionId);
 		}
 	}
 
@@ -101,7 +141,15 @@ export const buildRepositoryExplorerSnapshot = async (
 		traces: traces.map((trace) => {
 			const base = explorerTraceOf(trace, origin);
 			const result = isIntentionRelation(trace.relation) ? results.get(trace.id) : undefined;
-			return result ? { ...base, intentOpen: result.open, intentOutcome: result.outcome } : base;
+			if (result)
+				return {
+					...base,
+					intentOpen: result.open,
+					intentOutcome: result.outcome,
+					...(result.open ? {} : { intentClosedAt: result.closedAt })
+				};
+			const closed = closes.get(trace.id);
+			return closed ? { ...base, closesIntentionIds: closed } : base;
 		}),
 		scopes: scopes.map((scope): ExplorerScope => ({
 			id: scope.id,
@@ -109,6 +157,9 @@ export const buildRepositoryExplorerSnapshot = async (
 			note: scope.note,
 			startedAt: scope.startedAt,
 			endedAt: scope.endedAt,
+			colorHue: scope.colorHue,
+			colorChroma: scope.colorChroma,
+			colorDepth: scope.colorDepth,
 			origin
 		})),
 		periods: periods.map((period): ExplorerPeriod => ({

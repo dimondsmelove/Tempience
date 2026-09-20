@@ -34,4 +34,6 @@ export type BuilderProps = {
 	cancelTestId?: string;
 	/** Hands the owner of a nested step a reader of whether the Builder holds unsaved input. */
 	watch?: (dirty: () => boolean) => void;
+	/** The owner holds a nested Scope save (write and return) as its own pending work. */
+	hold?: (run: Promise<void>) => void;
 };

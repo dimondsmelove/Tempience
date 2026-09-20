@@ -33,11 +33,15 @@ export function selectionFromPlacement(
 ): TimeSelection {
 	const t = placement.aboutTime;
 	const quantity = placement.statedDuration;
+	// An interval with a start and no end, and no stated length, is «длится» (research п. 8).
+	const ongoing =
+		placement.aboutKind === 'interval' && t?.basis === 'absolute' && t.end === null && !quantity;
 	return {
 		start: t?.basis === 'absolute' ? coordinate(t.start, t.precision) : dayAt(now),
 		end: t?.basis === 'absolute' && t.end !== null ? coordinate(t.end, t.precision) : null,
 		timed: t?.basis === 'absolute' && t.precision === 'minute',
 		...(quantity ? { duration: quantity } : {}),
+		...(ongoing ? { ongoing: true } : {}),
 		date:
 			t?.basis === 'absolute'
 				? t.precision === 'minute' || t.precision === 'day'
@@ -61,6 +65,7 @@ export function sameSelection(a: TimeSelection, b: TimeSelection): boolean {
 		a.date === b.date &&
 		Boolean(a.approximate) === Boolean(b.approximate) &&
 		Boolean(a.window) === Boolean(b.window) &&
+		Boolean(a.ongoing) === Boolean(b.ongoing) &&
 		(a.duration && b.duration ? matchesAmount(a.duration, b.duration) : a.duration === b.duration)
 	);
 }
@@ -93,15 +98,19 @@ export function placementFromSelection(
 		};
 	} else {
 		const precision = selection.date ?? (selection.timed ? 'minute' : 'day');
+		// «Длится» is the explicit flag alone: an empty end without it is still an instant.
+		const ongoing = Boolean(selection.ongoing) && !statedDuration;
 		result = {
 			aboutKind:
-				statedDuration || (selection.end !== null && !selection.window) ? 'interval' : 'instant',
+				statedDuration || ongoing || (selection.end !== null && !selection.window)
+					? 'interval'
+					: 'instant',
 			aboutTime: parseTraceAboutTime({
 				basis: 'absolute',
 				precision,
 				certainty: selection.approximate ? 'approximate' : 'exact',
 				start: calendarValue(selection.start, precision),
-				end: selection.end === null ? null : calendarValue(selection.end, precision)
+				end: ongoing || selection.end === null ? null : calendarValue(selection.end, precision)
 			}),
 			aboutTraceId: null,
 			statedDuration

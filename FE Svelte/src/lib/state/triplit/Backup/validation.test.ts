@@ -41,16 +41,17 @@ const corruptions: [string, (row: Record<string, unknown>) => void][] = [
 		}
 	],
 	[
-		'invalid interval without stated duration',
+		// An interval without an end is valid since C5 («длится»); one that ends before it starts is not.
+		'interval that ends before it starts',
 		(row) => {
 			row.aboutKind = 'interval';
 			row.aboutTraceId = null;
 			row.aboutTime = {
 				basis: 'absolute',
-				precision: 'day',
+				precision: 'minute',
 				certainty: 'exact',
-				start: '2026-09-12',
-				end: null
+				start: now,
+				end: '2026-09-12T11:00:00.000Z'
 			};
 		}
 	]

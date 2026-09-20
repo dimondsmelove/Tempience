@@ -138,6 +138,8 @@ describe('proposals', () => {
 					note: null,
 					startedAt: null,
 					endedAt: null,
+					colorHue: null,
+					colorChroma: null,
 					origin: { kind: 'canonical', sourceId: 'x' }
 				}
 			]

@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
 	import { GROUP_HEADING_CLASS } from '$lib/context/constants';
-	import { historyOperations } from '$lib/model/History/history';
+	import { historyOperations, type HistoryItem } from '$lib/model/History/history';
+	import type { HoverTarget } from '$lib/model/Hover/types';
+	import { periodRecordRef } from '$lib/model/PeriodContext/PeriodContext';
+	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import { traceSummary } from '$lib/model/TraceForm/summary';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { RecordsReader } from '$lib/state/Records/Records.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import HistoryOperationView from './HistoryOperation.svelte';
 
-	let { records }: { records: RecordsReader } = $props();
+	let { records, workbench }: { records: RecordsReader; workbench: WorkbenchState } = $props();
 	/** The journal of this record and of everything it names, grouped one operation per entry. */
 	const operations = $derived(historyOperations(records.logs));
 	/**
@@ -41,6 +44,41 @@
 		}
 		return names;
 	});
+	/**
+	 * What an entry lights on the ribbon under the pointer (loop 008, C3): the record it is
+	 * about, the Scope of a membership, both ends of a link, the fact behind a statement — the
+	 * intention itself for a direct one — and the time of a period; nothing for the rest.
+	 */
+	const lensOf = (item: HistoryItem): HoverTarget => {
+		const result = records.result;
+		switch (item.entityType) {
+			case 'trace':
+				return { kind: 'trace', traceId: item.entityId };
+			case 'scope':
+				return { kind: 'scope', scopeId: item.entityId };
+			case 'intersection': {
+				const membership = result?.memberships.find((entry) => entry.linkId === item.entityId);
+				if (membership) return { kind: 'scope', scopeId: membership.scopeId };
+				const link = [...(result?.links ?? []), ...(result?.withdrawnLinks ?? [])].find(
+					(entry) => entry.linkId === item.entityId
+				);
+				return link && result ? { kind: 'traces', traceIds: [result.traceId, link.otherId] } : null;
+			}
+			case 'intentionAssessment': {
+				const source = result?.result?.sources.find((entry) => entry.id === item.entityId);
+				return source && result
+					? { kind: 'trace', traceId: source.factId ?? result.traceId }
+					: null;
+			}
+			case 'period': {
+				const record = workbench.view.periods.find((entry) => entry.id === item.entityId);
+				const period = record ? periodRecordRef(record) : null;
+				return period ? { kind: 'period', period } : null;
+			}
+			default:
+				return null;
+		}
+	};
 </script>
 
 <!-- What happened to this record, as its own journal records it (S14): one entry per
@@ -60,7 +98,7 @@
 		<ol class="flex flex-col gap-2" data-testid="history-list">
 			{#each operations as operation (operation.operationId)}
 				<li>
-					<HistoryOperationView {operation} {names} />
+					<HistoryOperationView {operation} {names} hover={workbench.hover} {lensOf} />
 				</li>
 			{/each}
 		</ol>

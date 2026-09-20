@@ -34,7 +34,18 @@ const link = (fromId: string, toId: string, kind: 'belongs_to' | 'revisits') => 
 });
 
 const snapshot: ExplorerSnapshot = {
-	scopes: [{ id: 'a', name: 'A', note: null, startedAt: null, endedAt: null, origin }],
+	scopes: [
+		{
+			id: 'a',
+			name: 'A',
+			note: null,
+			startedAt: null,
+			endedAt: null,
+			colorHue: null,
+			colorChroma: null,
+			origin
+		}
+	],
 	traces: [
 		trace('t1'),
 		// A new supplement: a reference without its own time, anchored only by revisits.

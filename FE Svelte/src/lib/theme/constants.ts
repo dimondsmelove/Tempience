@@ -174,6 +174,8 @@ export const monoFonts = {
 	system: { label: 'theme.font.mono', css: 'ui-monospace, monospace' }
 } as const;
 export const rowHeightBounds = { min: 52, max: 1200, step: 24 };
+/** The strength of the lens veil, per cent: 0 is off (loop 008, B); the default is the mock's 55. */
+export const lensBounds = { min: 0, max: 100, step: 5 };
 
 export const defaultDevice = {
 	formatVersion: 1 as const,
@@ -185,6 +187,9 @@ export const defaultDevice = {
 	railWidth: 264,
 	contextWidth: 360,
 	railOpen: true,
-	contextOpen: true
+	contextOpen: true,
+	legendOpen: true,
+	rowArrangement: null,
+	lens: 55
 };
 export const defaultAppearance = { themeId: 'graphite', mode: 'dark' as const };

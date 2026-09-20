@@ -6,6 +6,8 @@
 		explorerNeighborhoodConnections
 	} from '$lib/model/Neighborhood/anchors';
 	import { entityLabel } from '$lib/context/labels';
+	import { entityLens } from '$lib/context/lens';
+	import { lensSource } from '$lib/ui/LensSource';
 	import type { EntityViewProps } from './types';
 	let { workbench, entityId }: EntityViewProps = $props();
 	const context = $derived(explorerNeighborhood(workbench.view, entityId));
@@ -50,19 +52,12 @@
 						data-testid="entity-endpoint"
 						data-entity-role={item.neighbor.role}
 						onclick={() => workbench.selectEntity(item.neighbor!)}
+						{@attach lensSource(workbench.hover, entityLens(item.neighbor))}
 						>{entityLabel(item.neighbor)}</button
 					>
 				{:else}<p class="text-sm text-muted">
 						{t('entity.unavailableId', { id: item.neighborId })}
 					</p>{/if}
-				{#if context.focus.role !== 'intersection' && item.connection.source === 'intersection'}
-					<button
-						type="button"
-						class={LIST_BUTTON_CLASS}
-						onclick={() => workbench.selectIntersection(item.connection.sourceRecordId)}
-						>{t('entity.linkDetails')}</button
-					>
-				{/if}
 			</div>
 		{/each}
 		<details class="text-xs text-muted">

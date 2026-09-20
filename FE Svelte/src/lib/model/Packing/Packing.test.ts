@@ -88,9 +88,9 @@ describe('track geometry', () => {
 		expect(trackGeometry(52, 1)).toEqual({ pitchPx: 9, trackHeightPx: 16 });
 		expect(trackGeometry(52, 2)).toEqual({ pitchPx: 9, trackHeightPx: 11 });
 		expect(trackGeometry(52, 5)).toEqual({ pitchPx: 9, trackHeightPx: 7 });
-		// usable = 80 − 6 − 2·2 = 70 → floor(70 / 5) = 14
-		expect(trackGeometry(80, 1)).toEqual({ pitchPx: 14, trackHeightPx: 12 });
-		expect(trackGeometry(80, 5)).toEqual({ pitchPx: 14, trackHeightPx: 12 });
+		// usable = 80 − 2·2 = 76 → floor(76 / 5) = 15; no bottom strip is kept for underlays (C5).
+		expect(trackGeometry(80, 1)).toEqual({ pitchPx: 15, trackHeightPx: 13 });
+		expect(trackGeometry(80, 5)).toEqual({ pitchPx: 15, trackHeightPx: 13 });
 		expect(trackGeometry(120, 3)).toEqual({ pitchPx: 20, trackHeightPx: 16 });
 		expect(trackGeometry(200, 1).pitchPx).toBe(20);
 	});

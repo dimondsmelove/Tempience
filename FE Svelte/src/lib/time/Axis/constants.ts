@@ -18,9 +18,17 @@ export const AXIS_ROWS = Object.freeze({
 export const AXIS_FONT_MAJOR = '600 12px';
 export const AXIS_FONT_WEEK = '10px';
 export const AXIS_FONT_MINOR = '11px';
-export const STICKY_PADDING_PX = 7;
-export const STICKY_LEFT_PX = 4;
+/** The plate of a pinned label stays this far inside its row's hit band, with rounded corners. */
+export const PLATE_INSET_PX = 1;
+export const PLATE_RADIUS_PX = 3;
+/** A ghost label, the hovered cell's text when it is not on the step, is muted ink at this alpha. */
+export const GHOST_ALPHA = 0.6;
 export const ZEBRA_ALPHA = 0.06;
+/** The current week's label is accent with an underline this thick and this wide (research п. 6, mock v6.2). */
+export const CURRENT_WEEK_UNDERLINE_PX = 2;
+export const CURRENT_WEEK_UNDERLINE_WIDTH_PX = 24;
+/** Every minor boundary has a tick this tall; stepped cells get the taller one from `minorTick`. */
+export const MINOR_TICK_PX = 4;
 
 export const scaledAxisRows = (scale: number) => {
 	const span = (value: readonly [number, number]): [number, number] => [
@@ -48,3 +56,6 @@ export const scaledAxisRows = (scale: number) => {
 		}
 	};
 };
+/** A period with a note carries an accent bar this thick along the top edge of its cell, at this alpha. */
+export const NOTE_BAR_PX = 2;
+export const NOTE_BAR_ALPHA = 0.7;

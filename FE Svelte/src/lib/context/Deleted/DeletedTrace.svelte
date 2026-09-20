@@ -9,6 +9,7 @@
 	import type { RecordsReader } from '$lib/state/Records/Records.svelte';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 	import type { RestoreState } from './restore.svelte';
 
 	let {
@@ -126,6 +127,7 @@
 							data-state={link.state}
 							disabled={link.state === 'unavailable'}
 							onclick={() => workbench.selectTrace(link.otherId, 'context')}
+							{@attach lensSource(workbench.hover, { kind: 'trace', traceId: link.otherId })}
 						>
 							<span>{link.summary?.title ?? t('trace.unnamed')}</span>
 							<span class="text-xs text-muted"
@@ -138,5 +140,5 @@
 			</ul>
 		</div>
 	{/if}
-	<History {records} />
+	<History {records} {workbench} />
 </section>

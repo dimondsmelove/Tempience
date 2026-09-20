@@ -11,6 +11,7 @@
 	import { reloadForSaved } from '$lib/state/Workbench/open';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { DOT_HEADING_PX, ScopeDot } from '$lib/ui/ScopeDot';
 
 	let { workbench, scopeId }: { workbench: WorkbenchState; scopeId: string } = $props();
 	/** The deleted Scopes, read live; this panel shows the one that is selected. */
@@ -69,9 +70,18 @@
 <section class="flex flex-col gap-3" data-testid="deleted-scope" data-scope={scopeId}>
 	<div class="grid gap-1">
 		<span class="font-mono text-xs text-muted">Scope</span>
-		<h2 class="text-lg leading-snug font-semibold break-words" data-testid="selected-title">
-			{entry?.scope.name ?? t('scope.unnamed')}
-		</h2>
+		<div class="flex items-center gap-2">
+			<ScopeDot
+				colorHue={entry?.scope.colorHue ?? null}
+				colorChroma={entry?.scope.colorChroma ?? null}
+				colorDepth={entry?.scope.colorDepth ?? null}
+				size={DOT_HEADING_PX}
+				testId="scope-colour-dot"
+			/>
+			<h2 class="text-lg leading-snug font-semibold break-words" data-testid="selected-title">
+				{entry?.scope.name ?? t('scope.unnamed')}
+			</h2>
+		</div>
 		{#if deleted.error}
 			<p
 				role="alert"

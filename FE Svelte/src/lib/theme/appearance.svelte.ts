@@ -5,6 +5,7 @@ import { baseline, builtinThemes } from './catalog';
 import { defaultAppearance, defaultDevice } from './constants';
 import { parseDevice, parseTheme } from './normalize';
 import { appearanceStyle, resolveAppearance } from './resolve-appearance';
+import { scopeBase } from './scope-colour';
 import { themeState } from './theme.svelte';
 import type { AppearanceDefaults, DeviceAppearance, Theme } from './types';
 import type { AppearanceRepository } from '$lib/state/triplit/appearance-repository';
@@ -124,6 +125,14 @@ export const appearance = {
 	},
 	get style() {
 		return appearanceStyle(resolveAppearance(currentTheme, currentDevice, themeState.resolved));
+	},
+	/**
+	 * What the theme of the moment gives a Scope colour (C6): the base lightness of the three
+	 * depths, read from its canvas in the resolved mode — the same `--cg-bg-canvas` the style
+	 * carries — so a pale custom canvas gets deeper Scope colours than the stock one.
+	 */
+	get scopeBase() {
+		return scopeBase(currentTheme.colors[themeState.resolved].canvas, themeState.resolved);
 	},
 	preview(theme: Theme, nextDevice: DeviceAppearance) {
 		const parsed = parseTheme(theme),

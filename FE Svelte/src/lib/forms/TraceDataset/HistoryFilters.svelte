@@ -5,6 +5,7 @@
 	import type { KindHistoryState } from '$lib/state/KindHistory/KindHistory.svelte';
 	import type { Scope, TraceKindV } from '$lib/state/triplit/types';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
+	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
 	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { composeFilter, describeFilter, filterOperators } from './model';
 	import type { FilterField } from './types';
@@ -70,8 +71,7 @@
 	};
 	const remove = (index: number) =>
 		history.setFilters({ values: filters.values.filter((_, at) => at !== index) });
-	const scopeName = (scopeId: string) =>
-		scopes.find((scope) => scope.id === scopeId)?.name ?? scopeId;
+	const scopeOf = (scopeId: string) => scopes.find((scope) => scope.id === scopeId);
 	const generationOf = (versionId: string) =>
 		versions.find((version) => version.id === versionId)?.generation ?? '?';
 </script>
@@ -218,11 +218,21 @@
 		{#if filters.versionIds}<span class="rounded border border-outline px-2 py-0.5"
 				>{t('kindHistory.versions')}: {filters.versionIds.map(generationOf).join(', ')}</span
 			>{/if}
-		{#if filters.scope}<span class="rounded border border-outline px-2 py-0.5"
-				>{t('kindHistory.scope')}: {scopeName(filters.scope.id)}{filters.scope.mode === 'subtree'
-					? ' +'
-					: ''}</span
-			>{/if}
+		{#if filters.scope}
+			{@const chosen = scopeOf(filters.scope.id)}
+			<!-- The Scope filter names its Scope by the Scope's chip (pack 3, P3); «+» keeps saying «with its subtree». -->
+			<span
+				class="flex items-center gap-1 rounded border border-outline px-2 py-0.5"
+				data-testid="history-scope-filter"
+				>{t('kindHistory.scope')}: <ScopeChip
+					id={filters.scope.id}
+					name={chosen?.name ?? filters.scope.id}
+					colorHue={chosen?.colorHue ?? null}
+					colorChroma={chosen?.colorChroma ?? null}
+					colorDepth={chosen?.colorDepth ?? null}
+				/>{filters.scope.mode === 'subtree' ? ' +' : ''}</span
+			>
+		{/if}
 		{#if filters.from || filters.to}<span class="rounded border border-outline px-2 py-0.5"
 				>{filters.from || '…'} — {filters.to || '…'}</span
 			>{/if}

@@ -1,4 +1,4 @@
-import type { MarkBox } from '$lib/model/Labels/types';
+import type { Caption, MarkBox } from '$lib/model/Labels/types';
 import type { RibbonLayout } from '$lib/model/Layout/types';
 import { HIT_SLOP_PX } from './constants';
 import type { Cluster, Hit } from './types';
@@ -13,13 +13,25 @@ const inside = (
 /**
  * What lies under a canvas point: a caption beats the marks it sits on, marks
  * come back topmost first (the last drawn wins), otherwise the row itself.
+ * The captions are the ones the last draw put on the canvas, row by row
+ * (`drawRibbon` returns them): cut, in full while forced, or absent under the
+ * budget — so what reads as a caption is what answers the pointer, and a caption
+ * the layout placed but the canvas does not show is no target (owner review
+ * 2026-09-19, pack 4, B). The last drawn caption lies on top and is tried first.
  */
-export const hitAt = (layout: RibbonLayout, x: number, y: number): Hit | null => {
+export const hitAt = (
+	layout: RibbonLayout,
+	x: number,
+	y: number,
+	captions: readonly (readonly Caption[])[]
+): Hit | null => {
 	if (x < 0 || x > layout.widthPx || y < 0) return null;
-	const row = layout.rows.find((candidate) => y >= candidate.y0 && y < candidate.y1);
+	const index = layout.rows.findIndex((candidate) => y >= candidate.y0 && y < candidate.y1);
+	const row = layout.rows[index];
 	if (!row) return null;
-	for (let i = row.labels.length - 1; i >= 0; i -= 1) {
-		const label = row.labels[i];
+	const drawn = captions[index] ?? [];
+	for (let i = drawn.length - 1; i >= 0; i -= 1) {
+		const { label } = drawn[i];
 		if (
 			inside(
 				{ x0: label.x, x1: label.x + label.width, y0: label.y, y1: label.y + label.height },

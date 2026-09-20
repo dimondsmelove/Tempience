@@ -1,11 +1,11 @@
-/* A scroller with the overlay thumb: the native bar is gone, so nothing takes width. */
+/* A scroller with the overlay bar: the native bar is gone, so nothing takes width. */
 .overlay-scroll {
 	scrollbar-width: none;
 }
 .overlay-scroll::-webkit-scrollbar {
 	display: none;
 }
-/* A track of no height that stays at the top of the scrollport; the thumb hangs off it. */
+/* A track of no height that stays at the top of the scrollport; the rail hangs off it. */
 .overlay-scroll-track {
 	position: sticky;
 	top: 0;
@@ -14,16 +14,45 @@
 	z-index: 40;
 	pointer-events: none;
 }
+/* The rail: a strip as tall as the scrollport along the right edge, `--overlay-hit` wide. It takes
+   the pointer only while the pointer is over the strip (armed), so content under it is never
+   shadowed otherwise; a click on it pages, a drag of the thumb scrolls. */
+.overlay-scroll-rail {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: var(--overlay-hit);
+	pointer-events: none;
+}
+.overlay-scroll-rail.armed {
+	pointer-events: auto;
+}
+/* The thumb's hit area is the rail's width; the bar it draws is 3 px, right-aligned, and widens
+   to 5 px under the pointer or while dragged. Touch is left to native scrolling. */
 .overlay-scroll-thumb {
 	position: absolute;
+	right: 0;
+	width: var(--overlay-hit);
+	opacity: 0;
+	transition: opacity 320ms ease;
+}
+.overlay-scroll-thumb::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
 	right: 2px;
 	width: 3px;
 	border-radius: 2px;
 	background: color-mix(in srgb, var(--cg-accent) 70%, transparent);
-	opacity: 0;
-	transition: opacity 320ms ease;
+	transition: width 120ms ease;
 }
-.overlay-scroll-thumb.visible {
+.overlay-scroll-rail.visible .overlay-scroll-thumb {
 	opacity: 1;
 	transition-duration: 80ms;
+}
+.overlay-scroll-thumb:hover::before,
+.overlay-scroll-rail.dragging .overlay-scroll-thumb::before {
+	width: 5px;
+	background: color-mix(in srgb, var(--cg-accent) 90%, transparent);
 }

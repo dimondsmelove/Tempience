@@ -2,12 +2,13 @@
 	import './ThemeEditor.css';
 	import type { Attachment } from 'svelte/attachments';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import type { MessageKey } from '$lib/state/Locale/types';
 	import { appearance } from '../appearance.svelte';
 	import { baseline } from '../catalog';
-	import { defaultDevice } from '../constants';
+	import { defaultDevice, lensBounds } from '../constants';
 	import { parseTheme } from '../normalize';
 	import type { ResolvedTheme } from '../resolve-theme';
 	import { themeState } from '../theme.svelte';
@@ -98,7 +99,8 @@
 		['textScale', 'theme.textScale', 0.8, 1.5, 0.05],
 		['density', 'theme.density', 0.75, 1.5, 0.05],
 		['railWidth', 'theme.railWidth', 120, 480, 4],
-		['contextWidth', 'theme.contextWidth', 240, 600, 4]
+		['contextWidth', 'theme.contextWidth', 240, 600, 4],
+		['lens', 'theme.lens', lensBounds.min, lensBounds.max, lensBounds.step]
 	] as const;
 </script>
 
@@ -110,7 +112,8 @@
 		</div>
 		<Button variant="quiet" onclick={close} aria-label={t('theme.close')}>✕</Button>
 	</header>
-	<div class="editor-body">
+	<!-- The body scrolls on a short screen (1280×720 already) under the shared overlay bar, not a native one (C7). -->
+	<div class="editor-body" {@attach overlayScrollbar}>
 		{#if appearance.error !== null}<p role="alert" class="text-xs text-[color:var(--cg-danger)]">
 				{errorText(appearance.error)}
 			</p>{/if}

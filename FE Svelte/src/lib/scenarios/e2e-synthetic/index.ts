@@ -1,4 +1,4 @@
-import { activeDataSpace } from '$lib/state/triplit/client';
+import { activeDataSpace, triplit } from '$lib/state/triplit/client';
 import { scenarioImportRepository } from '$lib/state/triplit';
 import { bootstrapE2eSyntheticSeed, type E2eSyntheticSeedBootstrapResult } from './bootstrap';
 
@@ -9,7 +9,9 @@ export const ensureActiveE2eSyntheticSeed = (): Promise<E2eSyntheticSeedBootstra
 		dataSpace: activeDataSpace,
 		importRepository: scenarioImportRepository,
 		clock: () => new Date().toISOString(),
-		storage: window.localStorage
+		storage: window.localStorage,
+		// A raw row of an older build, for the migration e2e: the slot column alone, no hue.
+		stampLegacySlot: (scopeId, colorSlot) => triplit.update('scopes', scopeId, { colorSlot })
 	});
 	return activeBootstrap;
 };

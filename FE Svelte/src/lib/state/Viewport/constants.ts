@@ -2,10 +2,14 @@ import type { ViewportLimits } from './types';
 
 export const DAY_MS = 86_400_000;
 
+/**
+ * The window never leaves 1700–2100: the far past reaches the oldest records a notebook may
+ * hold (the demo lives in the 1880s); the widest window stays the 110 years it always was.
+ */
 export const DEFAULT_LIMITS: ViewportLimits = Object.freeze({
 	minSpanMs: 1.5 * DAY_MS,
 	maxSpanMs: Date.UTC(2100, 0, 1) - Date.UTC(1990, 0, 1),
-	minStart: Date.UTC(1990, 0, 1),
+	minStart: Date.UTC(1700, 0, 1),
 	maxEnd: Date.UTC(2100, 0, 1)
 });
 

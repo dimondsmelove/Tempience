@@ -212,6 +212,16 @@ export type Scope = {
 	parentScopeId: string | null;
 	startedAt: string | null;
 	endedAt: string | null;
+	/**
+	 * The hue that colours this Scope, an integer degree 0 ≤ h < 360; `null` draws it in ink
+	 * (R1, owner 2026-09-19). The theme adds only its mode — `theme/scope-colour.ts`. A row of
+	 * loop 005 that still carries a slot is read as that slot's hue (`Scopes/legacy-colour.ts`).
+	 */
+	colorHue: number | null;
+	/** Saturation 0–100 of that hue; `null` is the default (100, the gamut ceiling of the hue). */
+	colorChroma: number | null;
+	/** Depth 0–2 of that hue (loop 008, C6): the flower's ring; `null` is 0, the light ring. */
+	colorDepth: number | null;
 	isDeleted: boolean;
 	deletionOperationId?: string | null;
 	createdAt: string;
@@ -224,10 +234,23 @@ export type ScopeDraft = {
 	parentScopeId?: string | null;
 	startedAt?: string | null;
 	endedAt?: string | null;
+	colorHue?: number | null;
+	colorChroma?: number | null;
+	colorDepth?: number | null;
 };
 
 export type ScopePatch = Partial<
-	Pick<Scope, 'name' | 'note' | 'parentScopeId' | 'startedAt' | 'endedAt'>
+	Pick<
+		Scope,
+		| 'name'
+		| 'note'
+		| 'parentScopeId'
+		| 'startedAt'
+		| 'endedAt'
+		| 'colorHue'
+		| 'colorChroma'
+		| 'colorDepth'
+	>
 >;
 
 export type ScopeSegment = {

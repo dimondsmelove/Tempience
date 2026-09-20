@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { errorText } from '$lib/state/Locale/errors';
-	import { FilterOutline, LinkOutline } from 'flowbite-svelte-icons';
+	import { FilterOutline } from 'flowbite-svelte-icons';
 	import { GROUP_HEADING_CLASS } from '$lib/context/constants';
 	import { ancestorsOf, scopeTree } from '$lib/model/Projection/tree';
 	import { tempienceRepository } from '$lib/state/triplit';
@@ -12,14 +12,15 @@
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import type { ExplorerTrace } from '$lib/model/Snapshot/types';
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { ScopeChip, ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
+	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
+	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { UNSCOPED_HINT_KEY } from './constants';
 
 	let { workbench, trace }: { workbench: WorkbenchState; trace: ExplorerTrace } = $props();
 	const snapshot = $derived(workbench.view);
 	const tree = $derived(scopeTree(snapshot.scopes, snapshot.intersections));
-	const scopeName = (id: string): string =>
-		snapshot.scopes.find((scope) => scope.id === id)?.name ?? id;
+	const scopeOf = (id: string) => snapshot.scopes.find((scope) => scope.id === id);
+	const scopeName = (id: string): string => scopeOf(id)?.name ?? id;
 	/** Live `belongs_to` links of the record: the intersection id is what «убрать» soft-deletes. */
 	const links = $derived(
 		snapshot.intersections.filter(
@@ -96,8 +97,10 @@
 	};
 </script>
 
-<!-- The record's Scopes as chips on one line: every name leads to its Scope, the link icon
-     to the membership record, the × takes the record out of it; «+» adds one more. -->
+<!-- The record's Scopes as chips on one line, each in its Scope's colour: every name leads to
+     its Scope, the × takes the record out of it; «Добавить Scope» adds one more, and is all that
+     shows when there are none. The membership record itself has no affordance here (owner
+     review 2026-09-19, п. 10). -->
 <div class="flex flex-col gap-2 border-t border-outline pt-3" data-testid="belongings">
 	<div class="flex items-center justify-between gap-1">
 		<h3 class={GROUP_HEADING_CLASS}>{t('belonging.title')}</h3>
@@ -121,6 +124,9 @@
 				<ScopeChip
 					id={link.toId}
 					name={scopeName(link.toId)}
+					colorHue={scopeOf(link.toId)?.colorHue ?? null}
+					colorChroma={scopeOf(link.toId)?.colorChroma ?? null}
+					colorDepth={scopeOf(link.toId)?.colorDepth ?? null}
 					path={path.slice(0, -1).map((id) => ({ id, name: scopeName(id) }))}
 					testId="belonging-chip"
 					openTestId="belonging"
@@ -129,17 +135,7 @@
 					removeLabel={t('belonging.removeTitle')}
 					removeTestId="belonging-remove"
 					onremove={() => remove(link.id, scopeName(link.toId))}
-				>
-					<button
-						type="button"
-						class="chip-icon inline-flex cursor-pointer items-center justify-center rounded-[var(--cg-radius-control)] text-muted hover:bg-accent/10 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
-						aria-label={t('belonging.linkDetails')}
-						title={t('belonging.linkDetails')}
-						data-testid="belonging-details"
-						onclick={() => workbench.selectIntersection(link.id)}
-						><LinkOutline class="h-3 w-3" /></button
-					>
-				</ScopeChip>
+				/>
 			</li>
 		{/each}
 		{#if options.length > linkedIds.length}
@@ -157,8 +153,10 @@
 			</li>
 		{/if}
 	</ul>
-	{#if !paths.length}
-		<p class="text-sm text-muted">{justEmptied ? t(UNSCOPED_HINT_KEY) : t('belonging.none')}</p>
+	<!-- No Scopes: only «Добавить Scope» stands here (owner review 2026-09-19, pack 3, P6); the one
+	     line said once, right after the last membership is taken away, stays. -->
+	{#if !paths.length && justEmptied}
+		<p class="text-sm text-muted">{t(UNSCOPED_HINT_KEY)}</p>
 	{/if}
 	{#if failure}
 		<span role="alert" class="text-sm text-[color:var(--cg-danger)]" data-testid="belonging-error"
@@ -166,10 +164,3 @@
 		>
 	{/if}
 </div>
-
-<style>
-	.chip-icon {
-		width: 1.125rem;
-		height: 1.125rem;
-	}
-</style>

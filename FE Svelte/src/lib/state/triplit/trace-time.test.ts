@@ -152,6 +152,66 @@ describe('Trace temporal evidence contract', () => {
 		);
 	});
 
+	it('accepts an interval without an end as open («длится»), at every precision but season', () => {
+		const open = (precision: 'minute' | 'day' | 'month' | 'year', start: string) =>
+			({ basis: 'absolute', precision, certainty: 'exact', start, end: null }) as const;
+		for (const time of [
+			open('minute', '2026-08-10T09:00:00.000Z'),
+			open('day', '2026-08-10'),
+			open('month', '2026-08'),
+			open('year', '2026')
+		]) {
+			expect(() => assertTraceTemporalPlacement('interval', time, null)).not.toThrow();
+			// A stated duration with no end is the located start, as before: not an open interval.
+			expect(() =>
+				assertTraceTemporalPlacement('interval', time, null, { amount: 3, unit: 'day' })
+			).not.toThrow();
+		}
+		expect(() =>
+			assertTraceTemporalPlacement(
+				'interval',
+				{ basis: 'absolute', precision: 'season', certainty: 'exact', start: '2026-06', end: null },
+				null
+			)
+		).toThrow('Season precision requires');
+		// The uncertainty rule of an instant is untouched by the open interval.
+		expect(() =>
+			assertTraceTemporalPlacement(
+				'instant',
+				{ ...open('day', '2026-08-10'), end: '2026-08-12' },
+				null
+			)
+		).toThrow('Exact instant placement');
+		// The exact projection carries the start and «no end yet»; a stated duration keeps none.
+		expect(
+			exactTraceTimeProjection('interval', open('minute', '2026-08-10T09:00:00.000Z'))
+		).toEqual({ aboutAt: null, aboutStart: '2026-08-10T09:00:00.000Z', aboutEnd: null });
+		expect(
+			exactTraceTimeProjection('interval', open('minute', '2026-08-10T09:00:00.000Z'), {
+				amount: 90,
+				unit: 'minute'
+			})
+		).toEqual({ aboutAt: null, aboutStart: null, aboutEnd: null });
+		expect(exactTraceTimeProjection('interval', open('day', '2026-08-10'))).toEqual({
+			aboutAt: null,
+			aboutStart: null,
+			aboutEnd: null
+		});
+		// Its own bounds are the calendar unit of the start; the ribbon stretches it to «сейчас».
+		expect(traceAboutTimeBounds('interval', open('day', '2026-08-10'))).toEqual({
+			start: Date.parse('2026-08-10T00:00:00.000Z'),
+			end: Date.parse('2026-08-11T00:00:00.000Z')
+		});
+		expect(traceAboutTimeBounds('interval', open('month', '2026-08'))).toEqual({
+			start: Date.parse('2026-08-01T00:00:00.000Z'),
+			end: Date.parse('2026-09-01T00:00:00.000Z')
+		});
+		expect(traceAboutTimeBounds('interval', open('minute', '2026-08-10T09:00:00.000Z'))).toEqual({
+			start: Date.parse('2026-08-10T09:00:00.000Z'),
+			end: Date.parse('2026-08-10T09:30:00.000Z')
+		});
+	});
+
 	it('enforces shape and Trace placement invariants', () => {
 		expect(() =>
 			parseTraceAboutTime({

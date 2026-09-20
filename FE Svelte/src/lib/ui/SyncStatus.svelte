@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import BackupImport from './BackupImport/BackupImport.svelte';
+	import DemoMenu from './DemoMenu/DemoMenu.svelte';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { dateTimeFormat, numberFormat } from '$lib/state/Locale/format';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { MessageKey } from '$lib/state/Locale/types';
 	import { pwa } from '$lib/state/Pwa/Pwa.svelte';
+	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import { getTriplitServerUrl } from '$lib/state/triplit/auth';
 	import { dataSpaceBackup } from '$lib/state/triplit';
 	import { activeDataSpace, triplit } from '$lib/state/triplit/client';
@@ -184,9 +186,11 @@
 	{/if}
 
 	{#if diagnosticsOpen}
+		<!-- Taller than a short viewport, the panel scrolls under the shared overlay bar (C7). -->
 		<div
 			class="cg-popover fixed right-2 top-[3.5rem] z-50 w-[calc(100vw-1rem)] max-w-80 max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:right-0 sm:top-full sm:mt-2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700 shadow-xl dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
 			role="status"
+			{@attach overlayScrollbar}
 		>
 			<div class="mb-2 flex items-center justify-between gap-3">
 				<strong>{syncConfigured ? t('sync.diagnostics') : t('sync.localData')}</strong>
@@ -267,6 +271,8 @@
 				{#if pwa.notice}<p>{t(pwa.notice)}</p>{/if}
 				{#if pwa.error}<p role="alert">{t(pwa.error)}</p>{/if}
 			</div>
+			<!-- The tour and the demo live here in both builds; the tour overlay replaces this popover. -->
+			<DemoMenu onleave={() => (diagnosticsOpen = false)} />
 		</div>
 	{/if}
 </div>

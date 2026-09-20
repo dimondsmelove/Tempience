@@ -98,7 +98,7 @@
 			</button>
 		{/if}
 	{/each}
-	{#if !picker.draft.date && !picker.draft.window && picker.detail === 'clock' && picker.draft.end === null && visible(picker.draft.start)}
+	{#if !picker.draft.date && !picker.draft.window && !picker.draft.ongoing && picker.detail === 'clock' && picker.draft.end === null && visible(picker.draft.start)}
 		<button
 			class={['input-extend', picker.pickingEnd && 'armed']}
 			style:left={`${Math.max(0, Math.min(width - 48, pxAtTime(window, coordinate(picker.draft.start), width) + 12))}px`}

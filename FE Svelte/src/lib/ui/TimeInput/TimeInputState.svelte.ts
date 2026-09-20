@@ -119,12 +119,14 @@ export class TimeInputState {
 				this.durationUnit = measured.unit === 'day' ? 'day' : 'hour';
 				this.durationFromBounds = key;
 			}
+			// A stated length and «длится» are alternatives: the amount wins here.
 			this.draft = {
 				...this.draft,
 				start: dayAt(this.draft.start),
 				end: this.draft.window ? this.draft.end : null,
 				timed: false,
-				duration: this.manualDuration ?? undefined
+				duration: this.manualDuration ?? undefined,
+				ongoing: undefined
 			};
 			this.edge = 'start';
 			this.pickingEnd = false;
@@ -237,8 +239,11 @@ export class TimeInputState {
 		}
 		this.edge = edge;
 		this.pickingEnd = false;
+		// An end that is picked closes the interval: it is no longer «длится».
 		this.draft =
-			edge === 'end' ? changeEnd(base, target, this.mode) : changeStart(base, target, this.mode);
+			edge === 'end'
+				? { ...changeEnd(base, target, this.mode), ongoing: undefined }
+				: changeStart(base, target, this.mode);
 		if (this.draft.date) this.draft = { ...this.draft, date: undefined };
 	}
 	translate(target: number, step = MINUTE, base = this.draft) {
@@ -309,6 +314,19 @@ export class TimeInputState {
 	removeEnd() {
 		this.draft = { ...this.draft, end: null };
 		this.focus('start');
+	}
+	/**
+	 * «Длится» (research п. 8): the record has started and has no end yet. On, it drops any end
+	 * and the late-start window; it is never combined with a stated length, so it is refused while
+	 * the duration detail is chosen. Off, the end field is the user's again; an empty end is an
+	 * instant, never an open interval.
+	 */
+	setOngoing(on: boolean) {
+		if (on && this.detail === 'duration') return;
+		this.draft = on
+			? { ...this.draft, end: null, window: false, ongoing: true }
+			: { ...this.draft, ongoing: undefined };
+		if (on) this.cancelEnd();
 	}
 	removeTime() {
 		const minutes = measuredMinutes(this.draft);

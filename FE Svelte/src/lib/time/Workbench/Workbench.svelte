@@ -5,9 +5,14 @@
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { activeDataSpace } from '$lib/state/triplit/client';
+	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
+	import { consumeOpenAt } from '$lib/state/Workbench/open-at';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { MIN_ROWS_HEIGHT_PX } from '$lib/model/Layout/constants';
+	import { UNSCOPED_ROW_ID, UNSCOPED_ROW_KEY } from '$lib/model/Projection/constants';
+	import { rowOfScope } from '$lib/model/Projection/rows';
+	import { notedPeriods } from '$lib/model/PeriodContext/PeriodContext';
 	import { WHEEL_DURATION_MS } from '$lib/state/Viewport/constants';
 	import { spanOf } from '$lib/state/Viewport/math';
 	import Axis from '$lib/time/Axis/Axis.svelte';
@@ -20,21 +25,29 @@
 	import type { WorkbenchPreview } from './types';
 	import { observeWidth } from '$lib/time/TimelineInput/measure';
 	import Toolbar from '$lib/time/Toolbar/Toolbar.svelte';
+	import Legend from '$lib/time/Legend/Legend.svelte';
 	import type { Panel } from '$lib/time/Toolbar/types';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { panelWidths } from '$lib/theme/resolve-appearance';
 	import Context from '$lib/context/Context/Context.svelte';
 	import UndoToast from '$lib/shell/UndoToast/UndoToast.svelte';
+	import ArrangementToast from '$lib/time/ArrangementToast/ArrangementToast.svelte';
 	import PanelResize from '$lib/ui/PanelResize/PanelResize.svelte';
 	import { COMPACT_WIDTH_PX, PHONE_WIDTH_PX } from './constants';
 	import MobilePanels from './MobilePanels.svelte';
 	import { adoptContext } from './context-host';
 	import { provideTimeInputHost } from '$lib/ui/TimeInput/host.svelte';
+	import { provideLens } from '$lib/ui/LensSource';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import type { SheetPosition } from '$lib/ui/BottomSheet/types';
 
 	let { preview }: { preview?: WorkbenchPreview } = $props();
+	/** Import and Apply belong to the calibration scenarios; the demo is a scenario without them. */
+	const calibrationSpace =
+		activeDataSpace.kind === 'scenario' && activeDataSpace.id !== DEMO_DATA_SPACE_ID;
 	const timeInput = provideTimeInputHost();
+	// Every reference under the workbench — in the Context, the filters, the forms — lights the ribbon (loop 008, C3).
+	provideLens(workbench.hover);
 	const interaction = $derived(
 		preview?.interaction ??
 			(timeInput.editor?.picker.input === 'timeline'
@@ -53,7 +66,10 @@
 			sheetPosition = 'full';
 		}
 		workbench.restoreProposals(localStorage);
-		void workbench.load(loadWorkbenchSnapshot);
+		void workbench.load(loadWorkbenchSnapshot).then(() => {
+			// A seed or an import asked, once, to open on a record: the Context and the ribbon go there.
+			if (!preview && workbench.status === 'ready') consumeOpenAt(workbench, localStorage);
+		});
 		return () => {
 			workbench.viewport.motionEnabled = false;
 			workbench.viewport.set(workbench.viewport.window);
@@ -85,6 +101,8 @@
 		timeInput.phone = px > 0 && px < PHONE_WIDTH_PX;
 	});
 	const rowHeightPx = $derived(appearance.device.rowHeightPx);
+	/** The lens veil's strength on this device (loop 008, B), 0–1. */
+	const veil = $derived(appearance.device.lens / 100);
 	const widths = $derived(panelWidths(width, appearance.device));
 	const contextOpen = $derived(
 		compact ? mobilePanel === 'context' : Boolean(preview) || appearance.device.contextOpen
@@ -100,11 +118,14 @@
 	let contextKeeper = $state<HTMLDivElement | null>(null);
 	const contextHosted = $derived(!preview && (phone ? mobilePanel === 'context' : contextOpen));
 	const contextAlive = $derived(contextHosted || workbench.formOpen);
-	/** The X, Escape, the empty canvas and the sheet: the form ends after its guard, then the panel. */
+	/**
+	 * The X, Escape, the empty canvas and the sheet: the form ends after its guard, the
+	 * selection steps aside with the panel (pack 4, D), then the panel closes.
+	 */
 	const closeContext = (): void => {
 		draftGuard.exit(() => {
 			timeInput.editor?.close();
-			workbench.closeForms();
+			workbench.closeContext();
 			applyPanel('context', false);
 		});
 	};
@@ -124,12 +145,28 @@
 				[panel === 'rail' ? 'railOpen' : 'contextOpen']: open
 			});
 	};
+	/** The legend strip is a view setting of this device, kept with the panels (PERSONALIZATION.md). */
+	const legendOpen = $derived(appearance.device.legendOpen);
+	const toggleLegend = (): void =>
+		appearance.applyDevice({
+			...appearance.savedDevice,
+			legendOpen: !appearance.savedDevice.legendOpen
+		});
 	const resize = (panel: 'railWidth' | 'contextWidth', value: number) =>
 		appearance.previewDevice({ ...appearance.savedDevice, [panel]: value });
 	const commitResize = () => appearance.applyDevice({ ...appearance.device });
 
 	const projection = $derived(workbench.projection);
 	const selection = $derived(workbench.selection);
+	/** The periods with a note, for the axis bars: one matcher per snapshot, not one per cell. */
+	const hasNote = $derived(notedPeriods(workbench.view.periods));
+	/** Every Scope by id, and «Без Scope» under its row id: what names a lane and its composition (Q1-A). */
+	const scopesById: ReadonlyMap<string, Readonly<{ name: string }>> = $derived(
+		new Map<string, Readonly<{ name: string }>>([
+			...workbench.view.scopes.map((scope) => [scope.id, scope] as const),
+			[UNSCOPED_ROW_ID, { name: t(UNSCOPED_ROW_KEY) }]
+		])
+	);
 
 	// A new selection opens Context once; closing the panel is not another selection.
 	// Initial selection waits until ResizeObserver establishes the responsive layout.
@@ -208,9 +245,11 @@
 	 */
 	const scrollSelectedRow = (centre: boolean): void => {
 		const traceId = selection.traceId;
-		if (!scroller || !lanes || (!traceId && !selection.scopeId)) return;
-		const rowId =
-			selection.scopeId ?? (traceId ? projection.marksByTraceId.get(traceId)?.[0]?.rowId : null);
+		if (!scroller || !lanes || (!traceId && !selection.scopeId && !selection.rowId)) return;
+		// A Scope's row, or the merged row whose lane holds it (п. 7); a merged row itself (C5); a record's first row — merged or not.
+		const rowId = selection.scopeId
+			? rowOfScope(projection.rows, selection.scopeId)?.id
+			: (selection.rowId ?? (traceId ? projection.marksByTraceId.get(traceId)?.[0]?.rowId : null));
 		const index = projection.rows.findIndex((row) => row.id === rowId);
 		if (index < 0) return;
 		const rowHeight = rowHeightPx;
@@ -246,9 +285,23 @@
 		untrack(() => scrollSelectedRow(true));
 	});
 
+	/** The Time surface: the rail, the ribbon, the legend and the toolbar; Ctrl+Z here takes the last change of the rows back. */
+	let timeSection = $state<HTMLElement | null>(null);
 	const onkeydown = (event: KeyboardEvent): void => {
 		if (interaction) return;
 		const target = event.target as HTMLElement | null;
+		if (
+			(event.ctrlKey || event.metaKey) &&
+			!event.altKey &&
+			!event.shiftKey &&
+			(event.code === 'KeyZ' || event.key.toLowerCase() === 'z')
+		) {
+			// Q4-A: undo of the rows' arrangement while the surface has the focus; an editor's undo is its own.
+			if (target?.closest('input, textarea, select, dialog, [contenteditable]')) return;
+			if (target && target !== document.body && !timeSection?.contains(target)) return;
+			if (workbench.arrangement.undo()) event.preventDefault();
+			return;
+		}
 		if (
 			target?.closest(
 				'input, textarea, select, button, dialog, [role="separator"], [contenteditable]'
@@ -256,6 +309,8 @@
 		)
 			return;
 		if (event.key === 'Escape') {
+			// An open popover (the colour flower, a menu) owns Escape: the browser closes it, nothing else steps back.
+			if (document.querySelector(':popover-open')) return;
 			// One step back per press: overlay panel, then «Записать», then the selection (C9a-1).
 			if (mobilePanel === 'context') closeContext();
 			else if (mobilePanel) mobilePanel = null;
@@ -285,7 +340,9 @@
 			{workbench}
 			railOpen={!compact && railOpen}
 			contextOpen={!compact && contextOpen}
+			{legendOpen}
 			ontogglepanel={togglePanel}
+			ontogglelegend={toggleLegend}
 			oncapture={() => {
 				workbench.openCapture(
 					workbench.forms.data
@@ -297,7 +354,7 @@
 				);
 				togglePanel('context', true);
 			}}
-			scenarioSpace={activeDataSpace.kind === 'scenario'}
+			scenarioSpace={calibrationSpace}
 			onapply={() => {
 				void workbench.applyProposals(
 					scenarioImportRepository,
@@ -316,8 +373,16 @@
 		rows={projection.rows}
 		filters={workbench.filters}
 		disclosure={workbench.rows}
-		selectedScopeId={selection.scopeId}
+		arrangement={workbench.arrangement}
+		{scopesById}
+		selectedRowId={selection.scopeId ?? selection.rowId}
+		litRowIds={workbench.lit.rowIds}
+		lensRowIds={workbench.hover.target ? workbench.lens.rowIds : null}
+		{veil}
+		pulseRowIds={workbench.pulseSet.rowIds}
+		onhoverrow={(rowId) => (rowId ? workbench.hover.row(rowId) : workbench.hover.clear())}
 		onselectscope={(scopeId) => workbench.selectScope(scopeId)}
+		onselectrow={(rowId, members) => workbench.selectRow(rowId, members)}
 		oncreate={() => {
 			workbench.createScope(null);
 			togglePanel('context', true);
@@ -339,6 +404,7 @@
 	data-testid="time-workbench"
 	data-phone={phone}
 	data-camera-moving={viewport.moving}
+	data-focus={workbench.focusKind}
 	data-window-start={viewport.window.start}
 	data-window-end={viewport.window.end}
 	data-status={workbench.status}
@@ -350,12 +416,23 @@
 		: 'minmax(0, 1fr)'}
 >
 	<section
-		class="flex min-h-0 min-w-0 flex-col border-r border-outline"
+		class="relative flex min-h-0 min-w-0 flex-col border-r border-outline"
 		aria-label="Time"
 		inert={timeCovered}
 		aria-hidden={timeCovered}
+		bind:this={timeSection}
 	>
 		{#if !phone}{@render controls(false)}{/if}
+		<!-- The legend on the ribbon (research п. 17): under the toolbar, above the lanes, as the mock's
+		     key strip; the phone shows it in the «Фильтры» sheet instead. -->
+		{#if !phone && !interaction && !workbench.forms.data}
+			<Legend
+				id="time-legend"
+				filters={workbench.filters}
+				present={projection.legendKeys}
+				hidden={!legendOpen}
+			/>
+		{/if}
 
 		<!-- The timeline scrolls as one; a Kind's table and the rail beside it scroll each on
 		     its own. The gutter is reserved, so a row more or less never changes the width. -->
@@ -425,13 +502,15 @@
 								onreveal={() => workbench.goToSelected()}
 								{viewport}
 								extent={projection.extent}
-								times={projection.timeByTraceId}
+								rows={projection.rows}
+								dimmed={workbench.dimmed}
 								inWindow={workbench.inWindow}
 							/>
 							<Axis
 								window={viewport.window}
 								now={viewport.now}
 								selected={selection.period}
+								{hasNote}
 								onpan={(ratio) => viewport.pan(ratio * spanOf(viewport.target), WHEEL_DURATION_MS)}
 								onselectperiod={(period) => {
 									workbench.selectPeriod(period);
@@ -448,6 +527,7 @@
 						{scopeContent}
 						{interaction}
 						linksShown={contextOpen}
+						{veil}
 						minHeightPx={minCanvasHeight}
 						bind:element={lanes}
 						onscrollrows={(delta) => scroller?.scrollBy(0, delta)}
@@ -468,6 +548,7 @@
 				</div>
 			{/if}
 		</div>
+		{#if !phone}<ArrangementToast arrangement={workbench.arrangement} {scopesById} />{/if}
 	</section>
 
 	{#if contextOpen && !phone}

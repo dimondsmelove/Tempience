@@ -8,12 +8,19 @@
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
+	import { browser } from '$app/environment';
+	import type { ScopeColour } from '$lib/theme/scope-colour';
+	import ColorBlossomPicker from './ColorBlossomPicker/ColorBlossomPicker.svelte';
+	import ColorHuePicker from './ColorHuePicker/ColorHuePicker.svelte';
 	import type { ScopeEditorProps } from './types';
 	import { ROOT_SCOPE_KEY } from './constants';
 	let { scope, parentId = null, onsaved, oncancel, hold, watch }: ScopeEditorProps = $props();
 	let name = $state(untrack(() => scope?.name ?? ''));
 	let note = $state(untrack(() => scope?.note ?? ''));
 	let parent = $state(untrack(() => parentId));
+	let colorHue = $state<number | null>(untrack(() => scope?.colorHue ?? null));
+	let colorChroma = $state<number | null>(untrack(() => scope?.colorChroma ?? null));
+	let colorDepth = $state<number | null>(untrack(() => scope?.colorDepth ?? null));
 	let scopes = $state.raw<Scope[]>([]);
 	/** The parents offered: every other Scope, in the tree the timeline knows. */
 	const options = $derived(
@@ -28,10 +35,18 @@
 	const dirty = $derived(
 		name.trim() !== (scope?.name ?? '') ||
 			note.trim() !== (scope?.note ?? '') ||
-			parent !== (parentId ?? null)
+			parent !== (parentId ?? null) ||
+			colorHue !== (scope?.colorHue ?? null) ||
+			colorChroma !== (scope?.colorChroma ?? null) ||
+			colorDepth !== (scope?.colorDepth ?? null)
 	);
 	// The owner of a nested step reads this as the form's exit rule needs it.
 	untrack(() => watch)?.(() => dirty);
+	const pickColour = (colour: ScopeColour | null): void => {
+		colorHue = colour?.hue ?? null;
+		colorChroma = colour?.chroma ?? null;
+		colorDepth = colour?.depth ?? null;
+	};
 	onMount(() =>
 		repository.subscribeScopes(
 			(rows) => {
@@ -45,7 +60,14 @@
 	const save = () =>
 		saving.run(
 			async () => {
-				const patch = { name: name.trim(), note: note.trim() || null, parentScopeId: parent };
+				const patch = {
+					name: name.trim(),
+					note: note.trim() || null,
+					parentScopeId: parent,
+					colorHue,
+					colorChroma,
+					colorDepth
+				};
 				const result = scope
 					? await repository.editScope(scope.id, patch)
 					: await repository.createScope(patch);
@@ -54,6 +76,17 @@
 			(id) => onsaved(id)
 		);
 </script>
+
+{#snippet plainPicker()}
+	<ColorHuePicker
+		hue={colorHue}
+		chroma={colorChroma}
+		depth={colorDepth}
+		label={t('scope.colour')}
+		testId="scope-colour"
+		onpick={pickColour}
+	/>
+{/snippet}
 
 <section
 	class="grid gap-3"
@@ -68,6 +101,23 @@
 		<label class="grid gap-1 text-sm"
 			>{t('scope.note')}<textarea class="cg-control cg-field" bind:value={note}></textarea></label
 		>
+		<!-- The colour: the Blossom flower (owner 2026-09-19); the plain bars stand in where the
+		     flower cannot mount — off the browser, or should the library fail. -->
+		<svelte:boundary>
+			{#if browser}
+				<ColorBlossomPicker
+					hue={colorHue}
+					chroma={colorChroma}
+					depth={colorDepth}
+					label={t('scope.colour')}
+					testId="scope-colour"
+					onpick={pickColour}
+				/>
+			{:else}
+				{@render plainPicker()}
+			{/if}
+			{#snippet failed()}{@render plainPicker()}{/snippet}
+		</svelte:boundary>
 		<div class="grid gap-1 text-sm">
 			<span id="scope-parent-label">{t('scope.parent')}</span>
 			<ScopePicker

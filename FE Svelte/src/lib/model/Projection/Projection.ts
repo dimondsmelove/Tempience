@@ -1,13 +1,21 @@
+import { scopeColourKey, scopeColourPair, type ScopeColour } from '$lib/theme/scope-colour';
 import type { ExplorerSnapshot, ExplorerTrace } from '$lib/model/Snapshot/types';
 import { isSupplementMarker } from '$lib/state/triplit/Traces/supplement';
+import { laneName, mergedRowId } from '$lib/model/Arrangement/Arrangement';
+import type { RowLane } from '$lib/model/Arrangement/types';
+import { monthsShort } from '$lib/model/Axis/constants';
+import { legendFollows, legendKeysOf, legendShown } from '$lib/model/Legend/Legend';
+import type { LegendKey } from '$lib/model/Legend/types';
 import { translate } from '$lib/state/Locale/messages';
+import type { Locale } from '$lib/state/Locale/types';
 import {
 	KIND_ROWS,
 	TRACE_LINK_KINDS,
 	UNSCOPED_ROW_ID,
 	UNSCOPED_ROW_KEY,
 	INTENT_GLYPHS,
-	CLOSED_INTENT_GLYPH
+	CLOSED_INTENT_GLYPH,
+	CLOSED_AT_GLYPH
 } from './constants';
 import { parkedReason, traceMarkTime, traceTimeLabel } from './marks';
 import { ancestorsOf, scopeMembership, scopeTree, subtreeTraceIds } from './tree';
@@ -21,6 +29,15 @@ import type {
 	TimeRange,
 	TraceLink
 } from './types';
+
+/** The colour pairs of the Scopes that have one, in the given order — the row's dots. */
+const scopeColoursOf = (
+	scopes: readonly Readonly<{
+		colorHue: number | null;
+		colorChroma: number | null;
+		colorDepth?: number | null;
+	}>[]
+): ScopeColour[] => scopes.flatMap((scope) => scopeColourPair(scope) ?? []);
 
 const rangeOf = (marks: readonly Mark[]): TimeRange | null => {
 	if (marks.length === 0) return null;
@@ -52,12 +69,30 @@ const onlyAllowed = (
 	return allowed;
 };
 
-/** A closed intention carries its outcome glyph in front of its name; everything else is named as is. */
-export const captionOf = (trace: ExplorerTrace): string => {
+/** The year an absolute time starts in, as its calendar value writes it; `null` for any other placement. */
+const yearOf = (trace: Pick<ExplorerTrace, 'aboutTime'>): number | null =>
+	trace.aboutTime?.basis === 'absolute' ? Number(trace.aboutTime.start.slice(0, 4)) : null;
+
+/**
+ * A closed intention carries its outcome glyph in front of its name; everything else is
+ * named as is. Forced — selected, lit or matched (loop 008, C4) — a closed intention with a
+ * known closing instant adds the closing day, «· ✓ 6 сен», in the axis month names of the
+ * language; the year joins in when it differs from the intention's own.
+ */
+export const captionOf = (
+	trace: ExplorerTrace,
+	options: Readonly<{ forced?: boolean; language?: Locale }> = {}
+): string => {
 	const title = trace.displayTitle ?? trace.content;
 	if (trace.intentOpen !== false) return title;
 	const glyph = trace.intentOutcome ? INTENT_GLYPHS[trace.intentOutcome] : CLOSED_INTENT_GLYPH;
-	return `${glyph} ${title}`;
+	const caption = `${glyph} ${title}`;
+	const closedAt = options.forced && trace.intentClosedAt ? Date.parse(trace.intentClosedAt) : NaN;
+	if (Number.isNaN(closedAt)) return caption;
+	const at = new Date(closedAt);
+	const year = at.getUTCFullYear();
+	const day = `${at.getUTCDate()} ${monthsShort(options.language ?? 'ru')[at.getUTCMonth()]}`;
+	return `${caption} · ${CLOSED_AT_GLYPH} ${yearOf(trace) === year ? day : `${day} ${year}`}`;
 };
 
 /**
@@ -70,9 +105,11 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		(trace) => !trace.kindId || Boolean(state.shownKindIds?.has(trace.kindId))
 	);
 	const traceById = new Map(traces.map((trace) => [trace.id, trace]));
+	// «Просроченное» and the reach of an open interval are decided at this build's «сейчас».
+	const now = state.now ?? Date.now();
 	const timeByTraceId = new Map<string, MarkTime>();
 	for (const trace of traces) {
-		const time = traceMarkTime(trace);
+		const time = traceMarkTime(trace, now);
 		if (time) timeByTraceId.set(trace.id, time);
 	}
 
@@ -117,28 +154,51 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		const scopeIds = membership.scopesByTrace.get(trace.id);
 		return scopeIds?.size ? [...scopeIds].some((id) => searched.has(id)) : !query;
 	};
-	const hidden = state.hiddenLegend;
+	const legendFilter = { soloLegend: state.soloLegend ?? null, hiddenLegend: state.hiddenLegend };
 	const proposals = state.proposals ?? new Map<string, string>();
 
-	const mark = (trace: ExplorerTrace, time: MarkTime, rowId: string, rollup: boolean): Mark => ({
-		...time,
-		id: `${trace.id}@${rowId}`,
-		traceId: trace.id,
-		rowId,
-		rollup,
-		proposal: proposals.has(trace.id),
-		...(trace.intentOpen === false ? { closed: true } : {}),
-		label: captionOf(trace),
-		timeLabel: traceTimeLabel(trace, state.language ?? 'ru')
-	});
+	const language = state.language ?? 'ru';
+	/** The closing instant of a closed intention in epoch ms (C4), when the snapshot knows it. */
+	const closedAtOf = (trace: ExplorerTrace): number | undefined => {
+		if (trace.intentOpen !== false || !trace.intentClosedAt) return undefined;
+		const at = Date.parse(trace.intentClosedAt);
+		return Number.isNaN(at) ? undefined : at;
+	};
+	const mark = (trace: ExplorerTrace, time: MarkTime, rowId: string, rollup: boolean): Mark => {
+		const label = captionOf(trace);
+		const forcedLabel = captionOf(trace, { forced: true, language });
+		const closedAt = closedAtOf(trace);
+		return {
+			...time,
+			id: `${trace.id}@${rowId}`,
+			traceId: trace.id,
+			rowId,
+			rollup,
+			proposal: proposals.has(trace.id),
+			...(trace.intentOpen === false ? { closed: true } : {}),
+			...(closedAt === undefined ? {} : { closedAt }),
+			...(trace.closesIntentionIds?.length ? { result: true } : {}),
+			...((membership.scopesByTrace.get(trace.id)?.size ?? 0) > 1 ? { multi: true } : {}),
+			label,
+			...(forcedLabel === label ? {} : { forcedLabel }),
+			timeLabel: traceTimeLabel(trace, language)
+		};
+	};
+	/** The legend filter (solo, then hidden) over the kinds a mark answers to (research п. 17), and the kinds it follows (C4). */
 	const keep = (item: Mark): boolean =>
-		!hidden.has(item.kind) &&
-		!(hidden.has('intent') && item.intent) &&
-		!(hidden.has('rollup') && item.rollup) &&
-		!(hidden.has('proposal') && item.proposal);
+		legendShown(legendKeysOf(item, now), legendFilter, legendFollows(item));
+	const legendKeys = new Set<LegendKey>();
+	/** The marks a row keeps, noting the kinds it offered before the filter: the legend lists those. */
+	const shownMarks = (marks: readonly Mark[]): Mark[] =>
+		marks.filter((item) => {
+			const keys = legendKeysOf(item, now);
+			for (const key of keys) legendKeys.add(key);
+			return legendShown(keys, legendFilter, legendFollows(item));
+		});
 
 	const rows: ProjectedRow[] = [];
 	const scopeById = new Map(snapshot.scopes.map((scope) => [scope.id, scope]));
+	const unscopedName = translate(state.language ?? 'ru', UNSCOPED_ROW_KEY);
 	// A Scope without records is a row too (ANSWERS Q9): what was made stays in sight.
 	const liveChildren = (scopeId: string): string[] =>
 		(tree.children.get(scopeId) ?? []).filter((childId) => !blocked.has(childId));
@@ -148,13 +208,19 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		const time = timeByTraceId.get(traceId);
 		return Boolean(trace && time && keep(mark(trace, time, rowId, false)));
 	};
+	const arrangement = state.grouping === 'scope' ? (state.arrangement ?? null) : null;
+	/** Scopes a lane holds by name: they stand at their lane, not under their expanded parent. */
+	const claimed = new Set(arrangement?.lanes.flatMap((lane) => lane.members) ?? []);
 	const visit = (scopeId: string, depth: number): void => {
 		const scope = scopeById.get(scopeId);
 		if (!scope || blocked.has(scopeId)) return;
 		const all = subtree.get(scopeId) ?? new Set<string>();
 		const direct = directByScope.get(scopeId) ?? new Set<string>();
 		const children = liveChildren(scopeId);
-		const isExpanded = children.length > 0 && expanded.has(scopeId);
+		// The children this row can unfold: those no lane claimed. With none left, the row has no
+		// chevron and stands folded — the claimed children stay in its roll-up (review 2026-09-19, п. 32).
+		const emitted = children.filter((childId) => !claimed.has(childId));
+		const isExpanded = emitted.length > 0 && expanded.has(scopeId);
 		const marks: Mark[] = [];
 		for (const traceId of all) {
 			const isDirect = direct.has(traceId);
@@ -167,43 +233,131 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 			id: scopeId,
 			kind: 'scope',
 			scopeId,
+			scopeIds: [scopeId],
 			name: scope.name,
+			colours: scopeColoursOf([scope]),
 			depth,
-			hasChildren: children.length > 0,
+			hasChildren: emitted.length > 0,
 			expanded: isExpanded,
 			// Owner 2026-09-15: the numbers say what the ribbon shows, not what the Scope holds.
 			directCount: [...direct].filter((id) => onRibbon(id, scopeId)).length,
 			subtreeCount: [...all].filter((id) => onRibbon(id, scopeId)).length,
 			range: rangeOf(marks),
-			marks: marks.filter(keep)
+			marks: shownMarks(marks)
 		});
-		if (isExpanded) for (const childId of children) visit(childId, depth + 1);
+		if (isExpanded) for (const childId of emitted) visit(childId, depth + 1);
 	};
-	if (state.grouping === 'scope') for (const rootId of tree.roots) visit(rootId, 0);
 
 	const unscoped = traces.filter(
 		(trace) => !query && (membership.scopesByTrace.get(trace.id)?.size ?? 0) === 0
 	);
 	// «Только эти Scope» is about Scopes: records in none are out of it (owner, 2026-09-18).
-	if (state.grouping === 'scope' && unscoped.length > 0 && !state.onlyScopes) {
+	const unscopedShown = state.grouping === 'scope' && unscoped.length > 0 && !state.onlyScopes;
+	const unscopedRow = (depth = 0): ProjectedRow => {
 		const marks: Mark[] = [];
 		for (const trace of unscoped) {
 			const time = timeByTraceId.get(trace.id);
 			if (time) marks.push(mark(trace, time, UNSCOPED_ROW_ID, false));
 		}
-		rows.push({
+		const shown = shownMarks(marks);
+		return {
 			id: UNSCOPED_ROW_ID,
 			kind: 'unscoped',
 			scopeId: null,
-			name: translate(state.language ?? 'ru', UNSCOPED_ROW_KEY),
-			depth: 0,
+			scopeIds: [],
+			name: unscopedName,
+			colours: [],
+			depth,
 			hasChildren: false,
 			expanded: false,
-			directCount: marks.filter(keep).length,
-			subtreeCount: marks.filter(keep).length,
+			directCount: shown.length,
+			subtreeCount: shown.length,
 			range: rangeOf(marks),
-			marks: marks.filter(keep)
-		});
+			marks: shown
+		};
+	};
+	/**
+	 * A lane of several Scopes as one row (research п. 7, Q2-A): the union of the members'
+	 * records, each once; a group member brings its direct records and the roll-up of its
+	 * subtree as a collapsed row does, whatever the disclosure says. Each mark carries the
+	 * colours of the members it answers to, so a record in two of them weaves. The chevron
+	 * (loop 008, C5) unfolds the lane: the merged row stays as it is, and its members follow
+	 * beneath it at depth 1, each as its ordinary row.
+	 */
+	const mergedRow = (lane: RowLane, members: readonly string[]): ProjectedRow => {
+		const rowId = mergedRowId(members);
+		const parts = new Map<string, { direct: boolean; colours: ScopeColour[] }>();
+		const add = (traceId: string, direct: boolean, colour: ScopeColour | null): void => {
+			const part =
+				parts.get(traceId) ?? parts.set(traceId, { direct: false, colours: [] }).get(traceId)!;
+			if (direct) part.direct = true;
+			if (colour && !part.colours.some((c) => scopeColourKey(c) === scopeColourKey(colour)))
+				part.colours.push(colour);
+		};
+		for (const member of members) {
+			if (member === UNSCOPED_ROW_ID) {
+				for (const trace of unscoped) add(trace.id, true, null);
+				continue;
+			}
+			const direct = directByScope.get(member) ?? new Set<string>();
+			const scope = scopeById.get(member);
+			const colour = scope ? scopeColourPair(scope) : null;
+			for (const traceId of subtree.get(member) ?? []) add(traceId, direct.has(traceId), colour);
+		}
+		const marks: Mark[] = [];
+		let directCount = 0;
+		let subtreeCount = 0;
+		for (const [traceId, part] of parts) {
+			const trace = traceById.get(traceId);
+			const time = timeByTraceId.get(traceId);
+			if (!trace || !time) continue;
+			marks.push({ ...mark(trace, time, rowId, !part.direct), colours: part.colours });
+			if (onRibbon(traceId, rowId)) {
+				subtreeCount += 1;
+				if (part.direct) directCount += 1;
+			}
+		}
+		const scopeIds = members.filter((id) => id !== UNSCOPED_ROW_ID);
+		const names = new Map<string, Readonly<{ name: string }>>(scopeById);
+		names.set(UNSCOPED_ROW_ID, { name: unscopedName });
+		return {
+			id: rowId,
+			kind: 'merged',
+			scopeId: null,
+			scopeIds,
+			name: laneName({ ...lane, members }, names),
+			colours: scopeColoursOf(scopeIds.flatMap((id) => scopeById.get(id) ?? [])),
+			depth: 0,
+			hasChildren: true,
+			expanded: Boolean(lane.expanded),
+			directCount,
+			subtreeCount,
+			range: rangeOf(marks),
+			marks: shownMarks(marks)
+		};
+	};
+
+	if (arrangement) {
+		for (const lane of arrangement.lanes) {
+			// A hidden or unknown member contributes nothing; a lane left with one member is that plain row.
+			const members = lane.members.filter((id) =>
+				id === UNSCOPED_ROW_ID ? unscopedShown : scopeById.has(id) && !blocked.has(id)
+			);
+			if (members.length === 0) continue;
+			if (members.length > 1) {
+				rows.push(mergedRow(lane, members));
+				// Unfolded (C5): the members beneath the merged row, in lane order, each with its own
+				// disclosure and roll-up; «Без Scope» as the unscoped row at depth 1.
+				if (lane.expanded)
+					for (const member of members)
+						if (member === UNSCOPED_ROW_ID) rows.push(unscopedRow(1));
+						else visit(member, 1);
+			} else if (members[0] === UNSCOPED_ROW_ID) rows.push(unscopedRow());
+			else visit(members[0], 0);
+		}
+	} else if (state.grouping === 'scope') {
+		for (const rootId of tree.roots) visit(rootId, 0);
+		if (unscopedShown) rows.push(unscopedRow());
 	}
 
 	if (state.grouping === 'kind')
@@ -220,14 +374,16 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 				id: rowId,
 				kind,
 				scopeId: null,
+				scopeIds: [],
 				name,
+				colours: [],
 				depth: 0,
 				hasChildren: false,
 				expanded: false,
 				directCount: marks.length,
 				subtreeCount: marks.length,
 				range: null,
-				marks: marks.filter(keep)
+				marks: shownMarks(marks)
 			});
 		}
 
@@ -276,7 +432,8 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		extent: rangeOf([...timeByTraceId.values()] as Mark[]),
 		marksByTraceId,
 		timeByTraceId,
-		links
+		links,
+		legendKeys
 	};
 };
 

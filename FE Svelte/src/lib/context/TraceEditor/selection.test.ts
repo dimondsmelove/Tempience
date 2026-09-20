@@ -132,6 +132,84 @@ describe('shared input to stored trace placement', () => {
 			statedDuration: { amount: 3, unit: 'day' }
 		});
 	});
+	it('«длится» is the explicit flag: on, an open interval; off, an empty end is still an instant', () => {
+		const instant = absolute('2026-08-10');
+		const picker = edit(instant);
+		expect(picker.draft.ongoing).toBeUndefined();
+		// An empty end alone never means «open».
+		expect(placementFromSelection(picker.draft, instant)).toEqual({
+			...instant,
+			statedDuration: null
+		});
+		picker.setOngoing(true);
+		expect(picker.draft).toMatchObject({ end: null, ongoing: true });
+		const open = placementFromSelection(picker.draft, instant);
+		expect(open).toEqual({
+			...instant,
+			aboutKind: 'interval',
+			statedDuration: null
+		});
+		expect(open.aboutTime).toMatchObject({ start: '2026-08-10', end: null });
+		// A coarse start keeps the flag: «с августа — длится».
+		picker.draft = { ...picker.draft, date: 'month', timed: false };
+		expect(placementFromSelection(picker.draft, instant)).toMatchObject({
+			aboutKind: 'interval',
+			aboutTime: { precision: 'month', start: '2026-08', end: null }
+		});
+		picker.setOngoing(false);
+		expect(placementFromSelection(picker.draft, instant)).toMatchObject({
+			aboutKind: 'instant',
+			aboutTime: { precision: 'month', start: '2026-08', end: null }
+		});
+	});
+	it('editing an open interval shows «длится» on; an end entered after turning it off closes it («дочитал»)', () => {
+		const open: TemporalPlacement = { ...absolute('2026-08-10'), aboutKind: 'interval' };
+		const picker = edit(open);
+		expect(picker.draft.ongoing).toBe(true);
+		expect(picker.draft.end).toBeNull();
+		expect(sameSelection(picker.draft, selectionFromPlacement(open))).toBe(true);
+		expect(placementFromSelection(picker.draft, open)).toEqual({ ...open, statedDuration: null });
+		picker.setOngoing(false);
+		expect(sameSelection(picker.draft, selectionFromPlacement(open))).toBe(false);
+		picker.beginEnd();
+		picker.pick(new Date(2026, 8, 1, 12).getTime());
+		expect(picker.draft.ongoing).toBeUndefined();
+		expect(placementFromSelection(picker.draft, open)).toEqual({
+			...absolute('2026-08-10', '2026-09-01'),
+			statedDuration: null
+		});
+		// Picking an end while the flag is on closes it as well: the two never coexist.
+		const again = edit(open);
+		again.pick(new Date(2026, 8, 2, 12).getTime(), 'end');
+		expect(again.draft.ongoing).toBeUndefined();
+		expect(placementFromSelection(again.draft, open).aboutTime).toMatchObject({
+			end: '2026-09-02'
+		});
+	});
+	it('«длится» and a stated duration exclude each other; a duration record is not open', () => {
+		const amount = {
+			...absolute('2026-08-10'),
+			aboutKind: 'interval' as const,
+			statedDuration: { amount: 3, unit: 'day' as const }
+		};
+		const picker = edit(amount);
+		expect(picker.draft.ongoing).toBeUndefined();
+		expect(picker.detail).toBe('duration');
+		picker.setOngoing(true);
+		expect(picker.draft.ongoing).toBeUndefined();
+		expect(placementFromSelection(picker.draft, amount)).toEqual(amount);
+		// The other way round: choosing the duration detail drops the flag.
+		const open = edit({ ...absolute('2026-08-10'), aboutKind: 'interval' });
+		expect(open.draft.ongoing).toBe(true);
+		open.setDetail('duration');
+		open.setDuration(2, 'day');
+		expect(open.draft.ongoing).toBeUndefined();
+		expect(placementFromSelection(open.draft, amount)).toMatchObject({
+			aboutKind: 'interval',
+			statedDuration: { amount: 2, unit: 'day' },
+			aboutTime: { end: null }
+		});
+	});
 	it('selects coarse months and years without persisting invented first-day precision', () => {
 		for (const precision of ['month', 'year'] as const) {
 			const original = absolute(precision === 'month' ? '2026-09' : '2026', null, precision);

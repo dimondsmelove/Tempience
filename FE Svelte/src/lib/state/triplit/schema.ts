@@ -89,6 +89,13 @@ export const schema = S.Collections({
 			definitionId: S.Optional(S.String()),
 			startedAt: S.Optional(S.String()),
 			endedAt: S.Optional(S.String()),
+			// The Scope hue (R1): absent on Scopes stored before, read as null, never rewritten.
+			colorHue: S.Optional(S.Number()),
+			colorChroma: S.Optional(S.Number()),
+			// The depth 0–2 (loop 008, C6): absent on Scopes stored before, read as 0.
+			colorDepth: S.Optional(S.Number()),
+			// Loop 005 kept a theme slot here; still read as a fallback hue, cleared on the next colour save.
+			colorSlot: S.Optional(S.Number()),
 			isDeleted: S.Boolean(),
 			deletionOperationId: S.Optional(S.String()),
 			createdAt: S.String(),

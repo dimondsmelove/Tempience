@@ -22,7 +22,9 @@ const row = (id: string, marks: Mark[]): ProjectedRow => ({
 	id,
 	kind: 'scope',
 	scopeId: id,
+	scopeIds: [id],
 	name: id,
+	colours: [],
 	depth: 0,
 	hasChildren: false,
 	expanded: false,
@@ -48,7 +50,7 @@ describe('layoutRibbon', () => {
 		expect(layoutRibbon(rows, { ...options, minHeightPx: 20 }).heightPx).toBe(normal.heightPx);
 	});
 
-	it('stacks rows of 52 px and centres a single track above the underlay reserve', () => {
+	it('stacks rows of 52 px and centres a single track in the row', () => {
 		const layout = layoutRibbon([row('a', [mark('m', 'moment', 10)]), row('b', [])], options);
 		expect(layout.rows.map((r) => [r.y0, r.y1])).toEqual([
 			[0, ROW_HEIGHT_MIN_PX],
@@ -58,27 +60,42 @@ describe('layoutRibbon', () => {
 		const box = layout.rows[0].boxes[0];
 		expect(box.x1 - box.x0).toBe(8);
 		expect(box.x0 + 4).toBeCloseTo(100);
-		expect(box.y0).toBe(15);
+		expect(box.y0).toBe(18);
 		expect(layout.heightPx).toBe(104);
 	});
 
-	it('gives colliding marks new tracks and fuzzy dates an underlay without a track', () => {
+	it('gives colliding marks new tracks and a fuzzy date a track box at the full mark height', () => {
 		const layout = layoutRibbon(
 			[
 				row('a', [
 					mark('p', 'moment', 10),
 					mark('q', 'moment', 10.2),
-					mark('f', 'fuzzy', 0, 31, 'март')
+					mark('f', 'fuzzy', 20, 51, 'март')
 				])
 			],
 			options
 		);
 		const [p, q, f] = layout.rows[0].boxes;
-		expect([p.track, q.track, f.track]).toEqual([0, 1, -1]);
+		// The fuzzy window packs like an interval (decision A): the first free track, no underlay strip.
+		expect([p.track, q.track, f.track]).toEqual([0, 1, 0]);
 		expect(layout.rows[0].trackHeight).toBe(11);
 		expect(q.y0 - p.y0).toBe(9);
-		expect([f.x0, f.x1, f.y0, f.y1]).toEqual([0, 310, 45, 48]);
-		expect(layout.rows[0].labels.map((label) => label.markId)).toEqual(['p@r']);
+		expect([f.x0, f.x1]).toEqual([200, 510]);
+		expect(f.y0).toBe(p.y0);
+		expect(f.y1 - f.y0).toBe(layout.rows[0].trackHeight);
+		// Its caption follows the band like any span's, 9 px past it (the ring's room and the gap);
+		// of the two colliding moments the newer «q» is served first (Q1-A).
+		expect(layout.rows[0].labels.map((label) => [label.markId, label.x])).toEqual([
+			['q@r', 115],
+			['f@r', 519]
+		]);
+		// A fuzzy window over the colliding moments takes its own track instead.
+		const stacked = layoutRibbon(
+			[row('a', [mark('p', 'moment', 10), mark('f', 'fuzzy', 0, 31, 'март')])],
+			options
+		);
+		expect(stacked.rows[0].boxes.map((box) => box.track)).toEqual([1, 0]);
+		expect(stacked.rows[0].tracks).toBe(2);
 	});
 
 	it('stacks taller rows with a wider pitch, so neighbouring tracks stop hiding captions', () => {
@@ -95,7 +112,7 @@ describe('layoutRibbon', () => {
 		]);
 		expect(tall.heightPx).toBe(200);
 		const [p, q] = tall.rows[0].boxes;
-		expect(q.y0 - p.y0).toBe(18);
+		expect(q.y0 - p.y0).toBe(19);
 		expect(tall.rows[0].trackHeight).toBe(16);
 		expect(tall.rows[0].labels.map((label) => label.text)).toEqual(['первая', 'вторая']);
 		expect(layoutRibbon(Array(5).fill(rows[1]), { ...options, rowHeightPx: 100 }).heightPx).toBe(
@@ -123,7 +140,7 @@ describe('layoutRibbon', () => {
 		const [box] = layout.rows[0].boxes;
 		expect(box.x0).toBeCloseTo(-50);
 		expect(box.x1).toBeCloseTo(50);
-		expect(layout.rows[0].labels[0]).toMatchObject({ text: 'встреча', x: 54 });
+		expect(layout.rows[0].labels[0]).toMatchObject({ text: 'встреча', x: 59 });
 		expect(layout.rows[0].rangeX).toBeNull();
 		expect(layout.pxPerDay).toBe(10);
 	});

@@ -1,0 +1,155 @@
+{
+	"schemaVersion": "tempience.calibration-review.v2",
+	"manifestId": "synthetic-open-interval",
+	"title": "Synthetic open-interval fixture (loop 005, C5): «длится» around «сейчас» 2026-09-06 — one running since August, one that has not started, a closed interval and a fact beside them",
+	"sourceIds": ["source:synthetic"],
+	"claimRefs": [],
+	"claimEvidence": [],
+	"candidates": [
+		{
+			"candidateId": "open:scope:reading",
+			"role": "scope",
+			"proposed": {
+				"name": "Чтение",
+				"note": null,
+				"startedAt": null,
+				"endedAt": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:trace:book",
+			"role": "trace",
+			"proposed": {
+				"content": "Читаю «Дюну»",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-08-10",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:trace:internship",
+			"role": "trace",
+			"proposed": {
+				"content": "Стажировка",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-10-05",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:trace:course",
+			"role": "trace",
+			"proposed": {
+				"content": "Курс по истории",
+				"relation": "actual",
+				"aboutKind": "interval",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-05-04",
+					"end": "2026-06-26"
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:trace:library",
+			"role": "trace",
+			"proposed": {
+				"content": "Записался в библиотеку",
+				"relation": "actual",
+				"aboutKind": "instant",
+				"aboutTime": {
+					"basis": "absolute",
+					"precision": "day",
+					"certainty": "exact",
+					"start": "2026-07-15",
+					"end": null
+				},
+				"timezone": "Europe/Belgrade"
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:intersection:book-reading",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "open:trace:book",
+				"toId": "open:scope:reading",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:intersection:internship-reading",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "open:trace:internship",
+				"toId": "open:scope:reading",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:intersection:course-reading",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "open:trace:course",
+				"toId": "open:scope:reading",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		},
+		{
+			"candidateId": "open:intersection:library-reading",
+			"role": "intersection",
+			"proposed": {
+				"fromId": "open:trace:library",
+				"toId": "open:scope:reading",
+				"kind": "belongs_to",
+				"context": null
+			},
+			"claimRefs": [],
+			"gate": "mapped",
+			"reason": null
+		}
+	]
+}

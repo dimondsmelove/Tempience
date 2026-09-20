@@ -15,6 +15,8 @@ const scope = (id: string): ExplorerScope => ({
 	note: null,
 	startedAt: null,
 	endedAt: null,
+	colorHue: null,
+	colorChroma: null,
 	origin
 });
 const day = (start: string): TraceAboutTime => ({
@@ -41,8 +43,8 @@ const trace = (
 	data: null,
 	origin: { ...origin, sourceId }
 });
-const link = (fromId: string, toId: string, kind: ExplorerIntersection['kind']) => ({
-	id: `${kind}:${fromId}:${toId}`,
+const link = (fromId: string, toId: string, kind: ExplorerIntersection['kind'], id?: string) => ({
+	id: id ?? `${kind}:${fromId}:${toId}`,
 	fromId,
 	toId,
 	kind,
@@ -50,9 +52,10 @@ const link = (fromId: string, toId: string, kind: ExplorerIntersection['kind']) 
 	origin
 });
 
-// Scope a: t1 … t8 across March; scope b: t9 (linked to t5) and t10; t11 has no time and points at t5.
+// Scope a: t1 … t8 across March, the anchor t5 also in c; t6 sits in b, c and a (a twice);
+// scope b: t9 (linked to t5) and t10; t11 has no time and points at t5.
 const snapshot: ExplorerSnapshot = {
-	scopes: [scope('a'), scope('b')],
+	scopes: [scope('a'), scope('b'), scope('c')],
 	traces: [
 		trace('t1', day('2026-03-01')),
 		trace('t2', day('2026-03-02')),
@@ -68,7 +71,12 @@ const snapshot: ExplorerSnapshot = {
 	],
 	periods: [],
 	intersections: [
-		...['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'].map((id) => link(id, 'a', 'belongs_to')),
+		...['t1', 't2', 't3', 't4', 't5', 't7', 't8'].map((id) => link(id, 'a', 'belongs_to')),
+		link('t5', 'c', 'belongs_to'),
+		link('t6', 'b', 'belongs_to'),
+		link('t6', 'c', 'belongs_to'),
+		link('t6', 'a', 'belongs_to'),
+		link('t6', 'a', 'belongs_to', 'belongs_to:t6:a:again'),
 		link('t9', 'b', 'belongs_to'),
 		link('t10', 'b', 'belongs_to'),
 		link('t11', 'b', 'belongs_to'),
@@ -79,22 +87,30 @@ const snapshot: ExplorerSnapshot = {
 };
 
 describe('neighborhood', () => {
-	it('takes up to radius records on each side within the anchor Scopes, oldest first', () => {
-		const result = neighborhood(snapshot, 't5', { radius: 2, filter: 'these' });
+	it('takes up to radius records on each side by time across every Scope, oldest first', () => {
+		const result = neighborhood(snapshot, 't5', { radius: 2 });
 		expect(result?.before.map((n) => n.traceId)).toEqual(['t3', 't4']);
-		expect(result?.after.map((n) => n.traceId)).toEqual(['t6', 't7']);
-		expect(result?.anchorScopeIds).toEqual(['a']);
+		// t9 is b's alone; there is no «В этих Scope» any more (owner, 2026-09-20).
+		expect(result?.after.map((n) => n.traceId)).toEqual(['t6', 't9']);
+		expect(result?.anchorScopeIds).toEqual(['a', 'c']);
 	});
 
-	it('widens to every Scope with the «Во всех» filter', () => {
-		const result = neighborhood(snapshot, 't5', { radius: 2, filter: 'all' });
-		expect(result?.after.map((n) => n.traceId)).toEqual(['t6', 't9']);
+	it('names every Scope of a neighbour once: shared with the anchor first, then the rest, by name', () => {
+		const result = neighborhood(snapshot, 't5', { radius: 2 })!;
+		const byId = new Map([...result.before, ...result.after].map((n) => [n.traceId, n.scopeIds]));
+		// Joined as b, c, a, a — shown as a, c (shared, by name), then b; the second a is not a chip.
+		expect(byId.get('t6')).toEqual(['a', 'c', 'b']);
+		expect(byId.get('t9')).toEqual(['b']);
+		expect(byId.get('t3')).toEqual(['a']);
 	});
 
 	it('explains every neighbour: links, same day or distance, shared Scope and source', () => {
-		const result = neighborhood(snapshot, 't5', { radius: 5, filter: 'all' })!;
+		const result = neighborhood(snapshot, 't5', { radius: 5 })!;
 		const byId = new Map([...result.before, ...result.after].map((n) => [n.traceId, n.reasons]));
-		expect(byId.get('t6')).toEqual([{ kind: 'sameDay' }, { kind: 'sharedScope', scopeIds: ['a'] }]);
+		expect(byId.get('t6')).toEqual([
+			{ kind: 'sameDay' },
+			{ kind: 'sharedScope', scopeIds: ['a', 'c'] }
+		]);
 		expect(byId.get('t3')).toEqual([
 			{ kind: 'link', link: 'evidence_for', direction: 'incoming' },
 			{ kind: 'distance', days: 2 },
@@ -109,7 +125,7 @@ describe('neighborhood', () => {
 	});
 
 	it('keeps linked records outside the temporal window, including ones without time', () => {
-		const result = neighborhood(snapshot, 't5', { radius: 1, filter: 'these' })!;
+		const result = neighborhood(snapshot, 't5', { radius: 1 })!;
 		expect(result.before.map((n) => n.traceId)).toEqual(['t4']);
 		expect(result.linked.map((n) => n.traceId).toSorted()).toEqual(['t11', 't3', 't9']);
 		expect(result.linked.find((n) => n.traceId === 't11')?.reasons).toEqual([

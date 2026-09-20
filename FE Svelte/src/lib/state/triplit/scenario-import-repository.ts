@@ -275,7 +275,18 @@ const traceRow = (
 	traceKindVById: ReadonlyMap<string, Stored>
 ): Record<string, unknown> => {
 	const draft = entry.draft;
-	const content = text(draft.content, 'Trace content');
+	// A typed record keeps its optional description in `content`, blank allowed, as the form saves it.
+	const content =
+		draft.kindId == null
+			? text(draft.content, 'Trace content')
+			: typeof draft.content === 'string'
+				? draft.content.trim()
+				: text(draft.content, 'Trace content');
+	// A plain record's description travels beside its title; a typed record has none (create.ts).
+	const description =
+		draft.description == null ? null : text(draft.description, 'Trace description');
+	if (draft.kindId != null && description !== null)
+		throw new Error('Typed Trace keeps its description in content');
 	const capturedAt = draft.capturedAt ?? batchCapturedAt;
 	assertIsoTimestamp(capturedAt, 'Trace capturedAt');
 	const timezone = text(draft.timezone, 'Trace timezone');
@@ -338,6 +349,7 @@ const traceRow = (
 		...projection,
 		aboutTraceId,
 		content,
+		description,
 		relation,
 		kindId,
 		kindVId,
@@ -552,8 +564,8 @@ const validateBatch = async (
 						(from !== 'trace' || to !== 'trace')
 					)
 						throw new Error(`${draft.kind} requires Trace → Trace endpoints`);
-					if (draft.kind === 'related_to' && (from !== 'scope' || to !== 'scope'))
-						throw new Error('related_to requires Scope → Scope endpoints');
+					if (draft.kind === 'related_to' && (from === 'unknown' || from !== to))
+						throw new Error('related_to requires Scope → Scope or Trace → Trace endpoints');
 				}
 				const expectedId = intersectionId(draft.fromId, draft.toId, draft.kind);
 				if (entry.id !== expectedId) throw new Error(`Intersection id must be ${expectedId}`);
@@ -644,6 +656,8 @@ const validateBatch = async (
 		const comparableCurrent = { ...current };
 		for (const key of ['createdAt', 'updatedAt', 'capturedAt']) delete comparableCurrent[key];
 		if (item.entry.type === 'period') comparableCurrent.note = periodNote(comparableCurrent.note);
+		// Rows imported before descriptions travelled have no key for one; they read as none.
+		if (item.entry.type === 'trace') comparableCurrent.description ??= null;
 		const comparableExpected = { ...expected };
 		for (const key of ['createdAt', 'updatedAt', 'capturedAt']) delete comparableExpected[key];
 		if (!equal(comparableCurrent, comparableExpected))

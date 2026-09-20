@@ -106,7 +106,14 @@ export const proposalSnapshot = (set: ProposalSet, live: ExplorerSnapshot): Expl
 			if (liveIds.has(stable)) idOf.set(candidate.candidateId, stable);
 			else {
 				idOf.set(candidate.candidateId, preview);
-				scopes.push({ id: preview, ...candidate.proposed, origin });
+				// A proposed Scope has no colour until it is applied and coloured by hand.
+				scopes.push({
+					id: preview,
+					...candidate.proposed,
+					colorHue: null,
+					colorChroma: null,
+					origin
+				});
 			}
 		} else if (candidate.role === 'period') {
 			if (liveIds.has(stable)) idOf.set(candidate.candidateId, stable);

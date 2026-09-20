@@ -1,6 +1,7 @@
 import type { Scope } from '$lib/state/triplit/types';
 export type ScopeEditorProps = {
-	scope?: Pick<Scope, 'id' | 'name' | 'note'>;
+	scope?: Pick<Scope, 'id' | 'name' | 'note' | 'colorHue' | 'colorChroma'> &
+		Readonly<{ colorDepth?: number | null }>;
 	parentId?: string | null;
 	onsaved: (id: string) => void | Promise<void>;
 	oncancel: () => void;

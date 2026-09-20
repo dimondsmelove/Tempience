@@ -22,3 +22,31 @@ it('edits name, note and hierarchy together, retaining the previous state if a p
 		await client.disconnect();
 	}
 });
+
+it('saves the colour hue with the Scope and clears it back to «без цвета»', async () => {
+	const client = new TriplitClient({ schema, storage: { type: 'memory' }, autoConnect: false });
+	const repo = createTriplitRepository(client);
+	try {
+		const plain = await repo.createScope({ name: 'Белград' });
+		expect(plain).toMatchObject({ colorHue: null, colorChroma: null });
+		const coloured = await repo.createScope({ name: 'Бокс', colorHue: 4, colorChroma: 70 });
+		expect(coloured).toMatchObject({ colorHue: 4, colorChroma: 70 });
+		await repo.editScope(plain.id, {
+			name: 'Белград',
+			note: null,
+			parentScopeId: null,
+			colorHue: 1,
+			colorChroma: null
+		});
+		expect((await repo.listScopes()).map((scope) => [scope.colorHue, scope.colorChroma])).toEqual([
+			[1, null],
+			[4, 70]
+		]);
+		await repo.editScope(coloured.id, { colorHue: null, colorChroma: null });
+		expect(
+			(await repo.listScopes()).find((scope) => scope.id === coloured.id)?.colorHue
+		).toBeNull();
+	} finally {
+		await client.disconnect();
+	}
+});

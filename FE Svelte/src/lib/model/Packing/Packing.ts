@@ -4,7 +4,6 @@ import {
 	MAX_TRACKS,
 	MIN_INTERVAL_WIDTH_PX,
 	MIN_POINT_WIDTH_PX,
-	ROW_BOTTOM_RESERVE_PX,
 	TRACK_GAP_PX,
 	TRACK_HEIGHT_MAX_PX,
 	TRACK_HEIGHT_PX,
@@ -68,18 +67,18 @@ export const packTracks = (items: readonly PackItem[], options: PackOptions): Pa
 export const trackHeightPx = (tracks: number): number =>
 	TRACK_HEIGHT_PX[clamp(tracks, 1, MAX_TRACKS) as keyof typeof TRACK_HEIGHT_PX];
 
+/** The row height the tracks share: the whole row but its top and bottom margins (no underlay strip since C5). */
+const usableHeight = (rowHeightPx: number): number => rowHeightPx - 2 * TRACK_TOP_MIN_PX;
+
 /** Taller rows use the added height for tracks; the font changes capacity, never row height. */
 export const trackCapacity = (rowHeightPx: number, fontPx = 12): number =>
 	Math.max(
 		MAX_TRACKS,
-		Math.floor(
-			(rowHeightPx - ROW_BOTTOM_RESERVE_PX - 2 * TRACK_TOP_MIN_PX) /
-				Math.max(TRACK_PITCH_PX, Math.ceil(fontPx) + 2)
-		)
+		Math.floor(usableHeight(rowHeightPx) / Math.max(TRACK_PITCH_PX, Math.ceil(fontPx) + 2))
 	);
 
 export const trackGeometry = (rowHeightPx: number, tracks: number, fontPx = 12): TrackGeometry => {
-	const usable = rowHeightPx - ROW_BOTTOM_RESERVE_PX - 2 * TRACK_TOP_MIN_PX;
+	const usable = usableHeight(rowHeightPx);
 	const pitchPx = clamp(
 		Math.floor(usable / trackCapacity(rowHeightPx, fontPx)),
 		TRACK_PITCH_MIN_PX,

@@ -43,6 +43,14 @@ export type ExplorerTrace = ExplorerRecord<{
 	/** An intention's derived result at the time of the snapshot (core/intersections): absent for facts. */
 	intentOpen?: boolean;
 	intentOutcome?: IntentionOutcome | null;
+	/**
+	 * When a closed intention was closed (loop 008, C4), as a UTC instant: the closing fact's
+	 * time as the ribbon places it for an evidence source, the action instant for a direct one;
+	 * `null` when the fact has no absolute placement. Absent on open intentions and on facts.
+	 */
+	intentClosedAt?: string | null;
+	/** A fact that is the effective closing evidence of these intentions (C4): its result follows them. */
+	closesIntentionIds?: readonly string[];
 }>;
 
 export type ExplorerScope = ExplorerRecord<{
@@ -51,6 +59,12 @@ export type ExplorerScope = ExplorerRecord<{
 	note: string | null;
 	startedAt: string | null;
 	endedAt: string | null;
+	/** The hue (0–359) the Scope is coloured with, the theme adding only its mode; `null` means ink. */
+	colorHue: number | null;
+	/** Saturation 0–100 of that hue; `null` is the default (R1). */
+	colorChroma: number | null;
+	/** Depth 0–2 of that hue (C6); absent or `null` is 0 — a Scope stored before the third ring. */
+	colorDepth?: number | null;
 }>;
 
 export type ExplorerPeriod = ExplorerRecord<{

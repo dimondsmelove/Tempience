@@ -1,7 +1,7 @@
 {
 	"name": "chronograph-svelte",
 	"private": true,
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -23,6 +23,7 @@
 		"cap:ios": "npm run cap:sync && npx cap open ios",
 		"cap:android": "npm run cap:sync && npx cap open android",
 		"dev:lan": "vite dev --host 0.0.0.0 --port 5173",
+		"build:owner": "PUBLIC_DATA_PACKS= npm run build",
 		"build:public": "PUBLIC_BUILD=1 PUBLIC_TRIPLIT_SERVER_URL= PUBLIC_DATA_PACKS= npm run build",
 		"check:public": "PUBLIC_BUILD=1 svelte-kit sync && svelte-check --tsconfig ./tsconfig.public.json",
 		"predev": "node scripts/prepare-data-packs.mjs development",
@@ -65,6 +66,7 @@
 		"@capacitor/splash-screen": "^8.0.1",
 		"@capacitor/status-bar": "^8.0.2",
 		"@chronograph/shared": "file:../packages/shared",
+		"@dayflow/blossom-color-picker": "2.3.0",
 		"@fontsource/commissioner": "^5.3.0",
 		"@fontsource/geist-mono": "^5.3.0",
 		"@sjsf/ajv8-validator": "3.8.1",

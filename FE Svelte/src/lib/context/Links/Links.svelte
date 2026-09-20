@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { errorText } from '$lib/state/Locale/errors';
+	import { CloseOutline } from 'flowbite-svelte-icons';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { GROUP_HEADING_CLASS, LIST_BUTTON_CLASS } from '$lib/context/constants';
 	import { linkGroupLabel } from '$lib/context/labels';
@@ -14,6 +15,7 @@
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 	import { readContext } from '$lib/context/reload';
 	import Retarget from '$lib/context/Retarget/Retarget.svelte';
 	import { offerUndo } from '$lib/context/undo';
@@ -133,24 +135,39 @@
 				<h3 class={GROUP_HEADING_CLASS}>{group.label}</h3>
 				<ul class="flex flex-col gap-1">
 					{#each group.items as item (item.linkId ?? `${item.kind}:${item.otherId}`)}
-						<li class="flex flex-col gap-1" data-testid="link-row" data-other={item.otherId}>
+						<!-- One row is one link (owner 2026-09-20): the record at the other end, then «×».
+						     The link has no button of its own any more — its Context is not opened from
+						     here; the row is what names the pair, so the lens over its «×» and its gaps
+						     lights both ends, while the name lights the other end alone. -->
+						<li
+							class="flex flex-col gap-1"
+							data-testid="link-row"
+							data-other={item.otherId}
+							{@attach lensSource(workbench.hover, {
+								kind: 'traces',
+								traceIds: [traceId, item.otherId]
+							})}
+						>
 							<div class="flex items-center gap-1">
 								<!-- A record the timeline does not carry is still named here, with what is
 							     known about it; it is never dropped from the list or added to the ribbon. -->
 								<button
 									type="button"
-									class={LIST_BUTTON_CLASS}
+									class={[LIST_BUTTON_CLASS, 'min-w-0 flex-1']}
 									data-testid="link-target"
 									data-state={item.state}
 									disabled={item.state === 'unavailable'}
 									onclick={() => workbench.selectTrace(item.otherId, 'context')}
+									{@attach lensSource(workbench.hover, { kind: 'trace', traceId: item.otherId })}
 								>
-									<span>{labelOf(item)}</span>
-									{#if item.trace}
-										<span class="font-mono text-xs text-muted"
-											>{traceTimeLabel(item.trace, locale.current)}</span
-										>
-									{/if}
+									<span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+										<span>{labelOf(item)}</span>
+										{#if item.trace}
+											<span class="font-mono text-xs text-muted"
+												>{traceTimeLabel(item.trace, locale.current)}</span
+											>
+										{/if}
+									</span>
 									{#if item.summary}<TraceValues summary={item.summary} />{/if}
 									{#if item.state !== 'active'}
 										<span class="text-xs text-muted" data-testid="link-endpoint-state"
@@ -162,18 +179,13 @@
 									<Button
 										size="sm"
 										variant="quiet"
-										data-testid="link-details"
-										title={t('link.details')}
-										onclick={() => workbench.selectIntersection(item.linkId!)}
-										>{t('links.link')}</Button
-									>
-									<Button
-										size="sm"
-										variant="quiet"
+										icon
 										disabled={busy}
 										data-testid="link-remove"
+										aria-label={t('link.remove')}
 										title={t('link.remove')}
-										onclick={() => unlink(item.linkId!, labelOf(item))}>{t('links.unlink')}</Button
+										onclick={() => unlink(item.linkId!, labelOf(item))}
+										><CloseOutline class="h-4 w-4" /></Button
 									>
 								{/if}
 							</div>
@@ -236,6 +248,7 @@
 								disabled={busy}
 								data-testid="link-candidate"
 								onclick={() => link(candidate.id)}
+								{@attach lensSource(workbench.hover, { kind: 'trace', traceId: candidate.id })}
 							>
 								<span>{candidate.displayTitle ?? candidate.content}</span>
 								<span class="font-mono text-xs text-muted"

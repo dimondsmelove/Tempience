@@ -8,8 +8,28 @@ vi.mock('$lib/state/Workbench/instance.svelte', () => ({
 }));
 
 const scopes = [
-	{ id: 'a', name: 'A', note: null, parentScopeId: null, startedAt: null, endedAt: null },
-	{ id: 'b', name: 'B', note: null, parentScopeId: null, startedAt: null, endedAt: null }
+	{
+		id: 'a',
+		name: 'A',
+		note: null,
+		parentScopeId: null,
+		startedAt: null,
+		endedAt: null,
+		colorHue: null,
+		colorChroma: null,
+		colorDepth: null
+	},
+	{
+		id: 'b',
+		name: 'B',
+		note: null,
+		parentScopeId: null,
+		startedAt: null,
+		endedAt: null,
+		colorHue: null,
+		colorChroma: null,
+		colorDepth: null
+	}
 ].map((scope) => ({ ...scope, isDeleted: false, createdAt: '', updatedAt: '' }));
 
 describe('KindScopes', () => {
@@ -27,5 +47,21 @@ describe('KindScopes', () => {
 		// Nothing chosen shows no chip and no «Без Scope» button: the picker alone.
 		expect(empty).not.toContain('Убрать Scope');
 		expect(empty).toContain('role="combobox"');
+		expect(empty).not.toContain('data-testid="kind-scope-new"');
+	});
+
+	it('offers the «+» of a new Scope beside the picker when the owner can host the nested step (pack 4, C)', () => {
+		const withNew = render(KindScopes, {
+			props: {
+				scopes,
+				value: { scopeIds: ['a'], explicit: false },
+				onchange: () => {},
+				onnew: () => {}
+			}
+		}).body;
+		expect(withNew).toMatch(/aria-label="Новый Scope"[^>]*data-testid="kind-scope-new"/);
+		// The picker keeps its place: chips below, the «+» on the picker's line.
+		expect(withNew.indexOf('role="combobox"')).toBeLessThan(withNew.indexOf('kind-scope-new'));
+		expect(withNew.indexOf('kind-scope-new')).toBeLessThan(withNew.indexOf('Убрать Scope A'));
 	});
 });

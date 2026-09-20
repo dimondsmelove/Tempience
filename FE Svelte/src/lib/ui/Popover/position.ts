@@ -19,7 +19,11 @@ export const popoverPosition = (
 	)
 });
 
-/** Native popovers own focus, Escape and light-dismiss; this attachment keeps them beside the trigger. */
+/**
+ * Native popovers own focus, Escape and light-dismiss; this attachment keeps them beside the
+ * trigger — on opening, on a resize or scroll, and when the panel's own size changes (content
+ * that mounts once it is open, such as the colour flower).
+ */
 export const positionPopover: Attachment<HTMLElement> = (panel) => {
 	const position = () => {
 		if (!panel.matches(':popover-open')) return;
@@ -31,10 +35,13 @@ export const positionPopover: Attachment<HTMLElement> = (panel) => {
 		panel.style.left = `${left}px`;
 		panel.style.top = `${top}px`;
 	};
+	const observer = new ResizeObserver(position);
+	observer.observe(panel);
 	panel.addEventListener('toggle', position);
 	window.addEventListener('resize', position);
 	window.addEventListener('scroll', position, true);
 	return () => {
+		observer.disconnect();
 		panel.removeEventListener('toggle', position);
 		window.removeEventListener('resize', position);
 		window.removeEventListener('scroll', position, true);

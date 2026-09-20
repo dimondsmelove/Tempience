@@ -23,6 +23,25 @@ describe('SelectionState', () => {
 		expect(selection.traceId).toBe('a');
 	});
 
+	it('records a merged row (C5) as an entry of its own, walks back to it and keeps its members', () => {
+		const selection = new SelectionState();
+		selection.select({ kind: 'scope', scopeId: 'a' }, 'rail');
+		selection.select({ kind: 'row', rowId: 'a+b', members: ['a', 'b'] }, 'rail');
+		selection.select({ kind: 'row', rowId: 'a+b', members: ['a', 'b'] }, 'rail');
+		selection.select({ kind: 'scope', scopeId: 'b' }, 'context');
+		expect(selection.entries).toHaveLength(3);
+		expect(selection.rowId).toBeNull();
+		selection.back();
+		expect(selection.rowId).toBe('a+b');
+		expect(selection.current).toEqual({ kind: 'row', rowId: 'a+b', members: ['a', 'b'] });
+		expect(selection.scopeId).toBeNull();
+		expect(selection.position).toEqual({ n: 2, m: 3 });
+		selection.rest();
+		expect(selection.rowId).toBeNull();
+		selection.forward();
+		expect(selection.rowId).toBe('a+b');
+	});
+
 	it('keeps Scope and Trace distinct in history even when their ids match', () => {
 		const selection = new SelectionState();
 		selection.select({ kind: 'scope', scopeId: 'a' }, 'rail');

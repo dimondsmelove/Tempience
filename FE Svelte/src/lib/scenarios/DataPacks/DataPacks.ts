@@ -16,17 +16,18 @@ export const availableDataPacks = (): readonly DataPack[] => {
 	return DATA_PACKS.filter((pack) => enabled.includes(pack.id) && (!publicBuild || pack.public));
 };
 
+/**
+ * Only a pack the build offers can be opened. An installed replica of a pack the build no longer
+ * lists is not offered any more (owner decision 2026-09-20: the Belgrade what-if space leaves the
+ * owner's switcher); its stored data stays untouched and returns with a build that lists the pack.
+ */
 export const canOpenDataPack = (
 	pack: DataPack,
-	storage: Pick<Storage, 'getItem'> | null
+	// Kept for the callers' contract; the seed marker no longer keeps a pack selectable.
+	_storage: Pick<Storage, 'getItem'> | null
 ): boolean => {
 	if (import.meta.env.PUBLIC_BUILD === '1' && !pack.public) return false;
-	if (availableDataPacks().some((item) => item.id === pack.id)) return true;
-	try {
-		return Boolean(storage?.getItem(pack.markerKey));
-	} catch {
-		return false;
-	}
+	return availableDataPacks().some((item) => item.id === pack.id);
 };
 
 export const loadDataPack = async (pack: DataPack): Promise<unknown> => {

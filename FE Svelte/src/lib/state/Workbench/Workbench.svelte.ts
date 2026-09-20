@@ -10,8 +10,22 @@ import type { Projection, ProjectionState, TimeRange } from '$lib/model/Projecti
 import { FormsState } from '$lib/state/Forms/Forms.svelte';
 import type { FormCapturePreset } from '$lib/state/Forms/types';
 import { FiltersState } from '$lib/state/Filters/Filters.svelte';
+import { filterCounts } from '$lib/model/FilterCounts/FilterCounts';
+import type { FilterCounts } from '$lib/model/FilterCounts/types';
+import { HoverState } from '$lib/state/Hover/Hover.svelte';
+import type { LitSet } from '$lib/model/Hover/types';
+import { lensSet } from '$lib/model/Lens/Lens';
+import type { LensSet } from '$lib/model/Lens/types';
+import { focusSet, unionLit } from '$lib/model/Focus/Focus';
+import type { FocusKind, FocusSet, FocusTarget } from '$lib/model/Focus/types';
+import { PULSE_MS } from '$lib/model/Pulse/constants';
+import { pulseSet } from '$lib/model/Pulse/Pulse';
+import type { CanvasPulse, Pulse } from '$lib/model/Pulse/types';
+import { dimmedTraceIds, normalizeQuery } from '$lib/model/Search/Search';
 import { RowsState } from '$lib/state/Rows/Rows.svelte';
-import { SelectionState } from '$lib/state/Selection/Selection.svelte';
+import { ArrangementState } from '$lib/state/Arrangement/Arrangement.svelte';
+import { laneIds } from '$lib/model/Arrangement/Arrangement';
+import { SelectionState, selectionKey } from '$lib/state/Selection/Selection.svelte';
 import { UndoState } from '$lib/state/Undo/Undo.svelte';
 import type { ExitGuard } from '$lib/state/TraceDraft/types';
 import type { SelectSource } from '$lib/state/Selection/types';
@@ -78,8 +92,11 @@ export class WorkbenchState {
 	proposals = $state.raw<ProposalSet | null>(null);
 	readonly viewport: ViewportState;
 	readonly rows = new RowsState();
+	/** The rows as arranged on this device (research п. 7): lanes over the Scopes of the view; the app binds its store. */
+	readonly arrangement = new ArrangementState(() => laneIds(this.view));
 	readonly selection = new SelectionState();
 	readonly filters = new FiltersState();
+	readonly hover = new HoverState();
 	readonly forms = new FormsState();
 	// The offer belongs to the space whose records it would act on; the app names it.
 	readonly undo = new UndoState();
@@ -108,18 +125,74 @@ export class WorkbenchState {
 		hiddenScopes: this.filters.hiddenScopes,
 		onlyScopes: this.filters.onlyScopes,
 		hiddenLegend: this.filters.hiddenLegend,
+		soloLegend: this.filters.soloLegend,
+		// «Просроченное» is decided at the projection's last build; the line «сейчас» itself moves on the canvas.
+		now: Date.now(),
 		shownKindIds: this.filters.shownKindIds,
 		scopeQuery: this.filters.scopeQuery,
 		grouping: this.rows.grouping,
 		language: locale.current,
-		proposals: this.proposals ? proposalDecisions(this.proposals) : undefined
+		proposals: this.proposals ? proposalDecisions(this.proposals) : undefined,
+		arrangement: this.arrangement.current
 	});
 	readonly projection: Projection = $derived(
 		projectSnapshot(this.view, { ...this.projectionInputs, expanded: this.rows.expanded })
 	);
+	/** The numbers beside the filter items (loop 008, C7): each Kind's records in the view, each hidden Scope's `n · Σ m`. */
+	readonly filterCounts: FilterCounts = $derived(filterCounts(this.view, this.projectionInputs));
 
 	readonly scopeContext = $derived(
 		this.selection.scopeId ? scopeContext(this.view, this.selection.scopeId) : null
+	);
+
+	/**
+	 * The lens (loop 008, B): what the hover draws above the veil — the record with its
+	 * projections and the records linked to it, a row's records, a Scope's, a period's — and
+	 * the rows named in bold.
+	 */
+	readonly lens: LensSet = $derived(
+		lensSet(this.hover.target, this.projection.rows, this.projection.links, this.view)
+	);
+	/** What the Context shows, as the ribbon reads it (loop 008, A): a persisted Period by its time, a merged row by its id (C5); nothing at rest. */
+	readonly focusTarget: FocusTarget = $derived.by(() => {
+		const current = this.selection.current;
+		if (!current) return null;
+		if (current.kind === 'period')
+			return { kind: 'period', range: { start: current.period.start, end: current.period.end } };
+		if (current.kind === 'row') return { kind: 'row', rowId: current.rowId };
+		if (current.kind === 'period-record') {
+			const record = this.view.periods.find((item) => item.id === current.periodId);
+			return record
+				? { kind: 'period', range: periodTimeBounds(record.time, record.timezone) }
+				: null;
+		}
+		return current;
+	});
+	/** The kind in focus, for the surface's `data-focus`; empty at rest. */
+	readonly focusKind: FocusKind = $derived(this.focusTarget?.kind ?? '');
+	/** What the focus keeps lit under no veil: a period's column and records, a Scope's records, a link's ends. */
+	readonly focus: FocusSet = $derived(focusSet(this.focusTarget, this.projection.rows, this.view));
+	/** Everything in full force with its caption forced, and the rows named in bold: the focus and the lens as one. */
+	readonly lit: LitSet = $derived(unionLit(this.focus, this.lens));
+	/**
+	 * «Куда смотреть» (loop 008, C3): a choice made in the Context or through its history rings
+	 * the record on the ribbon and flashes its name in the rail, once; null when none is running.
+	 */
+	pulse = $state.raw<Pulse | null>(null);
+	private pulseTimer: ReturnType<typeof setTimeout> | undefined;
+	/** What the pulse points at, as the rows draw it: the records to ring, the rows whose names flash. */
+	readonly pulseSet: LitSet = $derived(
+		pulseSet(this.pulse?.target ?? null, this.projection.rows, this.view)
+	);
+	/** The pulse as the canvas reads it, or null: its identity and the records to ring. */
+	readonly canvasPulse: CanvasPulse | null = $derived(
+		this.pulse ? { key: this.pulse.key, at: this.pulse.at, traceIds: this.pulseSet.traceIds } : null
+	);
+	/** A record search is on: the misses dim on the ribbon and the overview, the matches' captions are forced (п. 9). */
+	readonly searching: boolean = $derived(normalizeQuery(this.filters.recordQuery) !== '');
+	/** Records the search does not match, by id; empty without a search. Visual only: rows and layout stay. */
+	readonly dimmed: ReadonlySet<string> = $derived(
+		dimmedTraceIds(this.filters.recordQuery, this.view.traces)
 	);
 
 	constructor(viewport: ViewportState) {
@@ -170,6 +243,8 @@ export class WorkbenchState {
 		if (!current) return null;
 		if (current.kind === 'period') return { start: current.period.start, end: current.period.end };
 		if (current.kind === 'scope') return this.scopeContext?.range ?? null;
+		if (current.kind === 'row')
+			return this.projection.rows.find((row) => row.id === current.rowId)?.range ?? null;
 		if (current.kind === 'intersection') return null;
 		if (current.kind === 'period-record') {
 			const record = this.view.periods.find((item) => item.id === current.periodId);
@@ -188,6 +263,50 @@ export class WorkbenchState {
 		});
 	}
 
+	/**
+	 * The Context closes (owner review 2026-09-19, pack 4, D): what it showed ends — the slot
+	 * list, the open form — and the selection steps aside with it (DP7 «Снять выбор»), so a
+	 * closed Context leaves no ring on the ribbon. The history stays: «→» brings the record
+	 * back. Callers pass the exit guard first.
+	 */
+	closeContext(): void {
+		this.slot = null;
+		this.closeForms();
+		this.selection.rest();
+		// What the Context named is gone with it: nothing of it stays lit (loop 008, C3, D).
+		this.hover.clear();
+		this.endPulse();
+	}
+
+	/**
+	 * A choice made in the Context or through its history replaces what the Context shows: the
+	 * reference the pointer rested on is gone, so the lens it held goes too (C3, D). A choice on
+	 * the ribbon or in the rail leaves the hover to the pointer, which is still on the same thing.
+	 */
+	private settled(source: SelectSource): void {
+		const navigated = source === 'context' || source === 'history';
+		if (navigated) this.hover.clear();
+		// «Куда смотреть»: the record, the Scope or the link chosen pulses once; a period has its
+		// column; a choice on the ribbon or in the rail is already where the eye is. Whatever was
+		// pulsing before is no longer what is shown.
+		const current = this.selection.current;
+		const target =
+			navigated && current && current.kind !== 'period' && current.kind !== 'period-record'
+				? current
+				: null;
+		this.endPulse();
+		if (!target) return;
+		this.pulse = { key: selectionKey(target), at: Date.now(), target };
+		this.pulseTimer = setTimeout(() => {
+			this.pulse = null;
+		}, PULSE_MS);
+	}
+
+	private endPulse(): void {
+		clearTimeout(this.pulseTimer);
+		this.pulse = null;
+	}
+
 	/** Ends the open Trace form; callers pass the exit guard first. */
 	closeForms(): void {
 		this.capture = false;
@@ -201,6 +320,7 @@ export class WorkbenchState {
 		this.leave(() => {
 			this.selection.select({ kind: 'trace', traceId }, source);
 			if (source !== 'canvas' && source !== 'twin') this.revealSelected();
+			this.settled(source);
 		});
 	}
 
@@ -208,11 +328,27 @@ export class WorkbenchState {
 		this.leave(() => {
 			this.selection.select({ kind: 'scope', scopeId }, source);
 			this.revealSelected();
+			this.settled(source);
+		});
+	}
+
+	/**
+	 * A merged row chosen by its name in the rail (C5): its Context, its records in focus, the
+	 * window fitted to them. `members` are the lane's members as they stand, kept with the entry.
+	 */
+	selectRow(rowId: string, members: readonly string[], source: SelectSource = 'rail'): void {
+		this.leave(() => {
+			this.selection.select({ kind: 'row', rowId, members }, source);
+			this.revealSelected();
+			this.settled(source);
 		});
 	}
 
 	selectIntersection(intersectionId: string, source: SelectSource = 'context'): void {
-		this.leave(() => this.selection.select({ kind: 'intersection', intersectionId }, source));
+		this.leave(() => {
+			this.selection.select({ kind: 'intersection', intersectionId }, source);
+			this.settled(source);
+		});
 	}
 
 	selectEntity(entity: ExplorerEntity): void {
@@ -223,6 +359,7 @@ export class WorkbenchState {
 			this.leave(() => {
 				this.selection.select({ kind: 'period-record', periodId: entity.record.id }, 'context');
 				this.revealSelected();
+				this.settled('context');
 			});
 		}
 	}
@@ -231,6 +368,7 @@ export class WorkbenchState {
 		this.leave(() => {
 			this.selection.select({ kind: 'period', period }, source);
 			this.revealSelected();
+			this.settled(source);
 		});
 	}
 
@@ -238,6 +376,7 @@ export class WorkbenchState {
 		this.leave(() => {
 			this.selection.back();
 			this.revealSelected();
+			this.settled('history');
 		});
 	}
 
@@ -245,12 +384,16 @@ export class WorkbenchState {
 		this.leave(() => {
 			this.selection.forward();
 			this.revealSelected();
+			this.settled('history');
 		});
 	}
 
 	/** Покой: the selection steps aside but stays in history; the slot list belongs to it and closes. */
 	rest(): void {
-		this.leave(() => this.selection.rest());
+		this.leave(() => {
+			this.selection.rest();
+			this.endPulse();
+		});
 	}
 
 	/** Entity navigation fits its full time; calendar-axis selection preserves the working scale. */

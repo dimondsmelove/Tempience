@@ -34,4 +34,6 @@ export type LayoutOptions = Readonly<{
 	rowHeightPx?: number;
 	/** Extend the canvas below the rows without changing their geometry. */
 	minHeightPx?: number;
+	/** Records an explicit link touches, by traceId: such facts rank before other facts for the caption budget (Q1-A). */
+	linked?: ReadonlySet<string>;
 }>;

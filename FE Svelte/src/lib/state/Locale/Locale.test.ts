@@ -63,7 +63,9 @@ describe('Locale', () => {
 		};
 		expect(detectLocale(['ru-RU', 'en-US'])).toBe('ru');
 		expect(detectLocale(['ru'])).toBe('ru');
-		expect(detectLocale(['en-US', 'ru'])).toBe('en');
+		expect(detectLocale(['en-US', 'ru'])).toBe('ru');
+		expect(detectLocale(['en-GB', 'de', 'ru-RU'])).toBe('ru');
+		expect(detectLocale(['en-US', 'fr'])).toBe('en');
 		expect(detectLocale(['de'])).toBe('en');
 		expect(detectLocale([])).toBe('ru');
 		expect(detectLocale(undefined)).toBe('ru');

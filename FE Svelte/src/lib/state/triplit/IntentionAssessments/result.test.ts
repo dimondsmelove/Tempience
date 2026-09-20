@@ -53,6 +53,11 @@ it('derives the event key from the fact placement, not from capture or display g
 			})
 		)
 	).toBe('2026-09-11T08:00:00.000Z');
+	// An open interval («длится») has no end yet: it orders by its start (TRACE_FORMS «у интервала
+	// с известным окончанием — его конец»).
+	expect(traceEventKey(dated('o', day('2026-09-10'), { aboutKind: 'interval' }))).toBe(
+		'2026-09-10T00:00:00.000Z'
+	);
 	expect(traceEventKey(dated('g', { basis: 'unknown' }))).toBeNull();
 	expect(
 		traceEventKey(

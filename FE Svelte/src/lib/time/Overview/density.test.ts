@@ -19,6 +19,19 @@ describe('densityBins', () => {
 		expect([...bins]).toEqual([0, 1, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0]);
 	});
 
+	it('a record the search misses weighs 18 % of a match (п. 9)', () => {
+		const range = { start: 0, end: 4 * DAY };
+		const bins = densityBins(
+			[
+				{ start: 0.5 * DAY, end: 0.5 * DAY, weight: 0.18 },
+				{ start: 2.5 * DAY, end: 2.5 * DAY }
+			],
+			range,
+			4
+		);
+		expect([...bins].map((value) => Number(value.toFixed(2)))).toEqual([0.18, 0, 1, 0]);
+	});
+
 	it('returns zeros for an empty range', () => {
 		expect([...densityBins([{ start: 0, end: 1 }], { start: 5, end: 5 }, 4)]).toEqual([0, 0, 0, 0]);
 	});

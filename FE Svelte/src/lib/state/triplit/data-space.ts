@@ -6,15 +6,22 @@ import { DATA_PACKS, canOpenDataPack } from '$lib/scenarios/DataPacks/DataPacks'
 export const CANONICAL_DATA_SPACE_ID = 'canonical';
 export const BELGRADE_SCENARIO_DATA_SPACE_ID = 'belgrade-what-if-v1';
 export const E2E_SYNTHETIC_DATA_SPACE_ID = 'e2e-synthetic';
+/** Dr. Watson's notebook, seeded by the app itself (not a DataPack); available in every build. */
+export const DEMO_DATA_SPACE_ID = 'demo-v1';
 export const DATA_SPACE_STORAGE_KEY = 'tempience.data-space.active';
 // Test-only opt-in. Without this flag `e2e-synthetic` is not a valid DataSpace id, so it cannot be
 // reached from the switcher, from a stale persisted value or by hand.
 export const E2E_SYNTHETIC_ENABLED_KEY = 'tempience.e2e.data-space-enabled';
+/** «Удалить демо» sets it; while set, `demo-v1` is not a valid DataSpace id (like the e2e gate, inverted). */
+export const DEMO_DISMISSED_KEY = 'tempience.demo.dismissed';
+/** The manifest id the demo seed was written with; cleared with the replica on dismiss. */
+export const DEMO_SEED_MARKER_KEY = 'tempience.demo.seed';
 
 export type BuiltInDataSpaceId =
 	| typeof CANONICAL_DATA_SPACE_ID
 	| typeof BELGRADE_SCENARIO_DATA_SPACE_ID
-	| typeof E2E_SYNTHETIC_DATA_SPACE_ID;
+	| typeof E2E_SYNTHETIC_DATA_SPACE_ID
+	| typeof DEMO_DATA_SPACE_ID;
 
 export type ImportedDataSpaceId = `imported-${string}`;
 export type DataSpaceId = BuiltInDataSpaceId | ImportedDataSpaceId;
@@ -65,13 +72,28 @@ export const DATA_SPACES: Readonly<Record<BuiltInDataSpaceId, DataSpace>> = {
 		descriptionKey: 'dataSpace.description_e2e',
 		storageName: 'tempience-triplit-e2e-synthetic',
 		syncEnabled: false
+	},
+	[DEMO_DATA_SPACE_ID]: {
+		id: DEMO_DATA_SPACE_ID,
+		kind: 'scenario',
+		label: 'Демо · Ватсон',
+		labelKey: 'demo.space.label',
+		descriptionKey: 'demo.space.description',
+		storageName: 'tempience-triplit-demo-v1',
+		syncEnabled: false
 	}
 };
 
 type DataSpaceStorage = Pick<Storage, 'getItem' | 'setItem'> &
-	Partial<Pick<Storage, 'key' | 'length'>>;
+	Partial<Pick<Storage, 'key' | 'length' | 'removeItem'>>;
 type DataSpaceResetTarget = {
 	clear: (options?: { full?: boolean }) => Promise<void>;
+};
+
+/** Storage adapters without `removeItem` keep the key with a value no reader accepts. */
+const removeKey = (target: DataSpaceStorage, key: string): void => {
+	if (target.removeItem) target.removeItem(key);
+	else target.setItem(key, '');
 };
 
 const browserStorage = (): DataSpaceStorage | null => {
@@ -164,13 +186,28 @@ export const registerImportedDataSpace = (
 	target.setItem(key, JSON.stringify({ label: space.label }));
 };
 
-export const DATA_SPACE_OPTIONS: readonly DataSpace[] = [
+export const isDemoDismissed = (target: DataSpaceStorage | null = browserStorage()): boolean => {
+	if (!target) return false;
+	try {
+		return target.getItem(DEMO_DISMISSED_KEY) === '1';
+	} catch {
+		return false;
+	}
+};
+
+/** The switchable spaces in their offered order: the user's own, the demo, the packs, the imports. */
+export const listDataSpaceOptions = (
+	target: DataSpaceStorage | null = browserStorage()
+): readonly DataSpace[] => [
 	DATA_SPACES[CANONICAL_DATA_SPACE_ID],
-	...DATA_PACKS.filter((pack) => canOpenDataPack(pack, browserStorage())).map(
+	...(isDemoDismissed(target) ? [] : [DATA_SPACES[DEMO_DATA_SPACE_ID]]),
+	...DATA_PACKS.filter((pack) => canOpenDataPack(pack, target)).map(
 		(pack) => DATA_SPACES[pack.dataSpaceId]
 	),
-	...readImportedDataSpaces()
+	...readImportedDataSpaces(target)
 ];
+
+export const DATA_SPACE_OPTIONS: readonly DataSpace[] = listDataSpaceOptions();
 
 export const isE2eSyntheticEnabled = (
 	target: DataSpaceStorage | null = browserStorage()
@@ -188,6 +225,7 @@ export const isDataSpaceId = (
 	target: DataSpaceStorage | null = browserStorage()
 ): value is DataSpaceId =>
 	value === CANONICAL_DATA_SPACE_ID ||
+	(value === DEMO_DATA_SPACE_ID && !isDemoDismissed(target)) ||
 	Boolean(readImportedDataSpace(value, target)) ||
 	DATA_PACKS.some((pack) => pack.dataSpaceId === value && canOpenDataPack(pack, target)) ||
 	(import.meta.env.PUBLIC_BUILD !== '1' &&
@@ -242,4 +280,39 @@ export const resetScenarioDataSpace = async (
 		);
 	}
 	await target.clear({ full: true });
+};
+
+/**
+ * «Удалить демо»: the demo replica is cleared whole (the seed and whatever was added to it),
+ * the seed marker goes with it, the space stops being offered, and the user's own data becomes
+ * the active space. The caller reloads the page, as the switcher does.
+ */
+export const dismissDemoDataSpace = async (
+	dataSpace: DataSpace,
+	target: DataSpaceResetTarget,
+	storage: DataSpaceStorage | null = browserStorage()
+): Promise<void> => {
+	if (dataSpace.id !== DEMO_DATA_SPACE_ID) {
+		throw new CodedError('data_space_dismiss_demo', 'Удалить так можно только демо.');
+	}
+	if (!storage)
+		throw new CodedError(
+			'data_space_storage',
+			'Браузерное хранилище недоступно: DataSpace нельзя переключить.'
+		);
+	await target.clear({ full: true });
+	removeKey(storage, DEMO_SEED_MARKER_KEY);
+	storage.setItem(DEMO_DISMISSED_KEY, '1');
+	saveActiveDataSpaceId(CANONICAL_DATA_SPACE_ID, storage);
+};
+
+/** «Открыть записную книжку Ватсона» after a dismiss: the space is offered again and becomes active; the seed rebuilds it. */
+export const restoreDemoDataSpace = (storage: DataSpaceStorage | null = browserStorage()): void => {
+	if (!storage)
+		throw new CodedError(
+			'data_space_storage',
+			'Браузерное хранилище недоступно: DataSpace нельзя переключить.'
+		);
+	removeKey(storage, DEMO_DISMISSED_KEY);
+	saveActiveDataSpaceId(DEMO_DATA_SPACE_ID, storage);
 };

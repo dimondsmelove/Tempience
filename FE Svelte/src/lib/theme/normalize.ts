@@ -1,11 +1,13 @@
 import {
 	colorFields,
 	defaultDevice,
+	lensBounds,
 	rowHeightBounds,
 	metricFields,
 	monoFonts,
 	uiFonts
 } from './constants';
+import { parseArrangement } from '$lib/model/Arrangement/Arrangement';
 import type { DeviceAppearance, Theme } from './types';
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -49,11 +51,14 @@ export function parseTheme(value: unknown): Theme | null {
 		!record(value.fonts)
 	)
 		return null;
+	// Only the owned colour roles are checked: a theme saved with the Scope slot keys of loop 005
+	// (`scopeSlot1..12`) still loads — those keys are simply not picked (R1, owner 2026-09-19).
 	for (const scheme of ['light', 'dark']) {
 		const palette = value.colors[scheme];
 		if (!record(palette) || !Object.keys(colorFields).every((key) => color(palette[key])))
 			return null;
 	}
+	const colors = value.colors as Record<string, Record<string, unknown>>;
 	for (const [key, field] of Object.entries(metricFields)) {
 		if (!finite(value.metrics[key], field.min, field.max)) return null;
 	}
@@ -72,12 +77,7 @@ export function parseTheme(value: unknown): Theme | null {
 		colors: Object.fromEntries(
 			['light', 'dark'].map((scheme) => [
 				scheme,
-				Object.fromEntries(
-					Object.keys(colorFields).map((key) => [
-						key,
-						(value.colors as Record<string, Record<string, unknown>>)[scheme][key]
-					])
-				)
+				Object.fromEntries(Object.keys(colorFields).map((key) => [key, colors[scheme][key]]))
 			])
 		) as Theme['colors'],
 		metrics: Object.fromEntries(
@@ -99,13 +99,24 @@ export function parseDevice(value: unknown): DeviceAppearance | null {
 		!finite(value.railWidth, 120, 480) ||
 		!finite(value.contextWidth, 240, 600) ||
 		typeof value.railOpen !== 'boolean' ||
-		typeof value.contextOpen !== 'boolean'
+		typeof value.contextOpen !== 'boolean' ||
+		(value.legendOpen !== undefined && typeof value.legendOpen !== 'boolean') ||
+		(value.lens !== undefined && !finite(value.lens, lensBounds.min, lensBounds.max))
 	)
 		return null;
+	// The row arrangement: absent or null is the default order; anything else must parse.
+	const rowArrangement =
+		value.rowArrangement == null ? null : parseArrangement(value.rowArrangement);
+	if (value.rowArrangement != null && !rowArrangement) return null;
+	// Settings added later (row height, the legend, the rows, the lens) are read with their defaults from an older cache.
 	return Object.fromEntries(
 		Object.keys(defaultDevice).map((key) => [
 			key,
-			key === 'rowHeightPx' ? (value[key] ?? defaultDevice.rowHeightPx) : value[key]
+			key === 'rowArrangement'
+				? rowArrangement
+				: key === 'rowHeightPx' || key === 'legendOpen' || key === 'lens'
+					? (value[key] ?? defaultDevice[key])
+					: value[key]
 		])
 	) as DeviceAppearance;
 }

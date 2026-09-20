@@ -47,5 +47,7 @@ export type TimelineSurfaceProps = {
 	interaction?: WorkbenchInteraction;
 	/** Whether the arcs of the chosen record's links are drawn: they go with the Context, the choice stays (owner 2026-09-15). */
 	linksShown?: boolean;
+	/** The lens veil's strength 0–1 on this device (loop 008, B); 0 turns it off. */
+	veil?: number;
 	element?: HTMLDivElement | null;
 };

@@ -126,7 +126,7 @@
 			<Neighborhood {workbench} traceId={trace.id} />
 		{/snippet}
 		{#snippet historyBody()}
-			<History {records} />
+			<History {records} {workbench} />
 		{/snippet}
 		{#snippet techBody()}
 			<TechData {trace} />

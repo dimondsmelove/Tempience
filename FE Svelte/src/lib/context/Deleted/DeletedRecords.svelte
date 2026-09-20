@@ -9,6 +9,8 @@
 	import { tempienceRepository } from '$lib/state/triplit';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { ScopeDot } from '$lib/ui/ScopeDot';
+	import { lensSource } from '$lib/ui/LensSource';
 
 	let { workbench }: { workbench: WorkbenchState } = $props();
 	const deleted = new DeletedRecordsReader(tempienceRepository);
@@ -57,6 +59,7 @@
 							class={LIST_BUTTON_CLASS}
 							data-testid="deleted-record"
 							onclick={() => workbench.selectTrace(record.trace.id, 'context')}
+							{@attach lensSource(workbench.hover, { kind: 'trace', traceId: record.trace.id })}
 						>
 							<span>{record.summary.title ?? t('trace.unnamed')}</span>
 							<span class="font-mono text-xs text-muted"
@@ -93,8 +96,16 @@
 							class={LIST_BUTTON_CLASS}
 							data-testid="deleted-scope-item"
 							onclick={() => workbench.selectScope(entry.scope.id, 'context')}
+							{@attach lensSource(workbench.hover, { kind: 'scope', scopeId: entry.scope.id })}
 						>
-							<span>{entry.scope.name}</span>
+							<!-- The Scope's colour before its name, as every Scope row (pack 3, P3). -->
+							<span class="flex items-center gap-1.5"
+								><ScopeDot
+									colorHue={entry.scope.colorHue}
+									colorChroma={entry.scope.colorChroma}
+									colorDepth={entry.scope.colorDepth}
+								/>{entry.scope.name}</span
+							>
 							<span class="text-xs text-muted"
 								>{t('scope.recordsInside', { count: entry.records })}</span
 							>

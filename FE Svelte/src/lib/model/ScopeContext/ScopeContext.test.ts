@@ -9,6 +9,8 @@ const scope = (id: string): ExplorerScope => ({
 	note: null,
 	startedAt: null,
 	endedAt: null,
+	colorHue: null,
+	colorChroma: null,
 	origin
 });
 const snapshot: ExplorerSnapshot = {

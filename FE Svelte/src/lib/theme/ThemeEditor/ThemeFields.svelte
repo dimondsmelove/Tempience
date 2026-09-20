@@ -2,61 +2,35 @@
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { colorFields, metricFields, monoFonts, uiFonts, type MetricGroup } from '../constants';
 	import type { ResolvedTheme } from '../resolve-theme';
-	import type { Theme } from '../types';
+	import type { ColorKey, Theme } from '../types';
+	import ThemeColourField from './ThemeColourField/ThemeColourField.svelte';
 	let {
 		theme = $bindable(),
 		mode,
 		onchange
 	}: { theme: Theme; mode: ResolvedTheme; onchange: () => void } = $props();
-	let colorContext: CanvasRenderingContext2D | null = null;
-	const hex = (value: string): string => {
-		if (typeof document === 'undefined') return '#000000';
-		colorContext ??= document
-			.createElement('canvas')
-			.getContext('2d', { willReadFrequently: true });
-		if (!colorContext) return '#000000';
-		colorContext.clearRect(0, 0, 1, 1);
-		colorContext.fillStyle = value;
-		colorContext.fillRect(0, 0, 1, 1);
-		return (
-			'#' +
-			[...colorContext.getImageData(0, 0, 1, 1).data]
-				.slice(0, 3)
-				.map((n) => n.toString(16).padStart(2, '0'))
-				.join('')
-		);
-	};
 	const GROUPS: readonly MetricGroup[] = ['typography', 'geometry'];
+	// Scope colours are not theme fields (R1, owner 2026-09-19): a Scope keeps a hue, the mode the tone.
+	const colorEntries = Object.entries(colorFields) as [ColorKey, (typeof colorFields)[ColorKey]][];
 </script>
+
+{#snippet colorField(key: ColorKey, label: (typeof colorFields)[ColorKey][0])}
+	<!-- The dot opens the flower; the hex beside it is the exact path (pack 3, P2). -->
+	<ThemeColourField
+		label={t(label)}
+		value={theme.colors[mode][key]}
+		testId={`theme-colour-${key}`}
+		onchange={(next) => {
+			theme.colors[mode][key] = next;
+			onchange();
+		}}
+	/>
+{/snippet}
 
 <details class="editor-group">
 	<summary>{t('theme.colors')}</summary>
 	<div class="fields">
-		{#each Object.entries(colorFields) as [key, [label]] (key)}
-			<label class="cg-label">
-				{t(label)}
-				<span class="color-field">
-					<input
-						type="color"
-						aria-label={t('theme.palettePicker', { label: t(label) })}
-						value={hex(theme.colors[mode][key as keyof typeof colorFields])}
-						oninput={(e) => {
-							theme.colors[mode][key as keyof typeof colorFields] = e.currentTarget.value;
-							onchange();
-						}}
-					/>
-					<input
-						class="cg-control cg-field"
-						aria-label={t(label)}
-						value={theme.colors[mode][key as keyof typeof colorFields]}
-						oninput={(e) => {
-							theme.colors[mode][key as keyof typeof colorFields] = e.currentTarget.value;
-							onchange();
-						}}
-					/>
-				</span>
-			</label>
-		{/each}
+		{#each colorEntries as [key, [label]] (key)}{@render colorField(key, label)}{/each}
 	</div>
 </details>
 {#each GROUPS as group (group)}
@@ -142,20 +116,6 @@
 		gap: var(--cg-gap);
 		padding: 0 clamp(0.5rem, var(--cg-panel-padding), 1rem)
 			clamp(0.5rem, var(--cg-panel-padding), 1rem);
-	}
-	.color-field {
-		display: grid;
-		grid-template-columns: 2.25rem minmax(0, 1fr);
-		gap: calc(var(--cg-gap) * 0.5);
-		align-items: center;
-	}
-	input[type='color'] {
-		width: 2.25rem;
-		height: var(--cg-control-height);
-		padding: 2px;
-		background: var(--cg-bg-input);
-		border: var(--cg-border-width) solid var(--cg-border-default);
-		border-radius: var(--cg-radius-control);
 	}
 	.field-label {
 		display: flex;

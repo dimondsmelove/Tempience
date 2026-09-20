@@ -9,7 +9,7 @@
 		MapPinAltOutline,
 		PlusOutline
 	} from 'flowbite-svelte-icons';
-	import Legend from '$lib/time/Legend/Legend.svelte';
+	import FilterList from '$lib/time/FilterList/FilterList.svelte';
 	import Popover from '$lib/ui/Popover/Popover.svelte';
 	import { TOOLBAR_HEIGHT_PX } from '$lib/time/Workbench/constants';
 	import Button from '$lib/ui/Button/Button.svelte';
@@ -21,7 +21,9 @@
 		phone = false,
 		railOpen,
 		contextOpen,
+		legendOpen = true,
 		ontogglepanel,
+		ontogglelegend,
 		oncapture,
 		onapply,
 		scenarioSpace
@@ -95,6 +97,38 @@
 			<Button size="sm" data-testid="kinds-open" onclick={openKinds}>{t(CATALOG_KEY)}</Button>
 		{/if}
 		{#if !workbench.forms.data}
+			<!-- Record search (research п. 9, Q2-A): dims what it misses on the ribbon and the overview; Esc clears. -->
+			<div
+				class="cg-field cg-control cg-control-sm record-search flex items-center focus-within:outline-2 focus-within:outline-accent"
+			>
+				<input
+					type="search"
+					class="record-search-input w-0 min-w-0 flex-1 border-0 bg-transparent p-0 outline-none"
+					aria-label={t('toolbar.searchRecords')}
+					placeholder={t('toolbar.searchRecords')}
+					data-testid="record-search"
+					value={workbench.filters.recordQuery}
+					oninput={(event) => {
+						workbench.filters.recordQuery = event.currentTarget.value;
+					}}
+					onkeydown={(event) => {
+						if (event.key !== 'Escape') return;
+						event.preventDefault();
+						workbench.filters.recordQuery = '';
+					}}
+				/>
+				{#if workbench.filters.recordQuery}
+					<button
+						type="button"
+						class="shrink-0 cursor-pointer text-muted hover:text-ink"
+						aria-label={t('toolbar.clearRecordSearch')}
+						data-testid="record-search-clear"
+						onclick={() => {
+							workbench.filters.recordQuery = '';
+						}}>×</button
+					>
+				{/if}
+			</div>
 			<Popover
 				id="time-filters"
 				label={filterCount
@@ -111,7 +145,11 @@
 				{/snippet}
 				{#snippet children(close)}
 					<div class="flex w-64 max-w-full flex-col gap-3">
-						<Legend filters={workbench.filters} scopes={workbench.snapshot.scopes} />
+						<FilterList
+							filters={workbench.filters}
+							counts={workbench.filterCounts}
+							scopes={workbench.snapshot.scopes}
+						/>
 						<Button
 							size="sm"
 							variant="quiet"
@@ -125,6 +163,15 @@
 					</div>
 				{/snippet}
 			</Popover>
+			<!-- The legend strip is a view setting: collapsed or shown per device, like the panels. -->
+			<Button
+				size="sm"
+				variant="quiet"
+				pressed={legendOpen}
+				aria-controls="time-legend"
+				data-testid="legend-toggle"
+				onclick={ontogglelegend}>{t('legend.toggle')}</Button
+			>
 			<Button
 				size="sm"
 				variant="quiet"
@@ -180,6 +227,16 @@
 {/if}
 
 <style>
+	.record-search {
+		width: 13rem;
+		max-width: 40vw;
+	}
+	.record-search-input {
+		font: inherit;
+	}
+	.record-search-input::-webkit-search-cancel-button {
+		appearance: none;
+	}
 	.mobile-actions {
 		display: grid;
 		grid-auto-flow: column;

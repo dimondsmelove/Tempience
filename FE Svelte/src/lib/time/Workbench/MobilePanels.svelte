@@ -2,9 +2,11 @@
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import BottomSheet from '$lib/ui/BottomSheet/BottomSheet.svelte';
 	import Legend from '$lib/time/Legend/Legend.svelte';
+	import FilterList from '$lib/time/FilterList/FilterList.svelte';
 	import Parked from '$lib/time/Parked/Parked.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { activeDataSpace } from '$lib/state/triplit/client';
+	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import type { MobilePanelsProps } from './types';
@@ -54,7 +56,13 @@
 			{@render scopeContent(false)}
 		{:else if panel === 'filters'}
 			<div class="cg-panel flex flex-col gap-3">
-				<Legend filters={workbench.filters} scopes={workbench.snapshot.scopes} />
+				<!-- A phone has no room for the strip over the lanes: the legend lives in this sheet. -->
+				<Legend filters={workbench.filters} present={projection.legendKeys} />
+				<FilterList
+					filters={workbench.filters}
+					counts={workbench.filterCounts}
+					scopes={workbench.snapshot.scopes}
+				/>
 				<Button
 					disabled={workbench.filters.activeCount === 0}
 					data-testid="filters-reset"
@@ -64,7 +72,8 @@
 						>{t('toolbar.pendingColon', { count: workbench.proposalCounts.pending })}</span
 					>{/if}
 				{#if workbench.proposalCounts.accepted}<Button
-						disabled={activeDataSpace.kind !== 'scenario'}
+						disabled={activeDataSpace.kind !== 'scenario' ||
+							activeDataSpace.id === DEMO_DATA_SPACE_ID}
 						data-testid="apply-proposals"
 						onclick={() =>
 							workbench.applyProposals(

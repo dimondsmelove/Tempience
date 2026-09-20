@@ -103,5 +103,9 @@
 	"time.unknownTime": "время неизвестно",
 	"time.traceRef": "ссылка на запись",
 	"time.incompatible": "время несовместимо",
-	"time.hours": "Часы"
+	"time.hours": "Часы",
+	"time.ongoingSince": "с {{start}} — длится",
+	"time.ongoing": "Длится",
+	"time.ongoingHint": "Конца ещё нет: на ленте полоса до «сейчас». Длительность при этом не задаётся.",
+	"time.ongoingWithDuration": "С длительностью «длится» не отмечается: известна длина, а не открытый конец."
 }

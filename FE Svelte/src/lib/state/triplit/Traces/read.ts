@@ -27,7 +27,7 @@ export const normalizeTrace = (
 	});
 	const statedDuration = parseStatedDuration(value.statedDuration);
 	assertTraceTemporalPlacement(aboutKind, aboutTime, aboutTraceId, statedDuration);
-	const exactTime = exactTraceTimeProjection(aboutKind, aboutTime);
+	const exactTime = exactTraceTimeProjection(aboutKind, aboutTime, statedDuration);
 	return {
 		id: String(value.id),
 		capturedAt: String(value.capturedAt),

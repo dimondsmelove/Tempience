@@ -58,9 +58,11 @@
 			: durationLabel(picker.draft) ||
 					(picker.unplaced
 						? t('time.dateUnset')
-						: picker.draft.timed
-							? t('time.dateTime')
-							: t('time.dateOnly'))
+						: picker.draft.ongoing
+							? t('time.ongoing')
+							: picker.draft.timed
+								? t('time.dateTime')
+								: t('time.dateOnly'))
 	);
 	const boundaryLabel = (edge: string): string =>
 		picker.draft.window
@@ -69,7 +71,7 @@
 				: t('time.notAfter')
 			: edge === 'start'
 				? picker.draft.end === null && !picker.pickingEnd
-					? picker.detail === 'duration'
+					? picker.detail === 'duration' || picker.draft.ongoing
 						? t('time.start')
 						: t('time.date')
 					: t('time.start')
@@ -224,7 +226,7 @@
 						>{:else}<span class="date-only-hint">{t('time.timeOptional')}</span>{/if}
 				</div>
 			{/if}{/if}
-		{#if picker.detail === 'clock' && !picker.unplaced && !picker.draft.window && picker.draft.end === null && !picker.pickingEnd}<button
+		{#if picker.detail === 'clock' && !picker.unplaced && !picker.draft.window && !picker.draft.ongoing && picker.draft.end === null && !picker.pickingEnd}<button
 				type="button"
 				class="picker-add-end"
 				data-testid="picker-add-end"

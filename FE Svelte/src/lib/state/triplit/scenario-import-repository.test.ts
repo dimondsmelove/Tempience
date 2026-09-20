@@ -174,6 +174,71 @@ describe('scenario import repository', () => {
 		expect(stores.logs).toHaveLength(0);
 	});
 
+	it("carries a plain record's description, refuses one on a typed record, reuses rows without the key", async () => {
+		const withDescription = (description: string | null | undefined): ScenarioImportBatch => ({
+			...makeBatch(),
+			entries: makeBatch().entries.map((entry) =>
+				entry.type === 'trace' ? { ...entry, draft: { ...entry.draft, description } } : entry
+			)
+		});
+		const { client, stores } = fakeClient();
+		await repository(client).apply(withDescription('First line\n→ next: the sequel'));
+		expect(stores.traces.get('trace-1')?.description).toBe('First line\n→ next: the sequel');
+		// The same batch again: reused, not drift.
+		expect(
+			(await repository(client).inspect(withDescription('First line\n→ next: the sequel'))).planned
+		).toEqual({
+			created: 0,
+			reused: 3,
+			skipped: 0
+		});
+		expect((await repository(client).inspect(withDescription('Other'))).drift).toHaveLength(1);
+
+		const legacy = fakeClient();
+		await repository(legacy.client).apply(withDescription(undefined));
+		expect('description' in (legacy.stores.traces.get('trace-1') ?? {})).toBe(true);
+		expect(legacy.stores.traces.get('trace-1')?.description).toBeNull();
+		// A row imported before descriptions travelled has no key at all; it reads as none.
+		const stored = legacy.stores.traces.get('trace-1') ?? { id: 'trace-1' };
+		delete stored.description;
+		expect((await repository(legacy.client).inspect(withDescription(null))).planned).toEqual({
+			created: 0,
+			reused: 3,
+			skipped: 0
+		});
+
+		const typed = fakeClient();
+		typed.stores.traceKinds.set('kind-1', { id: 'kind-1', name: 'Reading', isDeleted: false });
+		typed.stores.traceKindVersions.set('kind-1-v1', {
+			id: 'kind-1-v1',
+			kindId: 'kind-1',
+			dataSchema: { type: 'object', properties: { n: { type: 'integer' } } },
+			isDeleted: false
+		});
+		const typedBatch: ScenarioImportBatch = {
+			...makeBatch(),
+			entries: makeBatch().entries.map((entry) =>
+				entry.type === 'trace'
+					? {
+							...entry,
+							draft: {
+								...entry.draft,
+								content: '',
+								description: 'Not here',
+								kindId: 'kind-1',
+								kindVId: 'kind-1-v1',
+								data: { n: 1 }
+							}
+						}
+					: entry
+			)
+		};
+		const preview = await repository(typed.client).inspect(typedBatch);
+		expect(preview.errors.map((issue) => issue.reason)).toEqual([
+			'Typed Trace keeps its description in content'
+		]);
+	});
+
 	it('preserves a Period note and accepts legacy batches without one', async () => {
 		const { client, stores } = fakeClient();
 		const batch = makeBatch({

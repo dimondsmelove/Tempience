@@ -14,7 +14,14 @@
 	}
 	function unknown() {
 		if (measuredDuration(picker.draft)) picker.setDetail('duration');
-		picker.draft = { ...picker.draft, date: 'unknown', timed: false, end: null, window: false };
+		picker.draft = {
+			...picker.draft,
+			date: 'unknown',
+			timed: false,
+			end: null,
+			window: false,
+			ongoing: undefined
+		};
 		picker.cancelEnd();
 		picker.calendar = false;
 	}
@@ -39,7 +46,7 @@
 					}}
 				/>{t('time.approximate')}</label
 			>
-			{#if picker.draft.approximate && (picker.detail === 'duration' || picker.draft.end === null || picker.draft.window)}
+			{#if picker.draft.approximate && !picker.draft.ongoing && (picker.detail === 'duration' || picker.draft.end === null || picker.draft.window)}
 				<button
 					type="button"
 					onclick={() => {

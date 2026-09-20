@@ -1,3 +1,4 @@
+import { scopeColourOf, type ScopeBase } from '$lib/theme/scope-colour';
 import type { CanvasMetrics, CanvasPalette } from './types';
 
 export type CanvasAppearance = Readonly<{ palette: CanvasPalette; metrics: CanvasMetrics }>;
@@ -5,12 +6,15 @@ export type CanvasAppearance = Readonly<{ palette: CanvasPalette; metrics: Canva
 /**
  * Reads the `--cg-*` tokens the ribbon draws with, probe-style as the axis
  * does: a hidden span resolves each variable to a computed colour or size.
- * The result is cached by `signature` (appearance style + root font size).
+ * Scope colours are not tokens: the palette carries the colour rule on the
+ * theme's `base` (R1; C6 — the canvas sets the lightness of each depth). The
+ * result is cached by `signature` (appearance style + root font size), which
+ * changes with the mode and the canvas.
  */
 export const createAppearanceReader = () => {
 	let signature = '';
 	let cache: CanvasAppearance | null = null;
-	return (element: HTMLElement, nextSignature: string): CanvasAppearance => {
+	return (element: HTMLElement, nextSignature: string, base: ScopeBase): CanvasAppearance => {
 		if (cache && signature === nextSignature) return cache;
 		const style = getComputedStyle(element);
 		const probe = document.createElement('span');
@@ -35,7 +39,10 @@ export const createAppearanceReader = () => {
 				border: color('--cg-border-default'),
 				borderStrong: color('--cg-border-strong'),
 				surface: color('--cg-bg-surface'),
+				canvas: color('--cg-bg-canvas'),
+				secondary: color('--cg-accent-secondary'),
 				secondaryInk: color('--cg-text-on-secondary'),
+				scope: (colour) => scopeColourOf(colour, base)!,
 				sans: style.getPropertyValue('--cg-font-sans').trim() || 'sans-serif',
 				mono: style.getPropertyValue('--cg-font-mono').trim() || 'monospace'
 			},

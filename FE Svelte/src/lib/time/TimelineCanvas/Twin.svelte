@@ -1,21 +1,36 @@
 <script lang="ts">
 	import { t } from '$lib/state/Locale/Locale.svelte';
-	import type { LabelBox, MarkBox } from '$lib/model/Labels/types';
+	import type { HoverTarget } from '$lib/model/Hover/types';
+	import type { Caption, MarkBox } from '$lib/model/Labels/types';
 	import type { RibbonLayout } from '$lib/model/Layout/types';
+	import { underVeil } from '$lib/model/Lens/Lens';
+	import type { LensSet } from '$lib/model/Lens/types';
 	import { TWIN_LIMIT } from './constants';
 	import type { SelectSource } from './types';
 
 	type Props = Readonly<{
 		layout: RibbonLayout | null;
+		/** The captions the canvas drew last, row by row (the layout's within the budget, plus the forced). */
+		captions: readonly Caption[][] | null;
 		selectedTraceId: string | null;
+		/** Records in full force: the focus and the lens as one (loop 008); `data-lit` on their buttons. */
+		lit: ReadonlySet<string>;
+		/** What the pointer rests on and what the lens draws above the veil; the rest is `data-veiled` while the veil is on. */
+		hover: HoverTarget;
+		lens: LensSet;
+		veiled: boolean;
 		onselect: (traceId: string, source: SelectSource) => void;
 	}>;
-	let { layout, selectedTraceId, onselect }: Props = $props();
+	let { layout, captions, selectedTraceId, lit, hover, lens, veiled, onselect }: Props = $props();
 
 	type Entry = Readonly<{
 		box: MarkBox;
 		rowName: string;
-		label: LabelBox | null;
+		/**
+		 * The caption as drawn right now — cut, or in full while forced — or none (Q1-A). Its
+		 * rectangle is the caption's hit area: what the canvas shows is what a click lands on (pack 4, B).
+		 */
+		caption: Caption | null;
 		/** No other mark of the row touches this one, so a click on it is unambiguous. */
 		alone: boolean;
 	}>;
@@ -24,14 +39,15 @@
 	const entries = $derived.by((): Entry[] => {
 		if (!layout) return [];
 		const list: Entry[] = [];
-		for (const row of layout.rows) {
+		layout.rows.forEach((row, rowIndex) => {
+			const drawn = captions?.[rowIndex] ?? [];
 			for (const box of row.boxes) {
 				if (box.x1 < 0 || box.x0 > layout.widthPx) continue;
-				const label = row.labels.find((candidate) => candidate.markId === box.mark.id) ?? null;
+				const caption = drawn.find((candidate) => candidate.label.markId === box.mark.id) ?? null;
 				const alone = !row.boxes.some((other) => other !== box && touches(box, other));
-				list.push({ box, rowName: row.row.name, label, alone });
+				list.push({ box, rowName: row.row.name, caption, alone });
 			}
-		}
+		});
 		// Proposals need attention first, and must not fall past the limit on wide windows.
 		return list.toSorted(
 			(a, b) => Number(Boolean(b.box.mark.proposal)) - Number(Boolean(a.box.mark.proposal))
@@ -78,12 +94,24 @@
 				data-alone={entry.alone ? 'true' : undefined}
 				data-x={centre(entry.box.x0, entry.box.x1)}
 				data-y={centre(entry.box.y0, entry.box.y1)}
-				data-label-x={entry.label
-					? centre(entry.label.x, entry.label.x + entry.label.width)
+				data-h={(entry.box.y1 - entry.box.y0).toFixed(1)}
+				data-open={entry.box.mark.open || undefined}
+				data-closed-at={entry.box.mark.closedAt === undefined
+					? undefined
+					: new Date(entry.box.mark.closedAt).toISOString()}
+				data-result={entry.box.mark.result || undefined}
+				data-hues={entry.box.mark.colours?.map((colour) => colour.hue).join(' ')}
+				data-label-x={entry.caption
+					? centre(entry.caption.label.x, entry.caption.label.x + entry.caption.label.width)
 					: undefined}
-				data-label-y={entry.label
-					? centre(entry.label.y, entry.label.y + entry.label.height)
+				data-label-y={entry.caption
+					? centre(entry.caption.label.y, entry.caption.label.y + entry.caption.label.height)
 					: undefined}
+				data-label-w={entry.caption?.label.width.toFixed(1)}
+				data-caption={entry.caption?.label.text}
+				data-caption-plate={entry.caption?.backing || undefined}
+				data-lit={lit.has(entry.box.mark.traceId) ? 'true' : undefined}
+				data-veiled={veiled && underVeil(hover, lens, entry.box.mark) ? 'true' : undefined}
 				aria-current={entry.box.mark.traceId === selectedTraceId ? 'true' : undefined}
 				onclick={() => onselect(entry.box.mark.traceId, 'twin')}
 				{onkeydown}

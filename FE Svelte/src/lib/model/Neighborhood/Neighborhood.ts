@@ -47,9 +47,10 @@ const dayKey = (t: number): number => {
 
 /**
  * A one-off, explainable neighbourhood around a record: up to `radius` records
- * on each side by time within the anchor's Scopes (or all Scopes), every one
- * with its reasons, plus explicit links that fall outside that window.
- * Nothing is stored; the caller re-anchors by asking again (DESIGN.md §8, DP14).
+ * on each side by time across every Scope, every one with its reasons and its
+ * Scopes, plus explicit links that fall outside that window. Nothing is stored;
+ * the caller re-anchors by asking again (DESIGN.md §8, DP14; the «В этих Scope /
+ * Во всех» filter went on 2026-09-20 — each neighbour names its Scopes instead).
  */
 export const neighborhood = (
 	snapshot: ExplorerSnapshot,
@@ -60,10 +61,17 @@ export const neighborhood = (
 	const anchor = tracesById.get(anchorId);
 	if (!anchor) return null;
 	const membership = scopeMembership(snapshot.traces, snapshot.scopes, snapshot.intersections);
-	const scopesOf = (traceId: string): string[] => [
-		...(membership.scopesByTrace.get(traceId) ?? [])
-	];
-	const anchorScopeIds = scopesOf(anchorId);
+	const scopeName = new Map(snapshot.scopes.map((scope) => [scope.id, scope.name]));
+	const byName = (a: string, b: string): number =>
+		(scopeName.get(a) ?? a).localeCompare(scopeName.get(b) ?? b) || a.localeCompare(b);
+	const anchorScopeIds = [...(membership.scopesByTrace.get(anchorId) ?? [])];
+	/** A neighbour's Scopes, each once: shared with the anchor first, then the rest, by name. */
+	const scopesOf = (traceId: string): string[] => {
+		const shared = (id: string): number => (anchorScopeIds.includes(id) ? 0 : 1);
+		return [...(membership.scopesByTrace.get(traceId) ?? [])].toSorted(
+			(a, b) => shared(a) - shared(b) || byName(a, b)
+		);
+	};
 	const anchorTime = traceMarkTime(anchor);
 
 	const linkReasons = new Map<string, NeighborReason[]>();
@@ -101,13 +109,9 @@ export const neighborhood = (
 	let before: Neighbor[] = [];
 	let after: Neighbor[] = [];
 	if (anchorTime) {
-		const inScope = (traceId: string): boolean =>
-			options.filter === 'all' ||
-			anchorScopeIds.length === 0 ||
-			scopesOf(traceId).some((scopeId) => anchorScopeIds.includes(scopeId));
 		const candidates: Candidate[] = [];
 		for (const trace of snapshot.traces) {
-			if (trace.id === anchorId || !inScope(trace.id)) continue;
+			if (trace.id === anchorId) continue;
 			const time = traceMarkTime(trace);
 			if (time) candidates.push({ trace, time });
 		}

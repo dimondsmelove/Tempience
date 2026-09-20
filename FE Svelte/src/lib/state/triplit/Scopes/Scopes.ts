@@ -7,8 +7,45 @@ import { createId } from '../ids';
 import { buildFieldPatches, logActionForDeleted } from '../operations';
 import type { LogActor, Scope } from '../types';
 import { setScopeParentInTransaction } from './hierarchy';
+import { legacySlotHue } from './legacy-colour';
 
-const scopeFields = ['name', 'note', 'startedAt', 'endedAt'] as const;
+const scopeFields = [
+	'name',
+	'note',
+	'startedAt',
+	'endedAt',
+	'colorHue',
+	'colorChroma',
+	'colorDepth',
+	'colorSlot'
+] as const;
+
+/** A stored hue as the Scope carries it: an integer degree on the circle, or none. */
+const storedHue = (value: unknown): number | null =>
+	typeof value === 'number' && Number.isFinite(value)
+		? ((Math.round(value) % 360) + 360) % 360
+		: null;
+/** A stored saturation: an integer 0–100, or the default (`null`). */
+const storedChroma = (value: unknown): number | null =>
+	typeof value === 'number' && Number.isFinite(value)
+		? Math.max(0, Math.min(100, Math.round(value)))
+		: null;
+/** A stored depth: an integer 0–2, or unsaid (`null`, read as 0) — every Scope stored before C6. */
+const storedDepth = (value: unknown): number | null => {
+	if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+	const depth = Math.round(value);
+	return depth >= 0 && depth <= 2 ? depth : null;
+};
+/**
+ * The colour of a stored row: its hue when a build of R1 wrote one (`null` included — that
+ * is a chosen «без цвета»), else the hue of the loop-005 slot the row may still carry.
+ */
+export const storedScopeHue = (row: Record<string, unknown>): number | null =>
+	row.colorHue !== undefined && row.colorHue !== null
+		? storedHue(row.colorHue)
+		: row.colorHue === null
+			? null
+			: legacySlotHue(row.colorSlot);
 
 export const normalizeScope = (value: Record<string, unknown>): Scope => ({
 	id: String(value.id),
@@ -17,6 +54,9 @@ export const normalizeScope = (value: Record<string, unknown>): Scope => ({
 	parentScopeId: (value.parentScopeId as string | null | undefined) ?? null,
 	startedAt: (value.startedAt as string | null | undefined) ?? null,
 	endedAt: (value.endedAt as string | null | undefined) ?? null,
+	colorHue: storedScopeHue(value),
+	colorChroma: storedChroma(value.colorChroma),
+	colorDepth: storedDepth(value.colorDepth),
 	isDeleted: Boolean(value.isDeleted),
 	deletionOperationId: (value.deletionOperationId as string | null | undefined) ?? null,
 	createdAt: String(value.createdAt),
@@ -109,6 +149,9 @@ export const createScopeRepository = (
 				parentScopeId: null,
 				startedAt: draft.startedAt ?? null,
 				endedAt: draft.endedAt ?? null,
+				colorHue: draft.colorHue ?? null,
+				colorChroma: draft.colorChroma ?? null,
+				colorDepth: draft.colorDepth ?? null,
 				isDeleted: false,
 				createdAt: timestamp,
 				updatedAt: timestamp
@@ -132,8 +175,11 @@ export const createScopeRepository = (
 			const before = await requireEntity(transaction, 'scopes', id);
 			const hasParentPatch = Object.hasOwn(patch, 'parentScopeId');
 			const parentScopeId = patch.parentScopeId ?? null;
-			const scopePatch = { ...patch };
+			const scopePatch: Record<string, unknown> = { ...patch };
 			delete scopePatch.parentScopeId;
+			// A colour save writes the hue and retires the loop-005 slot with it, so the stored row
+			// says one thing and the read-time fallback never revives a colour the owner cleared.
+			if (Object.hasOwn(patch, 'colorHue') && before.colorSlot != null) scopePatch.colorSlot = null;
 			const after = {
 				...before,
 				...scopePatch,

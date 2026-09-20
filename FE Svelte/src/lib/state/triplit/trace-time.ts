@@ -278,7 +278,13 @@ export const assertTraceTemporalPlacement = (
 	}
 
 	if (aboutKind === 'interval') {
-		if (aboutTime.end === null) throw new Error('Trace interval placement requires aboutTime.end');
+		// An interval without an end is open («длится», research п. 8): it started and is still
+		// going. Only a season needs its normalized month window to say where it starts.
+		if (aboutTime.end === null) {
+			if (aboutTime.precision === 'season')
+				throw new Error('Season precision requires a normalized start/end month window');
+			return;
+		}
 		if (
 			aboutTime.precision === 'minute' &&
 			compareCalendarValues(aboutTime.start, aboutTime.end, aboutTime.precision) >= 0
@@ -300,9 +306,15 @@ export const assertTraceTemporalPlacement = (
 	}
 };
 
+/**
+ * The exact timestamp projection for indexed and legacy consumers: only exact minute evidence
+ * has one. An open interval (no end, no stated duration) projects its start and «no end yet»;
+ * a stated duration locates the start only and keeps no projection, as before.
+ */
 export const exactTraceTimeProjection = (
 	aboutKind: TraceAboutKind,
-	aboutTime: TraceAboutTime | null
+	aboutTime: TraceAboutTime | null,
+	statedDuration: TraceDuration | null = null
 ): TraceExactTimeProjection => {
 	const empty = { aboutAt: null, aboutStart: null, aboutEnd: null };
 	if (
@@ -315,16 +327,22 @@ export const exactTraceTimeProjection = (
 	if (aboutKind === 'instant') {
 		return { ...empty, aboutAt: new Date(aboutTime.start).toISOString() };
 	}
-	if (aboutKind === 'interval' && aboutTime.end !== null) {
+	if (aboutKind === 'interval' && (aboutTime.end !== null || !statedDuration)) {
 		return {
 			aboutAt: null,
 			aboutStart: new Date(aboutTime.start).toISOString(),
-			aboutEnd: new Date(aboutTime.end).toISOString()
+			aboutEnd: aboutTime.end === null ? null : new Date(aboutTime.end).toISOString()
 		};
 	}
 	return empty;
 };
 
+/**
+ * The calendar bounds of a record's own time. A closed interval spans its boundaries; an
+ * open one («длится») has no end of its own and answers with the calendar unit of its start —
+ * the ribbon projection is what stretches it to «сейчас». A stated duration or an uncertainty
+ * window bounds the possible start, never the event.
+ */
 export const traceAboutTimeBounds = (
 	aboutKind: TraceAboutKind,
 	aboutTime: TraceAboutTime | null,
@@ -332,8 +350,7 @@ export const traceAboutTimeBounds = (
 ): TraceTimeBounds | null => {
 	if (aboutKind === 'trace_ref' || aboutTime?.basis !== 'absolute') return null;
 	const start = calendarValueBounds(aboutTime.start, aboutTime.precision);
-	if (aboutKind === 'interval' && !statedDuration) {
-		if (aboutTime.end === null) return null;
+	if (aboutKind === 'interval' && !statedDuration && aboutTime.end !== null) {
 		const end = calendarValueBounds(aboutTime.end, aboutTime.precision);
 		return {
 			start: start.start,

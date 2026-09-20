@@ -139,6 +139,28 @@
 	{#if existing}<button type="button" onclick={reset}>{t('time.restore')}</button>{/if}
 {/snippet}
 {#snippet extras()}
+	{#if picker && !picker.unplaced && !picker.draft.window}
+		<!-- «Длится» (research п. 8): an explicit flag beside the end, never inferred from an empty end. -->
+		<div class="ongoing-field">
+			<label>
+				<input
+					type="checkbox"
+					data-testid="picker-ongoing"
+					checked={picker.draft.ongoing ?? false}
+					disabled={picker.detail === 'duration'}
+					onchange={(event) => picker?.setOngoing(event.currentTarget.checked)}
+				/>{t('time.ongoing')}
+			</label>
+			{#if picker.draft.ongoing}<p class="date-only-hint" data-testid="ongoing-hint">
+					{t('time.ongoingHint')}
+				</p>{:else if picker.detail === 'duration'}<p
+					class="date-only-hint"
+					data-testid="ongoing-hint"
+				>
+					{t('time.ongoingWithDuration')}
+				</p>{/if}
+		</div>
+	{/if}
 	{#if picker}<TimeEvidence {picker} {resets} />{/if}
 	{#if preview.error !== null}<p role="alert">{errorText(preview.error)}</p>{/if}
 {/snippet}
@@ -193,7 +215,8 @@
 				{extras}
 				mobile={Boolean(host?.phone)}
 				timeline={host ? undefined : standaloneTimeline}
-				allowDuration={original?.aboutKind !== 'trace_ref' || picker.draft.date !== 'preserved'}
+				allowDuration={(original?.aboutKind !== 'trace_ref' || picker.draft.date !== 'preserved') &&
+					!picker.draft.ongoing}
 			/>
 		</div>
 	{/if}
@@ -248,5 +271,17 @@
 		padding: 8px;
 		font-size: 12px;
 		color: var(--cg-text-muted);
+	}
+	.ongoing-field {
+		display: grid;
+		gap: 4px;
+		padding: 0 8px;
+		font-size: 12px;
+	}
+	.ongoing-field label {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 44px;
 	}
 </style>

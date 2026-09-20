@@ -65,6 +65,7 @@
 			oncancel={onreturn}
 			cancelTestId="nested-cancel"
 			watch={(dirty) => (draft.nestedInput = dirty)}
+			hold={(run) => void draft.hold(run)}
 		/>
 	{/if}
 </section>

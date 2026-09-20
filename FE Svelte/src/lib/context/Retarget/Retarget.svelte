@@ -10,6 +10,7 @@
 	import { activeDataSpace } from '$lib/state/triplit/client';
 	import type { UndoState } from '$lib/state/Undo/Undo.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { getLens, lensSource } from '$lib/ui/LensSource';
 	import { untrack } from 'svelte';
 
 	let {
@@ -30,6 +31,8 @@
 	} = $props();
 	/** The step is held outside this view, so it survives the views that come and go. */
 	const space = activeDataSpace.id;
+	/** Under the workbench a candidate intention lights on the ribbon (loop 008, C3). */
+	const hover = getLens();
 	const step = $derived(resultInput.retargetFor(space, evidenceId));
 	/**
 	 * What the candidates are read for: the open step's space and link, as one value. The step
@@ -100,7 +103,9 @@
 							class="w-full justify-start text-left"
 							disabled={busy}
 							data-testid="retarget-candidate"
-							onclick={() => void retarget(candidate.id)}>{candidate.title}</Button
+							onclick={() => void retarget(candidate.id)}
+							{@attach lensSource(hover, { kind: 'trace', traceId: candidate.id })}
+							>{candidate.title}</Button
 						>
 					</li>
 				{/each}

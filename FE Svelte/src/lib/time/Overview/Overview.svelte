@@ -12,17 +12,34 @@
 	import { EDGE_GRIP_PX, MIN_FRAME_PX, OVERVIEW_HEIGHT_PX } from './constants';
 	import { densityBins, spanReadout, stripRange } from './density';
 	import { drawOverview } from './draw';
+	import { overviewInlays, shownRanges } from './inlays';
 	import type { FrameGrip, OverviewProps } from './types';
 
 	let {
 		viewport,
 		extent,
-		times,
+		rows,
+		dimmed,
 		inWindow,
 		phone = false,
 		canReveal = false,
 		onreveal
 	}: OverviewProps = $props();
+
+	/**
+	 * The density's input (B4): the records the ribbon shows, each once, at 1 — the search's
+	 * misses at 18 % (п. 9) — so the strip follows the legend, the Scope filters and both searches.
+	 */
+	const weighted = $derived(shownRanges(rows, dimmed));
+	/** The colour inlays (Q2-E): a 2 px mark at every shown record with a coloured Scope. */
+	const inlays = $derived(overviewInlays(rows, dimmed));
+	/** What the strip is built from, for the tests: the weight it holds and the hues it colours. */
+	const weight = $derived(weighted.reduce((sum, item) => sum + (item.weight ?? 1), 0));
+	const hues = $derived(
+		[...new Set(inlays.flatMap((inlay) => inlay.colours.map((colour) => colour.hue)))].toSorted(
+			(a, b) => a - b
+		)
+	);
 
 	const readAppearance = createAppearanceReader();
 	const readout = $derived(spanReadout(viewport.spanMs, locale.current));
@@ -55,7 +72,8 @@
 			canvas.height = Math.round(OVERVIEW_HEIGHT_PX * dpr);
 			const { palette } = readAppearance(
 				canvas,
-				appearance.style + '/' + getComputedStyle(document.documentElement).fontSize
+				appearance.style + '/' + getComputedStyle(document.documentElement).fontSize,
+				appearance.scopeBase
 			);
 			drawOverview({
 				context,
@@ -64,7 +82,8 @@
 				range,
 				window: viewport.window,
 				now: viewport.now,
-				bins: densityBins(times.values(), range, Math.ceil(widthPx / 3)),
+				bins: densityBins(weighted, range, Math.ceil(widthPx / 3)),
+				inlays,
 				palette
 			});
 		};
@@ -192,6 +211,12 @@
 				class="block h-full w-full cursor-ew-resize touch-none"
 				style:min-width="{MIN_FRAME_PX}px"
 				aria-hidden="true"
+				data-testid="overview-strip"
+				data-weight={weight.toFixed(2)}
+				data-inlays={inlays.length}
+				data-inlay-hues={hues.join(' ')}
+				data-range-start={range.start}
+				data-range-end={range.end}
 				{onpointerdown}
 				{@attach render}
 			></canvas>

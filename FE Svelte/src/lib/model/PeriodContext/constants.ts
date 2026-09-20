@@ -18,5 +18,3 @@ export const CHILD_UNIT: Readonly<Record<AxisUnit, AxisUnit | null>> = {
 	year: 'month',
 	decade: 'year'
 };
-
-export const UNSCOPED_GROUP_KEY = 'projection.unscoped' as const;

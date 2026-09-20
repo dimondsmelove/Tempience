@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { dateTimeFormat } from '$lib/state/Locale/format';
 	import { formatDay } from '$lib/context/labels';
-	import type { HistoryOperation } from '$lib/model/History/history';
+	import type { HistoryItem, HistoryOperation } from '$lib/model/History/history';
+	import type { HoverTarget } from '$lib/model/Hover/types';
+	import type { HoverState } from '$lib/state/Hover/Hover.svelte';
+	import { lensSource } from '$lib/ui/LensSource';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import {
 		ACTION_KEYS,
@@ -14,11 +17,17 @@
 
 	let {
 		operation,
-		names
+		names,
+		hover,
+		lensOf
 	}: {
 		operation: HistoryOperation;
 		/** How the things of this operation and the records its values name are called here. */
 		names: ReadonlyMap<string, string>;
+		/** The workbench's hover: every entry is a source of the lens (loop 008, C3). */
+		hover: HoverState;
+		/** What an entry lights on the ribbon: the thing it is about, as the Context resolves it. */
+		lensOf: (item: HistoryItem) => HoverTarget;
 	} = $props();
 	const at = $derived(new Date(operation.occurredAt));
 	const when = $derived(
@@ -41,7 +50,12 @@
 	<ul class="grid gap-1">
 		{#each operation.items as item, index (index)}
 			{@const changes = visibleChanges(item)}
-			<li class="text-sm" data-testid="history-item" data-entity={item.entityType}>
+			<li
+				class="text-sm"
+				data-testid="history-item"
+				data-entity={item.entityType}
+				{@attach lensSource(hover, lensOf(item))}
+			>
 				<span class="text-muted"
 					>{t(SUBJECT_KEYS[item.entityType])} · {t(ACTION_KEYS[item.action])}</span
 				>

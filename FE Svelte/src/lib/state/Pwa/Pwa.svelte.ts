@@ -1,5 +1,5 @@
 import type { MessageKey } from '$lib/state/Locale/types';
-import { ACTIVATE_UPDATE, CLIENT_VERSION, PERSISTENCE_REQUEST_KEY } from './constants';
+import { CLIENT_VERSION, PERSISTENCE_REQUEST_KEY, WORKER_VERSION } from './constants';
 import type { StorageStatus } from './types';
 
 export class PwaState {
@@ -9,8 +9,13 @@ export class PwaState {
 	notice = $state<MessageKey | null>(null);
 	storage = $state.raw<StorageStatus>({ usage: null, persistent: null });
 	registration: ServiceWorkerRegistration | null = null;
-	private applying = false;
+	private reload: () => void = () => location.reload();
 
+	/**
+	 * The page tells the controlling worker its build and the worker answers with its own.
+	 * A reload is offered only when the two differ and the worker's build is the current one,
+	 * so pressing «Обновить» always changes what the tab runs.
+	 */
 	connect(
 		registration: ServiceWorkerRegistration,
 		container: ServiceWorkerContainer,
@@ -18,39 +23,45 @@ export class PwaState {
 		reload: () => void = () => location.reload()
 	): () => void {
 		this.registration = registration;
-		let hadController = Boolean(container.controller);
-		const workers: ServiceWorker[] = [];
+		this.reload = reload;
 		const reportVersion = () =>
 			container.controller?.postMessage({ type: CLIENT_VERSION, version });
-		const installed = () => {
-			if (registration.waiting && container.controller) this.available = true;
+		const answered = (event: MessageEvent) => {
+			if (event.data?.type !== WORKER_VERSION || typeof event.data.version !== 'string') return;
+			if (event.data.version === version) this.available = false;
+			else void this.confirm(registration, container);
 		};
-		const watch = () => {
-			const worker = registration.installing;
-			if (worker && !workers.includes(worker)) {
-				workers.push(worker);
-				worker.addEventListener('statechange', installed);
-			}
-			installed();
-		};
-		const changed = () => {
-			reportVersion();
-			if (this.applying) reload();
-			else if (hadController) this.available = true;
-			hadController = true;
-		};
-		registration.addEventListener('updatefound', watch);
-		container.addEventListener('controllerchange', changed);
+		container.addEventListener('message', answered);
+		container.addEventListener('controllerchange', reportVersion);
 		document.addEventListener('visibilitychange', reportVersion);
-		watch();
 		reportVersion();
 		return () => {
-			registration.removeEventListener('updatefound', watch);
-			container.removeEventListener('controllerchange', changed);
+			container.removeEventListener('message', answered);
+			container.removeEventListener('controllerchange', reportVersion);
 			document.removeEventListener('visibilitychange', reportVersion);
-			for (const worker of workers) worker.removeEventListener('statechange', installed);
 			this.registration = null;
 		};
+	}
+
+	/**
+	 * The controlling worker is another build than this page. The server settles which of the
+	 * two is stale: a newer worker starts installing, takes over and is asked again on
+	 * controllerchange; nothing newer means this page is the old one. Offline, nothing changes.
+	 */
+	private async confirm(
+		registration: ServiceWorkerRegistration,
+		container: ServiceWorkerContainer
+	): Promise<void> {
+		const controller = container.controller;
+		try {
+			await registration.update();
+		} catch {
+			return;
+		}
+		if (container.controller !== controller || registration.installing || registration.waiting)
+			return;
+		this.available = true;
+		this.notice = null;
 	}
 
 	async check(): Promise<void> {
@@ -72,12 +83,7 @@ export class PwaState {
 	}
 
 	apply(): void {
-		if (this.registration?.waiting) {
-			this.applying = true;
-			this.registration.waiting.postMessage({ type: ACTIVATE_UPDATE });
-		} else if (this.available) {
-			location.reload();
-		}
+		if (this.available) this.reload();
 	}
 
 	async refreshStorage(manager: StorageManager | undefined = navigator.storage): Promise<void> {

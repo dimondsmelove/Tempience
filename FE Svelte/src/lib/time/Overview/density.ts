@@ -2,6 +2,7 @@ import { translate } from '$lib/state/Locale/messages';
 import type { Locale } from '$lib/state/Locale/types';
 import type { TimeRange } from '$lib/model/Projection/types';
 import { EXTENT_PAD_RATIO } from './constants';
+import type { WeightedRange } from './types';
 
 /** The strip's own range: the data extent padded so the frame can reach the ends. */
 export const stripRange = (extent: TimeRange | null, fallback: TimeRange): TimeRange => {
@@ -15,9 +16,10 @@ export const stripRange = (extent: TimeRange | null, fallback: TimeRange): TimeR
 /**
  * Records per bin across the strip, normalised to 0..1 by the fullest bin.
  * Intervals count in every bin they touch, so long ones read as a plateau.
+ * A record may weigh less than one: the search's misses add 18 % (п. 9).
  */
 export const densityBins = (
-	times: Iterable<TimeRange>,
+	times: Iterable<WeightedRange>,
 	range: TimeRange,
 	bins: number
 ): Float32Array => {
@@ -34,8 +36,9 @@ export const densityBins = (
 		if (time.end < range.start || time.start > range.end) continue;
 		const first = binOf(time.start);
 		const last = binOf(time.end);
+		const weight = time.weight ?? 1;
 		for (let bin = first; bin <= last; bin += 1) {
-			counts[bin] += 1;
+			counts[bin] += weight;
 			if (counts[bin] > max) max = counts[bin];
 		}
 	}
