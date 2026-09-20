@@ -67,14 +67,18 @@ describe('demo seed bootstrap', () => {
 		);
 	};
 
-	const bootstrap = (target: DemoSeedStorage, dataSpace = DATA_SPACES['demo-v1']) =>
+	const bootstrap = (
+		target: DemoSeedStorage,
+		dataSpace = DATA_SPACES['demo-v1'],
+		locale: 'ru' | 'en' = 'ru'
+	) =>
 		bootstrapDemoSeed({
 			dataSpace,
 			repository,
 			importRepository,
 			clock: () => NOW,
 			storage: target,
-			locale: 'ru'
+			locale
 		});
 
 	it('seeds the empty demo replica through the Kind repository and the scenario import', async () => {
@@ -277,5 +281,34 @@ describe('demo seed bootstrap', () => {
 		expect(await repository.listScopes()).toHaveLength(1);
 		expect(await repository.listTraceKinds()).toHaveLength(0);
 		expect(await repository.listIntentionAssessments()).toHaveLength(0);
+	});
+
+	it('keeps the marker of the language the notebook was written in when the interface speaks another', async () => {
+		const target = storage();
+		await bootstrap(target);
+		const traces = await repository.listTraces();
+		target.setItem(WORKBENCH_OPEN_AT_KEY, '');
+
+		await expect(bootstrap(target, DATA_SPACES['demo-v1'], 'en')).resolves.toEqual({
+			status: 'skipped',
+			reason: 'existing-data',
+			manifestId: 'watson-v1:en'
+		});
+		// The replica is still the Russian notebook, so the marker keeps saying so; the header offers the rebuild.
+		expect(target.dump()[DEMO_SEED_MARKER_KEY]).toBe('watson-v1:ru');
+		expect(await repository.listTraces()).toHaveLength(traces.length);
+		expect(target.dump()[WORKBENCH_OPEN_AT_KEY]).toBe('');
+	});
+
+	it('marks a replica whose marker is not a Watson seed with the language of the moment', async () => {
+		const target = storage({ [DEMO_SEED_MARKER_KEY]: 'demo-v1:ru' });
+		await repository.createScope({ name: 'Своя' });
+
+		await expect(bootstrap(target, DATA_SPACES['demo-v1'], 'en')).resolves.toEqual({
+			status: 'skipped',
+			reason: 'existing-data',
+			manifestId: 'watson-v1:en'
+		});
+		expect(target.dump()).toEqual({ [DEMO_SEED_MARKER_KEY]: 'watson-v1:en' });
 	});
 });

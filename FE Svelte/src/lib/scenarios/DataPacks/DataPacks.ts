@@ -21,11 +21,7 @@ export const availableDataPacks = (): readonly DataPack[] => {
  * lists is not offered any more (owner decision 2026-09-20: the Belgrade what-if space leaves the
  * owner's switcher); its stored data stays untouched and returns with a build that lists the pack.
  */
-export const canOpenDataPack = (
-	pack: DataPack,
-	// Kept for the callers' contract; the seed marker no longer keeps a pack selectable.
-	_storage: Pick<Storage, 'getItem'> | null
-): boolean => {
+export const canOpenDataPack = (pack: DataPack): boolean => {
 	if (import.meta.env.PUBLIC_BUILD === '1' && !pack.public) return false;
 	return availableDataPacks().some((item) => item.id === pack.id);
 };

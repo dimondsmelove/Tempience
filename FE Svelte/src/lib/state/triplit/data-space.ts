@@ -84,19 +84,19 @@ export const DATA_SPACES: Readonly<Record<BuiltInDataSpaceId, DataSpace>> = {
 	}
 };
 
-type DataSpaceStorage = Pick<Storage, 'getItem' | 'setItem'> &
+export type DataSpaceStorage = Pick<Storage, 'getItem' | 'setItem'> &
 	Partial<Pick<Storage, 'key' | 'length' | 'removeItem'>>;
 type DataSpaceResetTarget = {
 	clear: (options?: { full?: boolean }) => Promise<void>;
 };
 
 /** Storage adapters without `removeItem` keep the key with a value no reader accepts. */
-const removeKey = (target: DataSpaceStorage, key: string): void => {
+export const removeKey = (target: DataSpaceStorage, key: string): void => {
 	if (target.removeItem) target.removeItem(key);
 	else target.setItem(key, '');
 };
 
-const browserStorage = (): DataSpaceStorage | null => {
+export const browserStorage = (): DataSpaceStorage | null => {
 	if (typeof localStorage === 'undefined') return null;
 	try {
 		return localStorage;
@@ -201,7 +201,7 @@ export const listDataSpaceOptions = (
 ): readonly DataSpace[] => [
 	DATA_SPACES[CANONICAL_DATA_SPACE_ID],
 	...(isDemoDismissed(target) ? [] : [DATA_SPACES[DEMO_DATA_SPACE_ID]]),
-	...DATA_PACKS.filter((pack) => canOpenDataPack(pack, target)).map(
+	...DATA_PACKS.filter((pack) => canOpenDataPack(pack)).map(
 		(pack) => DATA_SPACES[pack.dataSpaceId]
 	),
 	...readImportedDataSpaces(target)
@@ -227,7 +227,7 @@ export const isDataSpaceId = (
 	value === CANONICAL_DATA_SPACE_ID ||
 	(value === DEMO_DATA_SPACE_ID && !isDemoDismissed(target)) ||
 	Boolean(readImportedDataSpace(value, target)) ||
-	DATA_PACKS.some((pack) => pack.dataSpaceId === value && canOpenDataPack(pack, target)) ||
+	DATA_PACKS.some((pack) => pack.dataSpaceId === value && canOpenDataPack(pack)) ||
 	(import.meta.env.PUBLIC_BUILD !== '1' &&
 		value === E2E_SYNTHETIC_DATA_SPACE_ID &&
 		isE2eSyntheticEnabled(target));

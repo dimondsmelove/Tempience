@@ -52,6 +52,7 @@
 	"error.data_space_save": "Не удалось сохранить выбранное пространство данных.",
 	"error.data_space_reset_canonical": "Сброс сценария нельзя применить к основным данным.",
 	"error.data_space_dismiss_demo": "Удалить так можно только демо.",
+	"error.data_space_reseed_demo": "Пересобрать так можно только демо.",
 	"error.backup_too_large": "Этот файл больше {{megabytes}} МБ. Сейчас поддерживаются файлы до {{megabytes}} МБ.",
 	"error.backup_not_json": "Не удалось прочитать JSON. Выберите файл, сохранённый через «Экспортировать данные».",
 	"error.backup_not_export": "Нужен JSON-файл, сохранённый через «Экспортировать данные».",

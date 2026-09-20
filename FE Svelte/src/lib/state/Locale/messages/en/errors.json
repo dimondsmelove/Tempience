@@ -52,6 +52,7 @@
 	"error.data_space_save": "Could not save the chosen data space.",
 	"error.data_space_reset_canonical": "A scenario reset cannot be applied to the main data.",
 	"error.data_space_dismiss_demo": "Only the demo can be deleted this way.",
+	"error.data_space_reseed_demo": "Only the demo can be rebuilt this way.",
 	"error.backup_too_large": "This file is larger than {{megabytes}} MB. Files up to {{megabytes}} MB are supported for now.",
 	"error.backup_not_json": "Could not read the JSON. Choose a file saved through “Export data”.",
 	"error.backup_not_export": "A JSON file saved through “Export data” is needed.",

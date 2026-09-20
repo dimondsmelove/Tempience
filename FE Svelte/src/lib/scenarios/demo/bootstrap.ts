@@ -1,3 +1,4 @@
+import { demoSeedLocale } from '$lib/state/triplit/demo-actions';
 import { WORKBENCH_OPEN_AT_KEY } from '$lib/state/Workbench/constants';
 import { buildDemoSeed, demoManifestId, demoRecordId } from './batch';
 import { DEMO_DATA_SPACE_ID, DEMO_SEED_MARKER_KEY, DEMO_START_STORY_ID } from './constants';
@@ -12,8 +13,9 @@ const skipped = (reason: DemoSeedSkipReason, manifestId: string): DemoSeedBootst
 
 /**
  * Seeds the demo replica once. The marker names the manifest the replica was seeded with; a
- * replica that already holds anything (a seed in another language, the user's own additions
- * after the marker was lost) is left as it is and marked, the same way a DataPack is. Watson's
+ * replica that already holds anything is left as it is, the same way a DataPack is: a seed in
+ * another language keeps that language's marker (the header offers to rebuild it), the user's
+ * own additions after the marker was lost are marked with the language of the moment. Watson's
  * verdicts are created through their evidence links once the records exist, so each is ordered
  * by its fact's date (a direct assessment would carry the install day). A seed that was applied
  * asks the workbench, once, to open on the notebook's first page.
@@ -44,7 +46,7 @@ export const bootstrapDemoSeed = async ({
 		repository.listIntersections(true)
 	]);
 	if (kinds.length + traces.length + scopes.length + periods.length + intersections.length > 0) {
-		storage.setItem(DEMO_SEED_MARKER_KEY, manifestId);
+		if (demoSeedLocale(storage) === null) storage.setItem(DEMO_SEED_MARKER_KEY, manifestId);
 		return skipped('existing-data', manifestId);
 	}
 

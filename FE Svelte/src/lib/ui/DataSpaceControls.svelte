@@ -2,6 +2,7 @@
 	import DataSpaceSwitcher from './DataSpaceSwitcher.svelte';
 	import SyncStatus from './SyncStatus.svelte';
 	import DataSpaceNotice from './DataSpaceNotice.svelte';
+	import DemoLanguage from './DemoLanguage/DemoLanguage.svelte';
 	import { activeDataSpace } from '$lib/state/triplit/client';
 	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
 	let { identity = false }: { identity?: boolean } = $props();
@@ -17,4 +18,6 @@
 	</div>
 {/if}
 {#if identity}<div class="grow"></div>{/if}
+<!-- A demo written in another language than the interface offers its rebuild next to the sync status. -->
+<DemoLanguage />
 <SyncStatus quiet={identity} />
