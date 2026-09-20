@@ -1,6 +1,7 @@
 import { TriplitClient } from '@triplit/client';
 import { getStoredToken, getTriplitServerUrl } from './auth';
 import { createAppearanceRepository } from './appearance-repository';
+import { installQueryCheckpoints } from './QueryCheckpoints/QueryCheckpoints';
 import { schema } from './schema';
 
 // Personalization survives clearing or switching domain DataSpaces.
@@ -15,6 +16,8 @@ export function openAppearanceConnection() {
 		...(token ? { token } : {}),
 		autoConnect: Boolean(serverUrl && token)
 	});
+	// The same checkpoint per query as the data client (`QueryCheckpoints`).
+	installQueryCheckpoints(client);
 	return {
 		client,
 		repository: createAppearanceRepository(client),
