@@ -1,0 +1,35 @@
+name: Publish tempience-sync
+
+# A tag sync-vX.Y.Z (matching packages/sync-server/package.json) publishes the
+# sync server to npm with provenance. Needs the NPM_TOKEN repository secret
+# (an npm granular token with publish rights on tempience-sync).
+on:
+  push:
+    tags: ['sync-v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sync-server
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: .
+      - run: npm test
+      - name: The tag names the version in package.json
+        run: test "sync-v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

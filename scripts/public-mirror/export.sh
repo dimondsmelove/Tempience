@@ -7,9 +7,10 @@
 # lives in) or host:/path, in which case `git archive` runs over ssh.
 #
 # The public tree is what a reader or self-hoster needs: the app, the shared
-# package, the sync server and the build tooling. Everything else — working notes,
-# agent instructions, owner deployment, e2e harness, experiments and the owner's
-# own data — stays in the private repository.
+# package, the sync server (packages/sync-server, published to npm from the
+# mirror by the publish-sync workflow) and the build tooling. Everything else —
+# working notes, agent instructions, owner deployment, e2e harness, experiments
+# and the owner's own data — stays in the private repository.
 set -euo pipefail
 
 dest=$(realpath -m "${1:?usage: export.sh <dest> [ref]}")
@@ -37,12 +38,12 @@ rm -rf context research reports deploy API AGENTS.md PROJECT_CONTEXT.md \
 	"FE Svelte/scripts/open-lan-firewall.sh" "FE Svelte/scripts/ui-screenshot.sh"
 # e2e harness goes; its synthetic fixtures stay (src/lib/scenarios/e2e-synthetic imports them).
 find "FE Svelte/e2e" -mindepth 1 -maxdepth 1 ! -name fixtures -exec rm -rf {} +
-# scripts/: only the sync server and this exporter survive.
+# scripts/: only the sync server wrapper and this exporter survive.
 find scripts -mindepth 1 -maxdepth 1 \
-	! -name 'triplit-server.mjs' ! -name 'triplit-auth.mjs' ! -name 'triplit-auth.test.mjs' \
-	! -name public-mirror -exec rm -rf {} +
-# No markdown besides the public README.
-find . -name '*.md' -not -path './scripts/public-mirror/*' -delete
+	! -name 'triplit-server.mjs' ! -name public-mirror -exec rm -rf {} +
+# No markdown besides the public overlay and the npm package's own README.
+find . -name '*.md' -not -path './scripts/public-mirror/*' \
+	-not -path './packages/sync-server/*' -delete
 
 # Personal data: the Belgrade seed corpus, its data-pack catalog entry and the
 # tests that assert that corpus (exact counts, the belgrade DataSpace and pack).
@@ -78,7 +79,7 @@ delete lock.packages.API;
 fs.writeFileSync("package-lock.json", JSON.stringify(lock, null, 2) + "\n");
 '
 
-# Public overlay: README, LICENSE, GitHub Pages workflow.
+# Public overlay: README, SYNC guides, LICENSE, GitHub workflows (Pages, npm publish).
 cp -a scripts/public-mirror/overlay/. .
 
 mkdir -p "$dest"

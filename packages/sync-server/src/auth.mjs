@@ -1,7 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const DEFAULT_PAIRING_TTL_MS = 10 * 60 * 1000;
-export const DEFAULT_DEVICE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** A paired device stays paired this long before /pair is needed again (owner, 2026-09-20: 90 days). */
+export const DEFAULT_DEVICE_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 const encode = (value) =>
   Buffer.from(JSON.stringify(value)).toString("base64url");

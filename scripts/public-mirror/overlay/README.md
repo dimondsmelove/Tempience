@@ -40,88 +40,28 @@ reloads only the current tab.
 ## Syncing between your own devices
 
 In short: **one device needs no setup at all.** Several devices sharing one
-database need your own sync server on your own laptop, plus Tailscale.
-Neither the author nor the site takes part: the server is yours, the data is
-yours, the network is yours.
+database need your own sync server on a computer that stays on, plus
+Tailscale. Neither the author nor the site takes part: the server is yours,
+the data is yours, the network is yours.
 
-### Why Tailscale
+1. **Start the server** on that computer (Node.js 22): `npx tempience-sync`.
+   It prints a pairing code and the local page `http://127.0.0.1:6544/` that
+   shows it. `npm install -g tempience-sync && tempience-sync --install-service`
+   keeps it running across reboots.
+2. **Give the computer an https address**: Tailscale on every device with one
+   account, MagicDNS + HTTPS Certificates in the admin console, then on the
+   computer `tailscale serve --bg 6544` — copy the `https://….ts.net` address
+   it prints.
+3. **Pair each device**: open `https://tempience.app/pair`, enter that address,
+   the code and a device name.
 
-The app is served over HTTPS, and browsers forbid it from talking to `http://`
-or `ws://` — including your laptop on the home LAN (`http://192.168.…`). You
-need an HTTPS address for your laptop with a real certificate. Tailscale Serve
-provides one with a single command, and that address exists **only inside your
-tailnet**: from the internet the server is unreachable altogether — not the
-pairing endpoint, not the data. The server itself listens on `127.0.0.1` only,
-so nobody on the LAN can connect to it directly either.
+The step-by-step guide for someone who has never run a server — what each
+command prints, what to expect afterwards, what the error messages mean — is
+**[SYNC.md](./SYNC.md)** (по-русски: **[SYNC.ru.md](./SYNC.ru.md)**).
 
-### Setup
-
-1. **Tailscale on every device**, one account: [tailscale.com/download](https://tailscale.com/download).
-   In the tailnet admin console: DNS → enable MagicDNS and HTTPS Certificates.
-
-2. **The sync server on the laptop.** Requires Node.js 22.
-
-   ```sh
-   git clone https://github.com/dimondsmelove/Tempience.git
-   cd Tempience
-   npm ci                                   # root: the server and SQLite
-   mkdir -p ~/.config/tempience
-   cat > ~/.config/tempience/triplit.env <<ENV
-   TRIPLIT_JWT_SECRET=$(openssl rand -hex 32)
-   TRIPLIT_DATABASE_PATH=$HOME/.local/share/tempience/triplit.sqlite
-   ENV
-   chmod 600 ~/.config/tempience/triplit.env
-   set -a; . ~/.config/tempience/triplit.env; set +a
-   node scripts/triplit-server.mjs
-   ```
-
-   The server prints its address (`http://127.0.0.1:6544`), the database path
-   and a **pairing code**. The code lives 10 minutes; restarting the server
-   prints a new one.
-
-3. **An HTTPS address inside the tailnet** (on the laptop):
-
-   ```sh
-   tailscale serve --bg 6544
-   ```
-
-   This prints an address like `https://laptop.<tailnet>.ts.net`. That is the
-   server address for the app. `serve`, not `funnel` (see below).
-
-4. **Pair each device.** In the app open `/pair`, enter the server address and
-   the pairing code, give the device a name. From then on the database on the
-   device and the SQLite file on the laptop sync both ways. A device stays
-   paired for 30 days, then `/pair` again.
-
-5. **What to expect.** The sync indicator in the app shows the state. Without
-   a network, or with the laptop off, devices keep working as usual; changes
-   wait in a queue and arrive on the next connection. The sync server is not a
-   backup — keep exporting JSON.
-
-To keep the server running on the laptop, a user systemd unit
-(`~/.config/systemd/user/tempience-sync.service`):
-
-```ini
-[Unit]
-Description=Tempience sync server
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-WorkingDirectory=%h/Tempience
-EnvironmentFile=%h/.config/tempience/triplit.env
-ExecStart=/usr/bin/node scripts/triplit-server.mjs
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=default.target
-```
-
-```sh
-systemctl --user daemon-reload
-systemctl --user enable --now tempience-sync.service
-```
+The server listens on `127.0.0.1` only; the Tailscale address exists only
+inside your tailnet, so from the internet the server is unreachable — not the
+pairing endpoint, not the data. `serve`, not `funnel` (see below).
 
 ### Who sees what
 
@@ -137,8 +77,9 @@ systemctl --user enable --now tempience-sync.service
 
 **Doing nothing beyond the setup:** the server is loopback-only; its address
 exists only in your tailnet; the pairing code is 24 random characters valid
-for 10 minutes; the device token is signed with your secret and lives 30
-days; traffic is encrypted twice. For personal notes this is enough.
+for 10 minutes and shown only on the computer's own page; the device token is
+signed with your secret and lives 90 days; traffic is encrypted twice. For
+personal notes this is enough.
 
 **Stricter** (Tailscale admin console):
 - **ACLs**: allow access to the laptop's port 443 only from your own devices —
@@ -151,10 +92,12 @@ days; traffic is encrypted twice. For personal notes this is enough.
   ```
 - **Device approval** — a new device joins the network only after you approve
   it. Keep **key expiry** on: a lost device drops off by itself.
-- `TRIPLIT_PAIRING_TTL_MS` and `TRIPLIT_DEVICE_TOKEN_TTL_MS` can be shortened;
-  `TRIPLIT_PAIRING_CODE` can be set by hand if you do not want to read a code
-  off the screen.
-- The env file holding the secret: mode `600`, never in Git.
+- `pairingTtlMs` and `deviceTokenTtlMs` in `config.json` (or the
+  `TRIPLIT_PAIRING_TTL_MS` / `TRIPLIT_DEVICE_TOKEN_TTL_MS` environment
+  variables, which win over the file) can be shortened; `TRIPLIT_PAIRING_CODE`
+  can be set by hand if you do not want to read a code off the screen.
+- `config.json` holds the secret: the server creates it with mode `600`; keep
+  it out of Git and out of shared folders.
 
 **Paranoid:**
 - **Tailnet Lock** — new nodes must be signed by your existing ones; this also
@@ -166,8 +109,8 @@ days; traffic is encrypted twice. For personal notes this is enough.
 
 **Revoking access.** Lost a phone — remove it from the tailnet in the admin
 console: its path to the server disappears immediately. To revoke *all*
-tokens at once, change `TRIPLIT_JWT_SECRET`, restart the server and pair the
-devices again.
+tokens at once, change `jwtSecret` in `config.json` (or `TRIPLIT_JWT_SECRET`),
+restart the server and pair the devices again.
 
 **What this does not protect against:** someone who has unlocked your device,
 and someone who is signed in to your Tailscale account. Those are the edges
@@ -195,6 +138,12 @@ npm run build:public             # → FE Svelte/build-public/
 
 A local dev server of the public version: `PUBLIC_BUILD=1 npm run dev` in `FE Svelte`.
 
+The sync server from this checkout instead of npm: `npm ci` at the root
+(without `--ignore-scripts`, so SQLite gets its native build) and then
+`node scripts/triplit-server.mjs` — the same program as `npx tempience-sync`,
+published from `packages/sync-server` by `.github/workflows/publish-sync.yml`
+on a `sync-v*` tag.
+
 `build-public/` is plain static output (SvelteKit `adapter-static`, fallback to
 `index.html`). Any static host with HTTPS can serve it. This repository deploys
 it to GitHub Pages through `.github/workflows/pages.yml`.
@@ -205,8 +154,10 @@ it to GitHub Pages through `.github/workflows/pages.yml`.
 |---|---|
 | `FE Svelte/` | The app: SvelteKit 2 + Svelte 5, Tailwind 4, Triplit client on top of IndexedDB, service worker |
 | `packages/shared/` | Shared types and utilities |
-| `scripts/triplit-server.mjs` | The single-owner sync server: pairing by code, SQLite |
+| `packages/sync-server/` | The sync server, published to npm as `tempience-sync`: pairing by code, the local status page, SQLite |
+| `scripts/triplit-server.mjs` | A thin wrapper that runs the same server from this checkout |
 | `scripts/public-mirror/` | The scripts that produce this public repository |
+| `SYNC.md`, `SYNC.ru.md` | The sync guide for a first-time self-hoster |
 
 ## About this repository
 
