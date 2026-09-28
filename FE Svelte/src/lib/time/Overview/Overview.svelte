@@ -23,7 +23,8 @@
 		inWindow,
 		phone = false,
 		canReveal = false,
-		onreveal
+		onreveal,
+		trailing = null
 	}: OverviewProps = $props();
 
 	/**
@@ -238,12 +239,21 @@
 		aria-label={t('overview.zoomIn')}
 		onclick={() => viewport.zoomIn()}>+</Button
 	>
+	{#if trailing}<span class="trailing" data-testid="overview-trailing">{@render trailing()}</span
+		>{/if}
 	<span class="sr-only" data-testid="overview-readout"
 		>{t('overview.readout', { span: readout })}</span
 	>
 </div>
 
 <style>
+	.trailing {
+		display: flex;
+		align-items: center;
+		align-self: stretch;
+		padding: 0 4px 0 6px;
+		border-left: var(--cg-border-width) solid var(--cg-border-default);
+	}
 	.overview-row {
 		container-type: inline-size;
 		font-size: var(--cg-text-size-caption);

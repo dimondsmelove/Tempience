@@ -33,7 +33,12 @@ export const REPOSITORY_ERROR_CODES = [
 	'undo_unsupported',
 	'undo_stale',
 	'undo_unavailable',
-	'storage_schema'
+	'storage_schema',
+	'chapter_invalid',
+	'chapter_clash',
+	'chapter_missing',
+	'stage_missing',
+	'stage_before_chapter'
 ] as const;
 export type RepositoryErrorCode = (typeof REPOSITORY_ERROR_CODES)[number];
 

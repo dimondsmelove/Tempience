@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
-	import { errorText } from '$lib/state/Locale/errors';
-	import type { MessageKey } from '$lib/state/Locale/types';
-	import type { Snippet } from 'svelte';
-	import { ChevronDownOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
-	import { CHIP_CLASS, LIST_BUTTON_CLASS, SECTION_HEADING_CLASS } from '$lib/context/constants';
+	import ChildList from '$lib/context/ChildList/ChildList.svelte';
+	import ContextNote from '$lib/context/ContextNote/ContextNote.svelte';
+	import { NoteEditing } from '$lib/context/ContextNote/NoteEditing.svelte';
+	import NoteStatus from '$lib/context/ContextNote/NoteStatus.svelte';
+	import ContextSection from '$lib/context/ContextSection/ContextSection.svelte';
+	import { FoldedSections } from '$lib/context/ContextSection/FoldedSections.svelte';
+	import ContextTitle from '$lib/context/ContextTitle/ContextTitle.svelte';
+	import RecordGroupHead from '$lib/context/RecordList/RecordGroupHead.svelte';
+	import RecordRow from '$lib/context/RecordList/RecordRow.svelte';
+	import { GROUP_UNDER } from '$lib/model/RecordGroups/constants';
+	import { groupRecords, recordShape } from '$lib/model/RecordGroups/RecordGroups';
+	import { chapterColour } from '$lib/theme/chapter-colour';
 	import { formatDay } from '$lib/context/labels';
 	import { periodTitle } from '$lib/model/Axis/Axis';
 	import type { PeriodRef } from '$lib/model/Axis/types';
@@ -23,15 +30,34 @@
 	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
 	import { lensSource } from '$lib/ui/LensSource';
 	import { UNIT_KEYS } from './constants';
-	import {
-		PERIOD_SECTIONS,
-		readPeriodCollapsed,
-		writePeriodCollapsed,
-		type PeriodSection
-	} from './sections';
+	import { PERIOD_SECTIONS, PERIOD_SECTIONS_STORAGE_KEY, type PeriodSection } from './sections';
 
 	let { workbench, period }: { workbench: WorkbenchState; period: PeriodRef } = $props();
 	const context = $derived(periodContext(workbench.view, period, workbench.projectionInputs));
+	/**
+	 * The records cut by the unit under the period: a month by weeks, a year by months, a week by
+	 * days. One that began earlier and runs into the period stands in its first stretch.
+	 */
+	const groups = $derived(
+		groupRecords(
+			context.records.map((record) => ({
+				...record,
+				at: Math.max(record.time.start, period.start)
+			})),
+			GROUP_UNDER[period.unit],
+			locale.current
+		)
+	);
+	/** How many of the period's records each active Scope holds: the count in its chip. */
+	const scopeCounts = $derived(
+		new Map(
+			context.activeScopes.map((scope) => [
+				scope.id,
+				context.records.filter((record) => record.scopes.some((item) => item.id === scope.id))
+					.length
+			])
+		)
+	);
 	/** Which neighbouring periods carry a note: a dot before their name, as the axis bars them. */
 	const noted = $derived(notedPeriods(workbench.view.periods));
 	/**
@@ -68,51 +94,34 @@
 		onfocusout: () => (focused = null)
 	});
 	/** Folded sections are remembered across periods and reloads, like a record's and a Scope's Context. */
-	let collapsed = $state(readPeriodCollapsed());
-	const toggle = (id: PeriodSection): void => {
-		collapsed[id] = !collapsed[id];
-		writePeriodCollapsed($state.snapshot(collapsed));
-	};
+	const folds = new FoldedSections(
+		PERIOD_SECTIONS.map((entry) => entry.id),
+		PERIOD_SECTIONS_STORAGE_KEY
+	);
 	const sectionTitle = (id: PeriodSection, label: string): string =>
 		id === 'records' ? `${label} · ${context.traceCount}` : label;
-	let draft = $state('');
-	let editing = $state(false);
-	let busy = $state(false);
-	let notice = $state<MessageKey | null>(null);
-	let failure = $state.raw<unknown>(null);
-	/** «Заметка» stands while the period has a note, and while one is being written. */
-	const noteShown = $derived(Boolean(context.note) || editing);
-	const edit = (): void => {
-		draft = context.note ?? '';
-		editing = true;
-		notice = null;
-		failure = null;
-		// The first note of a period: its section appears, and open, whatever was remembered.
-		if (collapsed.note) toggle('note');
-	};
 	/** The note lives on the persisted Period; the first note creates it for this calendar period. */
-	const save = async (): Promise<void> => {
-		busy = true;
-		notice = null;
-		failure = null;
-		try {
-			const note = draft.trim() || null;
-			if (context.record) await tempienceRepository.editPeriod(context.record.id, { note });
-			else if (note)
+	const note = new NoteEditing(
+		() => context.note ?? null,
+		async (text) => {
+			if (context.record) await tempienceRepository.editPeriod(context.record.id, { note: text });
+			else if (text)
 				await tempienceRepository.createPeriod({
 					name: context.title,
 					time: periodDraftTime(period),
 					timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-					note
+					note: text
 				});
 			await workbench.load(loadWorkbenchSnapshot);
-			editing = false;
-			notice = 'period.noteSaved';
-		} catch (cause) {
-			failure = cause ?? new Error();
-		} finally {
-			busy = false;
-		}
+		},
+		'period.noteSaved'
+	);
+	/** «Заметка» stands while the period has a note, and while one is being written. */
+	const noteShown = $derived(Boolean(context.note) || note.editing);
+	const edit = (): void => {
+		note.edit();
+		// The first note of a period: its section appears, and open, whatever was remembered.
+		folds.open('note');
 	};
 	const go = (ref: PeriodRef): void => workbench.selectPeriod(ref, 'context');
 	const shown = $derived(
@@ -123,81 +132,34 @@
 	);
 </script>
 
-{#snippet section(id: PeriodSection, label: string, body: Snippet)}
-	<section
-		class="flex flex-col gap-2 border-t border-outline pt-2 first:border-t-0 first:pt-0"
-		id={`context-section-${id}`}
-		data-testid={`context-section-${id}`}
-	>
-		<div class="flex items-center justify-between gap-1">
-			<h3 class={SECTION_HEADING_CLASS}>{sectionTitle(id, label)}</h3>
-			<Button
-				size="sm"
-				variant="quiet"
-				icon
-				aria-expanded={!collapsed[id]}
-				aria-label={collapsed[id]
-					? t('context.expand', { section: label })
-					: t('context.collapse', { section: label })}
-				data-testid={`section-toggle-${id}`}
-				onclick={() => toggle(id)}
-			>
-				{#if collapsed[id]}<ChevronRightOutline class="h-4 w-4" />{:else}<ChevronDownOutline
-						class="h-4 w-4"
-					/>{/if}
-			</Button>
-		</div>
-		{#if !collapsed[id]}{@render body()}{/if}
-	</section>
-{/snippet}
-
-{#snippet status()}
-	{#if failure !== null}<p class="text-xs text-muted" role="alert">{errorText(failure)}</p>
-	{:else if notice}<p class="text-xs text-muted" role="status">{t(notice)}</p>{/if}
-{/snippet}
-
 <!-- A dot before the name of a period that has a note, the mark the axis draws as a bar. -->
 {#snippet noteDot(ref: PeriodRef)}
 	{#if noted(ref)}<span class="note-dot" aria-hidden="true"></span>{/if}
 {/snippet}
 
 {#snippet overview()}
-	<span class="font-mono text-xs text-muted"
-		>{t('period.records', { unit: t(UNIT_KEYS[period.unit]), count: context.traceCount })}</span
-	>
-	<h2 class="text-lg leading-tight font-semibold" data-testid="selected-title">{context.title}</h2>
+	<ContextTitle
+		title={context.title}
+		meta={t('period.records', { unit: t(UNIT_KEYS[period.unit]), count: context.traceCount })}
+		leading="tight"
+	/>
 	{#if !noteShown}
 		<div>
 			<Button size="sm" variant="quiet" data-testid="period-note-add" onclick={edit}
 				>{t('period.addNote')}</Button
 			>
 		</div>
-		{@render status()}
+		<NoteStatus editor={note} />
 	{/if}
 {/snippet}
 
-{#snippet note()}
-	<div class="flex flex-col gap-1" data-testid="period-note">
-		{#if editing}
-			<textarea
-				class="cg-field min-h-24 w-full text-sm"
-				aria-label={t('period.note')}
-				bind:value={draft}
-				disabled={busy}></textarea>
-			<div class="flex gap-1">
-				<Button size="sm" variant="primary" disabled={busy} onclick={save}
-					>{t('period.save')}</Button
-				>
-				<Button size="sm" variant="quiet" disabled={busy} onclick={() => (editing = false)}
-					>{t('common.cancel')}</Button
-				>
-			</div>
-		{:else}
-			<p class="text-sm whitespace-pre-wrap">{context.note}</p>
-			<div><Button size="sm" variant="quiet" onclick={edit}>{t('period.editNote')}</Button></div>
-		{/if}
-		{@render status()}
-	</div>
+{#snippet noteBlock()}
+	<ContextNote
+		text={context.note}
+		editor={note}
+		labels={{ note: t('period.note'), save: t('period.save'), edit: t('period.editNote') }}
+		testId="period-note"
+	/>
 {/snippet}
 
 {#snippet scopes()}
@@ -219,6 +181,7 @@
 					colorDepth={scope.colorDepth}
 					lit={emphasis.scopeIds.has(scope.id)}
 					lens={chipLens.get(scope.id) ?? null}
+					count={scopeCounts.get(scope.id)}
 					testId="active-scope"
 					onopen={(id) => workbench.selectScope(id, 'context')}
 				/>
@@ -238,29 +201,44 @@
 			style:min-height={fade.folded.size ? `${listHeight}px` : undefined}
 			bind:clientHeight={listHeight}
 		>
-			{#each context.records as item (item.traceId)}
-				{@const lit = emphasis.traceIds.has(item.traceId)}
-				<li
-					class="row"
-					data-collapsed={fade.folded.has(item.traceId) ? 'true' : undefined}
-					data-dimmed={fade.dimmedTraceIds.has(item.traceId) ? 'true' : undefined}
-					{...rest('trace', item.traceId)}
-				>
-					<div class="fold">
-						<button
-							type="button"
-							class={[LIST_BUTTON_CLASS, lit && 'lit']}
-							data-testid="period-record"
-							data-trace-id={item.traceId}
-							data-lit={lit ? 'true' : undefined}
-							onclick={() => workbench.selectTrace(item.traceId, 'context')}
-							{@attach lensSource(workbench.hover, { kind: 'trace', traceId: item.traceId })}
-						>
-							<span class="font-mono text-xs text-muted">{formatDay(item.time.start)}</span>
-							<span>{item.label}</span>
-						</button>
-					</div>
-				</li>
+			{#each groups as part (`${part.key}:${part.items[0]?.traceId}`)}
+				{#if part.label}
+					<li
+						class="row"
+						data-collapsed={part.items.every((item) => fade.folded.has(item.traceId))
+							? 'true'
+							: undefined}
+					>
+						<div class="fold"><RecordGroupHead label={part.label} count={part.items.length} /></div>
+					</li>
+				{/if}
+				{#each part.items as item (item.traceId)}
+					{@const lit = emphasis.traceIds.has(item.traceId)}
+					<li
+						class="row"
+						data-collapsed={fade.folded.has(item.traceId) ? 'true' : undefined}
+						data-dimmed={fade.dimmedTraceIds.has(item.traceId) ? 'true' : undefined}
+						{...rest('trace', item.traceId)}
+					>
+						<div class="fold">
+							<RecordRow
+								item={{
+									traceId: item.traceId,
+									date: formatDay(item.time.start),
+									title: item.label,
+									mark: {
+										shape: recordShape(item.time),
+										colours: item.scopes.map((scope) => chapterColour(scope, '')).filter(Boolean)
+									}
+								}}
+								testId="period-record"
+								{lit}
+								titleClass=""
+								onselect={(traceId) => workbench.selectTrace(traceId, 'context')}
+							/>
+						</div>
+					</li>
+				{/each}
 			{/each}
 		</ul>
 	{:else}
@@ -308,19 +286,19 @@
 		>
 	</div>
 	{#if context.neighbors.children.length}
-		<div class="flex flex-wrap gap-1">
-			{#each context.neighbors.children as child (child.start)}
-				<button
-					type="button"
-					class={CHIP_CLASS + ' cursor-pointer hover:text-ink'}
-					data-testid="period-child"
-					data-note={noted(child) || undefined}
-					onclick={() => go(child)}
-					{@attach lensSource(workbench.hover, { kind: 'period', period: child })}
-					>{@render noteDot(child)}{periodTitle(child, locale.current)}</button
-				>
-			{/each}
-		</div>
+		<ChildList
+			items={context.neighbors.children.map((child) => ({
+				key: String(child.start),
+				label: periodTitle(child, locale.current),
+				lens: { kind: 'period' as const, period: child },
+				noted: noted(child),
+				ref: child
+			}))}
+			testId="period-child"
+			onpick={(item) => go(item.ref)}
+		>
+			{#snippet lead(item)}{@render noteDot(item.ref)}{/snippet}
+		</ChildList>
 	{/if}
 {/snippet}
 
@@ -328,19 +306,24 @@
      Заметка while there is one, Активные Scope, Записи with the count, Окрестность периода. -->
 <section class="flex flex-col gap-3" data-testid="context-period">
 	{#each shown as entry (entry.id)}
-		{@render section(
-			entry.id,
-			t(entry.label),
-			entry.id === 'overview'
+		<ContextSection
+			id={entry.id}
+			label={t(entry.label)}
+			title={sectionTitle(entry.id, t(entry.label))}
+			collapsed={folds.collapsed[entry.id]}
+			ontoggle={() => folds.toggle(entry.id)}
+			flushFirst
+		>
+			{@render (entry.id === 'overview'
 				? overview
 				: entry.id === 'note'
-					? note
+					? noteBlock
 					: entry.id === 'scopes'
 						? scopes
 						: entry.id === 'records'
 							? records
-							: neighborhood
-		)}
+							: neighborhood)()}
+		</ContextSection>
 	{/each}
 </section>
 
@@ -378,23 +361,6 @@
 		.chip {
 			transition: none;
 		}
-	}
-	/* The emphasis of the hover linking (pack 3, P4): a 2 px accent underline with rounded ends
-	   along the row's bottom edge, the same one the chip carries when lit; drawn inside the box,
-	   so nothing reflows and what is under the pointer stays under it. */
-	.lit {
-		position: relative;
-	}
-	.lit::after {
-		content: '';
-		position: absolute;
-		left: 6px;
-		right: 6px;
-		bottom: 0;
-		height: 2px;
-		border-radius: 1px;
-		background: var(--cg-accent);
-		pointer-events: none;
 	}
 	/* A period with a note in the Окрестность: a 6 px accent dot before its name (loop 008 polish). */
 	.note-dot {

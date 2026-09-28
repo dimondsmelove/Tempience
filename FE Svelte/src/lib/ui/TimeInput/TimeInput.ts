@@ -23,8 +23,15 @@ export function clockLabel(t: number): string {
 		hour12: false
 	}).format(t);
 }
-export function dateLabel(t: number): string {
-	return dateTimeFormat(locale.current, { day: 'numeric', month: 'long' }).format(t);
+export function dateLabel(t: number, now = Date.now()): string {
+	const otherYear = new Date(t).getFullYear() !== new Date(now).getFullYear();
+	return dateTimeFormat(locale.current, {
+		day: 'numeric',
+		month: 'long',
+		...(otherYear ? { year: 'numeric' as const } : {})
+	})
+		.format(t)
+		.replace(' г.', '');
 }
 export function rangeLabel(value: TimeSelection): string {
 	const point = (t: number) => `${dateLabel(t)}${value.timed ? ', ' + clockLabel(t) : ''}`;

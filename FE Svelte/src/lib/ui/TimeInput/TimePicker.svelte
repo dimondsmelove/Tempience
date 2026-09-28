@@ -19,6 +19,8 @@
 		mobile = false,
 		extras,
 		allowDuration = true,
+		allowEnd = true,
+		showDetail = true,
 		timeline
 	}: {
 		picker: TimeInputState;
@@ -28,6 +30,10 @@
 		mobile?: boolean;
 		extras?: Snippet;
 		allowDuration?: boolean;
+		/** The selection may take an end; a single moment (a stage's start) takes none. */
+		allowEnd?: boolean;
+		/** The «Часы / Длительность» toggle; a moment that is only ever a start (a chapter's, a stage's) has none. */
+		showDetail?: boolean;
 		timeline?: Snippet;
 	} = $props();
 	const selectedMinute = $derived(
@@ -155,25 +161,25 @@
 				>
 			</div>{/if}
 	</div>
-	<div class="picker-detail-toggle" role="group" aria-label={t('time.detail')}>
-		<button
-			type="button"
-			data-testid="detail-clock"
-			aria-pressed={picker.detail === 'clock'}
-			onclick={() => {
-				ondetail('clock');
-			}}>{t('time.clock')}</button
-		>
-		<button
-			type="button"
-			data-testid="detail-duration"
-			disabled={!allowDuration}
-			aria-pressed={picker.detail === 'duration'}
-			onclick={() => {
-				ondetail('duration');
-			}}>{t('time.duration')}</button
-		>
-	</div>
+	{#if showDetail}<div class="picker-detail-toggle" role="group" aria-label={t('time.detail')}>
+			<button
+				type="button"
+				data-testid="detail-clock"
+				aria-pressed={picker.detail === 'clock'}
+				onclick={() => {
+					ondetail('clock');
+				}}>{t('time.clock')}</button
+			>
+			<button
+				type="button"
+				data-testid="detail-duration"
+				disabled={!allowDuration}
+				aria-pressed={picker.detail === 'duration'}
+				onclick={() => {
+					ondetail('duration');
+				}}>{t('time.duration')}</button
+			>
+		</div>{/if}
 	<div class="picker-body">
 		{#if picker.input === 'timeline'}
 			{#if timeline}{@render timeline()}{:else}<p class="picker-scale-hint">
@@ -226,7 +232,7 @@
 						>{:else}<span class="date-only-hint">{t('time.timeOptional')}</span>{/if}
 				</div>
 			{/if}{/if}
-		{#if picker.detail === 'clock' && !picker.unplaced && !picker.draft.window && !picker.draft.ongoing && picker.draft.end === null && !picker.pickingEnd}<button
+		{#if allowEnd && picker.detail === 'clock' && !picker.unplaced && !picker.draft.window && !picker.draft.ongoing && picker.draft.end === null && !picker.pickingEnd}<button
 				type="button"
 				class="picker-add-end"
 				data-testid="picker-add-end"

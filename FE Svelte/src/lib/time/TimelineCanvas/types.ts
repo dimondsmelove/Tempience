@@ -37,6 +37,11 @@ export type TimelineCanvasProps = Readonly<{
 	searching: boolean;
 	/** Height of every row, shared with the Scope rail (C9a-2). */
 	rowHeightPx: number;
+	/**
+	 * Rows glide to their new places when their order changes, in step with the rail (the
+	 * space has chapters, so a lineup re-orders them); none under reduced motion.
+	 */
+	animateRows?: boolean;
 	minHeightPx?: number;
 	onselect: (traceId: string, source: SelectSource) => void;
 	/**

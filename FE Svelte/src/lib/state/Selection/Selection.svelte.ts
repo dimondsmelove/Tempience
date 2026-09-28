@@ -1,4 +1,5 @@
 import type { PeriodRef } from '$lib/model/Axis/types';
+import type { StagePick } from '$lib/model/Chapters/types';
 import type { SelectionPosition, SelectionTarget, SelectSource } from './types';
 
 export const selectionKey = (target: SelectionTarget): string =>
@@ -12,7 +13,9 @@ export const selectionKey = (target: SelectionTarget): string =>
 					? `period-record:${target.periodId}`
 					: target.kind === 'row'
 						? `row:${target.rowId}`
-						: `period:${target.period.unit}:${target.period.start}`;
+						: target.kind === 'chapter'
+							? `chapter:${target.chapterId}:${target.stage === null ? '' : target.stage === 'whole' ? '*' : target.stage}`
+							: `period:${target.period.unit}:${target.period.start}`;
 
 /**
  * The selected record or period with back/forward history (DESIGN.md §8).
@@ -53,6 +56,14 @@ export class SelectionState {
 	get rowId(): string | null {
 		const current = this.current;
 		return current?.kind === 'row' ? current.rowId : null;
+	}
+
+	/** The chapter chosen, with the stage chosen in its strip. */
+	get chapter(): Readonly<{ chapterId: string; stage: StagePick }> | null {
+		const current = this.current;
+		return current?.kind === 'chapter'
+			? { chapterId: current.chapterId, stage: current.stage }
+			: null;
 	}
 
 	get entityId(): string | null {

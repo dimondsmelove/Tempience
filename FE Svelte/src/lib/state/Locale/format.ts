@@ -33,8 +33,47 @@ export const numberFormat = (
 	return format;
 };
 
-/** A calendar day (a UTC instant) as the language writes it, without the Russian «г.». */
-export const formatDay = (locale: Locale, ms: number): string =>
-	dateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+export type DayOptions = Readonly<{
+	/** The zone the day is read in; a calendar day is a UTC instant by default. */
+	timeZone?: string;
+	/** `current`: the year only when it is not the year of `now` — «10 окт.», «10 окт. 2019». */
+	year?: 'always' | 'current';
+	now?: number;
+}>;
+
+const yearIn = (ms: number, timeZone: string): string =>
+	dateTimeFormat('en', { year: 'numeric', timeZone }).format(ms);
+
+/** A calendar day as the language writes it, without the Russian «г.». */
+export const formatDay = (locale: Locale, ms: number, options: DayOptions = {}): string => {
+	const timeZone = options.timeZone ?? 'UTC';
+	const year =
+		options.year !== 'current' ||
+		yearIn(ms, timeZone) !== yearIn(options.now ?? Date.now(), timeZone);
+	return dateTimeFormat(locale, {
+		day: 'numeric',
+		month: 'short',
+		...(year ? { year: 'numeric' as const } : {}),
+		timeZone
+	})
 		.format(ms)
 		.replace(' г.', '');
+};
+
+/** A moment as the language writes it: weekday, day, month (a year not this one), time. */
+export const formatMoment = (locale: Locale, ms: number, options: DayOptions = {}): string => {
+	const timeZone = options.timeZone ?? 'UTC';
+	const year = yearIn(ms, timeZone) !== yearIn(options.now ?? Date.now(), timeZone);
+	return dateTimeFormat(locale, {
+		weekday: 'short',
+		day: 'numeric',
+		month: 'short',
+		...(year ? { year: 'numeric' as const } : {}),
+		hour: '2-digit',
+		minute: '2-digit',
+		hourCycle: 'h23',
+		timeZone
+	})
+		.format(ms)
+		.replace(' г.', '');
+};

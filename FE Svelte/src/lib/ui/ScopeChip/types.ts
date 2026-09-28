@@ -40,6 +40,8 @@ export type ScopeChipProps = Readonly<{
 	 * itself unless said otherwise — a period's chip names its records in that Scope; `null` lights nothing.
 	 */
 	lens?: HoverTarget;
+	/** How many records the chip stands for here, in mono after the name. */
+	count?: number;
 	/** More actions between the name and the ×, as small icon buttons. */
 	children?: Snippet;
 }>;

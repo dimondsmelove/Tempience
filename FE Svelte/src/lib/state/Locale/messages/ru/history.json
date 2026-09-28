@@ -14,6 +14,8 @@
 	"history.subjectAssessment": "Оценка",
 	"history.subjectScope": "Scope",
 	"history.subjectPeriod": "Период",
+	"history.subjectChapter": "Глава",
+	"history.subjectStage": "Этап",
 	"history.subjectKind": "Trace Kind",
 	"history.subjectOther": "Другое",
 	"history.actionCreated": "создана",

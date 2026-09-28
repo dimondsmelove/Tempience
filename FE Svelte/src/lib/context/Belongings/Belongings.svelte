@@ -143,6 +143,7 @@
 				<ScopePicker
 					inline
 					scopes={options}
+					groups={workbench.chapters.captureGroups}
 					exclude={linkedIds}
 					label={t('belonging.add')}
 					placeholder={t('belonging.add')}

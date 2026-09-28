@@ -1,3 +1,4 @@
+import type { Snippet } from 'svelte';
 import type { ProjectedRow } from '$lib/model/Projection/types';
 import type { ArrangementState } from '$lib/state/Arrangement/Arrangement.svelte';
 import type { FiltersState } from '$lib/state/Filters/Filters.svelte';
@@ -54,6 +55,12 @@ export type RailRowProps = Readonly<{
 	pulse: boolean;
 	/** Set on a merged row of the rail itself: its name renames, «×» splits. */
 	merged: MergedRowInfo | null;
+	/** Something at the row's left edge, before the grip (chapters lab: its chapter history). */
+	lead?: Snippet<[ProjectedRow]> | null;
+	/** Set on a row whose name reads heavier (chapters lab: a focus row). */
+	heavy?: boolean;
+	/** Set on a row whose name reads quieter: normal weight, secondary colour (chapters lab: below the focus). */
+	quiet?: boolean;
 	/** A claimed child placed alone as a lane (C2, D): «↩» returns it under its parent (review п. 32). */
 	claimed: boolean;
 	onhover: (event: PointerEvent) => void;
@@ -92,6 +99,27 @@ export type ScopeRailProps = Readonly<{
 	veil?: number;
 	/** The rows whose names flash once after a Context or history navigation (loop 008, C3). */
 	pulseRowIds?: ReadonlySet<string>;
+	/** Rendered at each row's left edge, before the grip (chapters lab: chapter history). */
+	rowLead?: Snippet<[ProjectedRow]> | null;
+	/** Rows whose names read heavier, by row id (chapters lab: focus rows). */
+	heavyRowIds?: ReadonlySet<string> | null;
+	/** Rows whose names read quieter, by row id (chapters: the unfolded shadow's Scopes). */
+	quietRowIds?: ReadonlySet<string> | null;
+	/**
+	 * A chapter chooses the rows (owner 2026-09-28): the device's own order, the rest folded into
+	 * the shadow's row — its arrow unfolds it through the chapter; it is no lane of the device, so
+	 * it is neither dragged, renamed nor split.
+	 */
+	chapterDriven?: Readonly<{ rest: ReadonlySet<string>; ontoggleRest: () => void }> | null;
+	/**
+	 * «Мой порядок строк» beside the Scope search while a chapter could order the rows (owner
+	 * 2026-09-28): pressed, the rows are the device's own and the chapter stays chosen.
+	 */
+	chapterRows?: Readonly<{ off: boolean; ontoggle: () => void }> | null;
+	/** Rows glide to their new places when their order changes (FLIP, 200 ms; none under reduced motion). */
+	animateMoves?: boolean;
+	/** A line of the header aligned with a row of the time header above the axis (chapters lab: the band's). */
+	headerBand?: Readonly<{ heightPx: number; content: Snippet }> | null;
 	/** The pointer rests on a row's name, or on none; touch never hovers. */
 	onhoverrow?: (rowId: string | null) => void;
 	onselectscope: (scopeId: string) => void;

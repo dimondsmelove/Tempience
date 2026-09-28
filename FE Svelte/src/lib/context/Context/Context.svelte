@@ -28,6 +28,7 @@
 	import type { ContextTab } from './constants';
 	import TraceView from './TraceView.svelte';
 	import { readCollapsed, writeCollapsed } from './sections';
+	import ChapterContext from '$lib/context/ChapterContext/ChapterContext.svelte';
 
 	const timeInput = getTimeInputHost();
 
@@ -214,6 +215,9 @@
 			/>{/key}
 	{:else if workbench.capture}
 		{#key workbench.forms.captureRevision}<Capture {workbench} />{/key}
+	{:else if workbench.chapters.showing}
+		<!-- A chapter chosen on the band or in the rail's header, or the chapter form. -->
+		<ChapterContext {workbench} />
 	{:else if selection.entityId}
 		<EntityView {workbench} entityId={selection.entityId} />
 	{:else if selection.scopeId}

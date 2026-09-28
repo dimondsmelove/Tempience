@@ -1,3 +1,5 @@
+import type { Chapter } from '$lib/model/Chapters/types';
+import type { ChapterRepository } from '../Chapters/types';
 import type { ScopeCaptureRepository } from '../scope-capture-repository';
 import type { TraceRecordResult, TraceRecordSave } from '../Traces/record';
 import type { TraceLifecycleResult } from '../Traces/edit';
@@ -61,6 +63,8 @@ export type Collection =
 	| 'traceKindVersions'
 	| 'traces'
 	| 'periods'
+	| 'chapters'
+	| 'chapterStages'
 	| 'scopes'
 	| 'scopeSegments'
 	| 'intersections'
@@ -112,7 +116,8 @@ export type FixedTimeIntentDraft = LedgerIntervalDraft;
 
 export type ActualDraft = LedgerIntervalDraft;
 
-export type TraceRepository = {
+/** Every command and read of the space; chapters and their stages come from `Chapters/`. */
+export type TraceRepository = ChapterRepository & {
 	setTraceKindScopes: (
 		kindId: string,
 		scopeIds: readonly string[],
@@ -332,6 +337,8 @@ export type TempienceRepository = TraceRepository &
 		subscribeTraceKinds: RepositorySubscription<TraceKind>;
 		subscribeTraceKindVersions: RepositorySubscription<TraceKindV>;
 		subscribeScopes: RepositorySubscription<Scope>;
+		/** The chapters that are not deleted, as `listChapters` reads them, live. */
+		subscribeChapters: RepositorySubscription<Chapter>;
 		/** The Scopes that were deleted: what the list of them and their return read. */
 		subscribeDeletedScopes: RepositorySubscription<Scope>;
 		subscribeIntentionAssessments: RepositorySubscription<IntentionAssessment>;

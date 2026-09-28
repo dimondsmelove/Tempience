@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { CATALOG_KEY } from '$lib/state/Forms/constants';
-	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import {
 		BarsOutline,
 		FilterOutline,
@@ -32,12 +31,10 @@
 
 	const filterCount = $derived(workbench.filters.activeCount);
 	/** The Trace Kind catalog opens in the Context from the timeline's own toolbar (ANSWERS 2026-09-15). */
-	const openKinds = (): void =>
-		draftGuard.exit(() => {
-			workbench.capture = false;
-			workbench.forms.showCatalog(workbench.forms.data?.kindId);
-			ontogglepanel('context', true);
-		});
+	const openKinds = (): void => {
+		workbench.showCatalog(workbench.forms.data?.kindId);
+		ontogglepanel('context', true);
+	};
 </script>
 
 {#if phone}

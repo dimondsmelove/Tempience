@@ -11,6 +11,8 @@ import { normalizeIntersection } from './Intersections/read';
 import { createKindRepository } from './Kinds/Kinds';
 import { createKindMembershipRepository } from './Kinds/memberships';
 import { compareTraceKindVersions, normalizeTraceKind, normalizeTraceKindV } from './Kinds/read';
+import { createChapterRepository } from './Chapters/Chapters';
+import { subscribeChapters } from './Chapters/subscribe';
 import { createPeriodRepository } from './Periods/Periods';
 import { createProvenanceRepository } from './Provenance/ProvenanceLinks';
 import { asRepositoryClient } from './Repository/client';
@@ -65,6 +67,7 @@ export const createTraceRepository = (client: RepositoryClient): TraceRepository
 	...createKindRepository(client),
 	...createKindMembershipRepository(client),
 	...createPeriodRepository(client),
+	...createChapterRepository(client),
 	...createScopeRepository(client),
 	...createScopeSegmentRepository(client),
 	...createScopeHierarchyRepository(client),
@@ -111,6 +114,7 @@ export const createTriplitRepository = (client: TempienceTriplitClient): Tempien
 				(rows) => next(rows.map(normalizeScope).toSorted((a, b) => a.name.localeCompare(b.name))),
 				fail
 			),
+		subscribeChapters: (next, fail) => subscribeChapters(client, next, fail),
 		subscribeIntentionAssessments: (next, fail) => {
 			// The collection is newer than some stored schemas: subscribe only after the readiness check.
 			let unsubscribe = (): void => {};

@@ -11,6 +11,16 @@
 	import { layoutRibbon } from '$lib/model/Layout/Layout';
 	import type { LayoutOptions, RibbonLayout } from '$lib/model/Layout/types';
 	import { PULSE_MS } from '$lib/model/Pulse/constants';
+	import { ROW_MOVE_MS } from '$lib/model/RowMotion/constants';
+	import {
+		ghostOffsetsAt,
+		motionRows,
+		offsetsAt,
+		planGhosts,
+		planMotion,
+		shiftLayout
+	} from '$lib/model/RowMotion/RowMotion';
+	import type { Ghost, MotionPlan } from '$lib/model/RowMotion/types';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { createAppearanceReader } from './appearance';
 	import { HOVER_HOLD_MS, VEIL_EASE_MS } from './constants';
@@ -36,6 +46,7 @@
 		searching,
 		rowHeightPx,
 		minHeightPx = 0,
+		animateRows = false,
 		onselect,
 		onhover,
 		onzoomto,
@@ -90,6 +101,17 @@
 		Omit<LayoutOptions, 'measure'> & { rows: typeof rows; signature: string }
 	>;
 	let cached: { key: LayoutKey; layout: RibbonLayout } | null = null;
+	/**
+	 * The lanes' glide under way: each moving row's offset at its start, and when it began. The
+	 * rows are drawn eased from their old places to the new layout's, frame by frame.
+	 */
+	let glide: {
+		plan: MotionPlan;
+		/** Rows folding away into another, drawn as they were until the glide ends. */
+		ghosts: readonly Ghost[];
+		ghostRows: RibbonLayout['rows'];
+		startedAt: number;
+	} | null = null;
 	const sameKey = (a: LayoutKey, b: LayoutKey): boolean =>
 		a.rows === b.rows &&
 		a.window === b.window &&
@@ -103,6 +125,7 @@
 
 	/** Redraws whenever rows, the window, the selection, the hover, the veil, the search, the theme or the element width change. */
 	const render: Attachment<HTMLCanvasElement> = (canvas) => {
+		let glideFrame = 0;
 		const draw = (): void => {
 			const widthPx = canvas.clientWidth;
 			if (widthPx === 0) return;
@@ -136,17 +159,44 @@
 				linked,
 				signature
 			};
+			const previous = cached;
 			const next =
-				cached && sameKey(cached.key, key)
-					? cached.layout
+				previous && sameKey(previous.key, key)
+					? previous.layout
 					: layoutRibbon(rows, { ...key, measure });
 			cached = { key, layout: next };
+			// New rows in another order: they glide from where they stood, as the rail's names do.
+			if (previous && previous.key.rows !== rows) {
+				const moves = animateRows && !prefersReducedMotion.current;
+				const before = motionRows(previous.layout);
+				const after = motionRows(next);
+				const plan = moves ? planMotion(before, after) : new Map<string, number>();
+				const ghosts = moves ? planGhosts(before, after) : [];
+				const folding = new Set(ghosts.map((ghost) => ghost.id));
+				glide =
+					plan.size || ghosts.length
+						? {
+								plan,
+								ghosts,
+								ghostRows: previous.layout.rows.filter((row) => folding.has(row.row.id)),
+								startedAt: performance.now()
+							}
+						: null;
+			}
+			const progress = glide ? (performance.now() - glide.startedAt) / ROW_MOVE_MS : 1;
+			if (progress >= 1) glide = null;
+			const drawn = glide
+				? shiftLayout(
+						{ ...next, rows: [...next.rows, ...glide.ghostRows] },
+						new Map([...offsetsAt(glide.plan, progress), ...ghostOffsetsAt(glide.ghosts, progress)])
+					)
+				: next;
 			canvas.width = Math.round(widthPx * dpr);
 			canvas.height = Math.round(next.heightPx * dpr);
 			captions = drawRibbon({
 				context,
 				dpr,
-				layout: next,
+				layout: drawn,
 				palette,
 				metrics,
 				now,
@@ -165,6 +215,10 @@
 				measureStrong
 			});
 			layout = next;
+			if (glide) {
+				cancelAnimationFrame(glideFrame);
+				glideFrame = requestAnimationFrame(draw);
+			}
 		};
 		draw();
 		const frame = requestAnimationFrame(draw);
@@ -173,6 +227,7 @@
 		document.fonts.addEventListener('loadingdone', draw);
 		return () => {
 			cancelAnimationFrame(frame);
+			cancelAnimationFrame(glideFrame);
 			observer.disconnect();
 			document.fonts.removeEventListener('loadingdone', draw);
 		};

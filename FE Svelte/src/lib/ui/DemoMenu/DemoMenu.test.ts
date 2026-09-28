@@ -1,5 +1,6 @@
 import { render } from 'svelte/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { demoStoryOpenTestId } from '$lib/ui/DemoStories/constants';
 import { DEMO_MENU_CONFIRM_DELETE_TEST_ID, DEMO_MENU_DELETE_TEST_ID } from './constants';
 
 const space = vi.hoisted(() => ({ id: 'canonical' }));
@@ -13,14 +14,16 @@ describe('demo and tour menu', () => {
 		space.id = 'canonical';
 	});
 
-	it('offers the tour and «Открыть записную книжку Ватсона» outside the demo', async () => {
+	it('offers the tour and the catalog of demo stories outside a demo', async () => {
 		const { body } = render(await load());
 		const text = textOf(body);
 		expect(text).toContain('Знакомство');
 		expect(text).toContain('Как устроено Tempience');
+		expect(text).toContain('Демо-истории');
 		expect(text).toContain('Открыть записную книжку Ватсона');
+		expect(body).toContain(`data-testid="${demoStoryOpenTestId('watson')}"`);
 		expect(text).not.toContain('Удалить демо');
-		expect(text).not.toContain('Это записная книжка доктора Ватсона');
+		expect(text).not.toContain('— демо.');
 	});
 
 	it('offers the tour, the notice and «Удалить демо» inside the demo, with its own ids', async () => {
@@ -28,9 +31,12 @@ describe('demo and tour menu', () => {
 		const { body } = render(await load());
 		const text = textOf(body);
 		expect(text).toContain('Как устроено Tempience');
-		expect(text).toContain('Это записная книжка доктора Ватсона');
+		expect(text).toContain('Записная книжка доктора Ватсона — демо');
 		expect(text).toContain('Удалить демо');
+		// The story already open is never offered again; the other stories are.
 		expect(text).not.toContain('Открыть записную книжку Ватсона');
+		expect(text).toContain('Демо-истории');
+		expect(text).toContain('Открыть блокнот Ани');
 		expect(body).toContain(`data-testid="${DEMO_MENU_DELETE_TEST_ID}"`);
 		// The confirm step is not shown until asked for; its id never collides with the space menu's.
 		expect(body).not.toContain(`data-testid="${DEMO_MENU_CONFIRM_DELETE_TEST_ID}"`);

@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { errorText } from '$lib/state/Locale/errors';
-	import type { Snippet } from 'svelte';
 	import { untrack } from 'svelte';
 	import {
-		ChevronDownOutline,
-		ChevronRightOutline,
 		CirclePlusOutline,
 		CloseOutline,
 		TrashBinOutline,
@@ -28,21 +25,21 @@
 	import { reloadForSaved } from '$lib/state/Workbench/open';
 	import { INTERSECTION_KEYS } from '$lib/context/EntityView/constants';
 	import type { ScopeColour } from '$lib/theme/scope-colour';
-	import {
-		GROUP_HEADING_CLASS,
-		LIST_BUTTON_CLASS,
-		SECTION_HEADING_CLASS
-	} from '$lib/context/constants';
+	import { GROUP_HEADING_CLASS, LIST_BUTTON_CLASS } from '$lib/context/constants';
+	import ContextActions from '$lib/context/ContextActions/ContextActions.svelte';
+	import ContextNote from '$lib/context/ContextNote/ContextNote.svelte';
+	import ContextSection from '$lib/context/ContextSection/ContextSection.svelte';
+	import { FoldedSections } from '$lib/context/ContextSection/FoldedSections.svelte';
+	import ContextTitle from '$lib/context/ContextTitle/ContextTitle.svelte';
+	import RecordList from '$lib/context/RecordList/RecordList.svelte';
+	import { scopeMembership } from '$lib/model/Projection/tree';
+	import { recordShape } from '$lib/model/RecordGroups/RecordGroups';
+	import { chapterColour } from '$lib/theme/chapter-colour';
 	import { explorerEntitiesById } from '$lib/model/Snapshot/Snapshot';
 	import { UNSCOPED_ROW_ID, UNSCOPED_ROW_KEY } from '$lib/model/Projection/constants';
 	import { entityLabel, formatDay } from '$lib/context/labels';
 	import { entityLens } from '$lib/context/lens';
-	import {
-		SCOPE_SECTIONS,
-		readScopeCollapsed,
-		writeScopeCollapsed,
-		type ScopeSection
-	} from './sections';
+	import { SCOPE_SECTIONS, SCOPE_SECTIONS_STORAGE_KEY, type ScopeSection } from './sections';
 	import type { ScopeViewProps } from './types';
 	let { workbench }: ScopeViewProps = $props();
 	let editing = $state(false);
@@ -61,6 +58,19 @@
 	};
 	$effect(() => () => unwatch?.());
 	const context = $derived(workbench.scopeContext);
+	/** Every Scope each record is in: a record in several weaves their colours, as on the ribbon. */
+	const memberships = $derived(
+		scopeMembership(workbench.view.traces, workbench.view.scopes, workbench.view.intersections)
+			.scopesByTrace
+	);
+	/** A record's colours: this Scope's first, then the own colours of its other Scopes, in rail order. */
+	const recordColours = (traceId: string): string[] => {
+		const mine = memberships.get(traceId) ?? new Set<string>();
+		const others = workbench.view.scopes
+			.filter((scope) => mine.has(scope.id) && scope.id !== context?.record.id)
+			.map((scope) => chapterColour(scope, ''));
+		return [context ? chapterColour(context.record, '') : '', ...others].filter(Boolean);
+	};
 	/** The «Без Scope» row chosen: a list of records with nothing to edit, bind or delete. */
 	const unscoped = $derived(context?.record.id === UNSCOPED_ROW_ID);
 	/** The Kinds directly bound to this Scope: shown in their own part, counted by the deletion. */
@@ -186,11 +196,10 @@
 		removing = false;
 	};
 	/** Folded sections are remembered across Scopes and reloads, like a record's Context. */
-	let collapsed = $state(readScopeCollapsed());
-	const toggle = (id: ScopeSection): void => {
-		collapsed[id] = !collapsed[id];
-		writeScopeCollapsed($state.snapshot(collapsed));
-	};
+	const folds = new FoldedSections(
+		SCOPE_SECTIONS.map((entry) => entry.id),
+		SCOPE_SECTIONS_STORAGE_KEY
+	);
 	const counts = $derived.by((): Partial<Record<ScopeSection, number>> => ({
 		kinds: scopeKinds.kinds.length,
 		records: context?.traces.length ?? 0,
@@ -206,34 +215,6 @@
 	);
 </script>
 
-{#snippet section(id: ScopeSection, label: string, body: Snippet)}
-	<section
-		class="flex flex-col gap-2 border-t border-outline pt-2"
-		id={`context-section-${id}`}
-		data-testid={`context-section-${id}`}
-	>
-		<div class="flex items-center justify-between gap-1">
-			<h3 class={SECTION_HEADING_CLASS}>{sectionTitle(id, label)}</h3>
-			<Button
-				size="sm"
-				variant="quiet"
-				icon
-				aria-expanded={!collapsed[id]}
-				aria-label={collapsed[id]
-					? t('context.expand', { section: label })
-					: t('context.collapse', { section: label })}
-				data-testid={`section-toggle-${id}`}
-				onclick={() => toggle(id)}
-			>
-				{#if collapsed[id]}<ChevronRightOutline class="h-4 w-4" />{:else}<ChevronDownOutline
-						class="h-4 w-4"
-					/>{/if}
-			</Button>
-		</div>
-		{#if !collapsed[id]}{@render body()}{/if}
-	</section>
-{/snippet}
-
 {#if context}
 	<section class="flex flex-col gap-3" data-testid="context-scope">
 		{#if editing}
@@ -248,43 +229,32 @@
 					}}
 				/>{/key}
 		{:else}
-			<span class="font-mono text-xs text-muted"
-				>{t('scope.subtreeRecords', { count: context.traces.length })}</span
-			>
 			<!-- The Scope's colour beside its name (owner review 2026-09-19, pack 3, P5) is the dot that
 			     opens the flower (C6, D): a pick is saved at once, no editor in between. Without a colour
 			     the dot is a transparent button in the same slot; «Без Scope» has no dot and no button. -->
-			<div class="flex items-center gap-2">
-				{#if !unscoped}
-					{#key context.record.id}
-						<ColorBlossomPicker
-							hue={shownColour.hue}
-							chroma={shownColour.chroma}
-							depth={shownColour.depth}
-							label={t('scope.colour')}
-							variant="dot"
-							size={DOT_HEADING_PX}
-							testId="scope-colour-dot"
-							onpick={pickColour}
-						/>
-					{/key}
-				{/if}
-				<h2
-					class="min-w-0 text-lg leading-snug font-semibold break-words"
-					data-testid="selected-title"
-				>
-					{unscoped ? t(UNSCOPED_ROW_KEY) : context.record.name}
-				</h2>
-			</div>
+			{#snippet dot()}
+				{#key context.record.id}
+					<ColorBlossomPicker
+						hue={shownColour.hue}
+						chroma={shownColour.chroma}
+						depth={shownColour.depth}
+						label={t('scope.colour')}
+						variant="dot"
+						size={DOT_HEADING_PX}
+						testId="scope-colour-dot"
+						onpick={pickColour}
+					/>
+				{/key}
+			{/snippet}
+			<ContextTitle
+				title={unscoped ? t(UNSCOPED_ROW_KEY) : context.record.name}
+				meta={t('scope.subtreeRecords', { count: context.traces.length })}
+				dot={unscoped ? undefined : dot}
+			/>
 			{#if unscoped}
 				<p class="text-sm text-muted">{t('scope.unscopedHint')}</p>
 			{/if}
-			<!-- One row of icons; the name of each action is its tooltip and its accessible name. -->
-			{#if !unscoped}<div
-					class="flex items-center gap-1"
-					role="group"
-					aria-label={t('scope.editAction')}
-				>
+			{#if !unscoped}<ContextActions label={t('scope.editAction')}>
 					<Button
 						size="sm"
 						icon
@@ -320,7 +290,7 @@
 						data-testid="delete-scope"
 						onclick={() => void remove()}><TrashBinOutline class="h-4 w-4" /></Button
 					>
-				</div>{/if}
+				</ContextActions>{/if}
 			{#if refusal}
 				<p
 					role="alert"
@@ -335,14 +305,14 @@
 				</p>{/if}
 
 			{#snippet note()}
-				<p class="text-sm whitespace-pre-wrap" data-testid="scope-note">{context.record.note}</p>
+				<ContextNote text={context.record.note} textTestId="scope-note" />
 			{/snippet}
 			{#snippet hierarchy()}
 				<!-- The parent is its chip, tinted and leading there; a child row keeps its button and
 				     gains the child's colour dot before the name (owner review 2026-09-19, pack 3, P3). -->
 				{#if context.parent}
 					<h4 class={GROUP_HEADING_CLASS}>{t('scope.parent')}</h4>
-					<div class="flex flex-wrap gap-1">
+					<div class="flex min-w-0 flex-wrap gap-1">
 						<ScopeChip
 							id={context.parent.id}
 							name={context.parent.name}
@@ -381,25 +351,26 @@
 					busy={scopeKinds.loading}
 					error={scopeKinds.error}
 					onopen={(kind) => workbench.forms.showHistory(kind.id, kind.currentKindVId)}
-					oncreate={() => workbench.forms.createKind([context!.record.id])}
+					oncreate={() => workbench.createKind([context!.record.id])}
 				/>
 			{/snippet}
 			{#snippet records()}
-				{#each context.traces as item (item.record.id)}
-					<button
-						type="button"
-						class={LIST_BUTTON_CLASS}
-						data-testid="scope-record"
-						data-trace-id={item.record.id}
-						onclick={() => workbench.selectTrace(item.record.id, 'context')}
-						{@attach lensSource(workbench.hover, { kind: 'trace', traceId: item.record.id })}
-					>
-						<span class="font-mono text-xs text-muted"
-							>{item.time ? formatDay(item.time.start) : t('scope.timeUnknown')}</span
-						>
-						<span class="text-sm">{item.record.displayTitle ?? item.record.content}</span>
-					</button>
-				{:else}<p class="text-sm text-muted">{t('scope.noRecords')}</p>{/each}
+				<RecordList
+					items={context.traces.map((item) => ({
+						traceId: item.record.id,
+						date: item.time ? formatDay(item.time.start) : t('scope.timeUnknown'),
+						title: item.record.displayTitle ?? item.record.content,
+						at: item.time?.start,
+						mark: {
+							shape: recordShape(item.time),
+							colours: recordColours(item.record.id)
+						}
+					}))}
+					group="month"
+					testId="scope-record"
+					empty={t('scope.noRecords')}
+					onselect={(traceId) => workbench.selectTrace(traceId, 'context')}
+				/>
 			{/snippet}
 			{#snippet links()}
 				<!-- One row is one link (owner 2026-09-20): its kind and the other end, then «×»; the
@@ -440,10 +411,14 @@
 				{:else}<p class="text-sm text-muted">{t('scope.noOtherLinks')}</p>{/each}
 			{/snippet}
 			{#each shown as entry (entry.id)}
-				{@render section(
-					entry.id,
-					t(entry.label),
-					entry.id === 'note'
+				<ContextSection
+					id={entry.id}
+					label={t(entry.label)}
+					title={sectionTitle(entry.id, t(entry.label))}
+					collapsed={folds.collapsed[entry.id]}
+					ontoggle={() => folds.toggle(entry.id)}
+				>
+					{@render (entry.id === 'note'
 						? note
 						: entry.id === 'hierarchy'
 							? hierarchy
@@ -451,8 +426,8 @@
 								? kinds
 								: entry.id === 'records'
 									? records
-									: links
-				)}
+									: links)()}
+				</ContextSection>
 			{/each}
 		{/if}
 	</section>

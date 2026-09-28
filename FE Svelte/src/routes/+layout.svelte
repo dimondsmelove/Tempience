@@ -7,6 +7,7 @@
 	import type { ResolvedPathname } from '$app/types';
 	import type { Attachment } from 'svelte/attachments';
 	import Onboarding from '$lib/time/Onboarding/Onboarding.svelte';
+	import type { DemoStoryEntry } from '$lib/scenarios/demo/registry';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { tour } from '$lib/state/Tour/Tour.svelte';
 	import { openDemoAndReload } from '$lib/state/triplit/demo-actions';
@@ -46,11 +47,11 @@
 		themeState.sync();
 	});
 
-	/** The demo card of the tour: the app reloads into the demo, so an open form is asked about first. */
-	const openDemoFromTour = (): void => {
+	/** A card of the tour's catalog: the app reloads into that story, so an open form is asked about first. */
+	const openDemoFromTour = (entry: DemoStoryEntry): void => {
 		draftGuard.exitReloading(() => {
 			tour.hide();
-			openDemoAndReload();
+			openDemoAndReload(entry);
 		});
 	};
 	/** Keyboard users land inside the overlay; Tab then reaches «Закрыть» first. */

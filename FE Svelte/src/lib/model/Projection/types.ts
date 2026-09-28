@@ -137,6 +137,11 @@ export type ProjectionState = Readonly<{
 	 * several as one merged row. Absent or `null`: the Scope tree as it is. Scope grouping only.
 	 */
 	arrangement?: RowArrangement | null;
+	/**
+	 * What a Scope's arrow unfolds when it is not its own children (a chapter: the lineup Scopes
+	 * inside a lineup Scope, a grandchild too, owner 2026-09-28); absent — its children.
+	 */
+	laneChildren?: ReadonlyMap<string, readonly string[]> | null;
 }>;
 
 export type ProjectionCounts = Readonly<{

@@ -62,7 +62,10 @@ describe('backup of intention assessments', () => {
 		const file = await backup.export();
 		expect(Object.keys(file.collections)).toEqual(BACKUP_COLLECTIONS);
 		const older = structuredClone(file) as { collections: Partial<DataSpaceBackup['collections']> };
+		// The assessments' export (before chapters): the collections added since go with it.
 		delete older.collections.intentionAssessments;
+		delete older.collections.chapters;
+		delete older.collections.chapterStages;
 		expect(BACKUP_COLLECTION_PROFILES.at(-1)?.toSorted()).toEqual(
 			[...BACKUP_COLLECTIONS].toSorted()
 		);

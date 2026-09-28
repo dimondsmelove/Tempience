@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { WATSON_STORY } from '$lib/scenarios/demo/registry';
 import {
 	CANONICAL_DATA_SPACE_ID,
 	DATA_SPACES,
@@ -53,7 +54,7 @@ describe('demo actions', () => {
 		vi.stubGlobal('localStorage', storage);
 		storage.setItem(DEMO_DISMISSED_KEY, '1');
 		const reload = vi.fn();
-		openDemoAndReload(reload);
+		openDemoAndReload(WATSON_STORY, reload);
 		expect(storage.getItem(DEMO_DISMISSED_KEY)).toBeNull();
 		expect(readActiveDataSpaceId(storage)).toBe(DEMO_DATA_SPACE_ID);
 		expect(reload).toHaveBeenCalledOnce();
@@ -87,9 +88,9 @@ describe('demo actions', () => {
 describe('the language the demo was seeded in', () => {
 	it('reads the locale of a Watson seed marker', () => {
 		storage.setItem(DEMO_SEED_MARKER_KEY, 'watson-v1:ru');
-		expect(demoSeedLocale(storage)).toBe('ru');
+		expect(demoSeedLocale(WATSON_STORY, storage)).toBe('ru');
 		storage.setItem(DEMO_SEED_MARKER_KEY, 'watson-v1:en');
-		expect(demoSeedLocale(storage)).toBe('en');
+		expect(demoSeedLocale(WATSON_STORY, storage)).toBe('en');
 	});
 
 	it.each([
@@ -102,13 +103,13 @@ describe('the language the demo was seeded in', () => {
 		['garbage', '::watson-v1::']
 	])('knows no language for %s', (_case, marker) => {
 		if (marker !== null) storage.setItem(DEMO_SEED_MARKER_KEY, marker);
-		expect(demoSeedLocale(storage)).toBeNull();
+		expect(demoSeedLocale(WATSON_STORY, storage)).toBeNull();
 	});
 
 	it('knows no language without storage or when storage refuses to answer', () => {
-		expect(demoSeedLocale(null)).toBeNull();
+		expect(demoSeedLocale(WATSON_STORY, null)).toBeNull();
 		expect(
-			demoSeedLocale({
+			demoSeedLocale(WATSON_STORY, {
 				getItem: () => {
 					throw new Error('denied');
 				}
@@ -119,7 +120,7 @@ describe('the language the demo was seeded in', () => {
 	it('reads the browser storage by default', () => {
 		vi.stubGlobal('localStorage', storage);
 		storage.setItem(DEMO_SEED_MARKER_KEY, 'watson-v1:en');
-		expect(demoSeedLocale()).toBe('en');
+		expect(demoSeedLocale(WATSON_STORY)).toBe('en');
 	});
 });
 
@@ -172,7 +173,7 @@ describe('reseeding the demo in the interface language', () => {
 		const reload = vi.fn();
 		await reseedDemoAndReload({ clear }, minimal, reload);
 		expect(storage.getItem(DEMO_SEED_MARKER_KEY)).toBe('');
-		expect(demoSeedLocale(storage)).toBeNull();
+		expect(demoSeedLocale(WATSON_STORY, storage)).toBeNull();
 		expect(reload).toHaveBeenCalledOnce();
 	});
 

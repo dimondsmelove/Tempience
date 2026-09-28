@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/ui/Button/Button.svelte';
+	import DemoStories from '$lib/ui/DemoStories/DemoStories.svelte';
 	import { CodedError } from '$lib/model/Errors/CodedError';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
@@ -60,7 +61,10 @@
 			</div>
 		</form>
 		{#if ondemo}
-			<Button variant="quiet" disabled={busy} onclick={ondemo}>{t('firstGroup.demo')}</Button>
+			<div class="space-y-3">
+				<p class="text-sm leading-relaxed text-muted">{t('demo.catalog.hint')}</p>
+				<DemoStories variant="cards" {busy} onopen={ondemo} />
+			</div>
 		{/if}
 	</div>
 </section>

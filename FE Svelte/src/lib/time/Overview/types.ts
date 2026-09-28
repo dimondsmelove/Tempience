@@ -1,3 +1,4 @@
+import type { Snippet } from 'svelte';
 import type { ProjectedRow, TimeRange } from '$lib/model/Projection/types';
 import type { ScopeColour } from '$lib/theme/scope-colour';
 import type { ViewportState } from '$lib/state/Viewport/Viewport.svelte';
@@ -14,6 +15,8 @@ export type OverviewProps = Readonly<{
 	rows: readonly ProjectedRow[];
 	/** Records the search does not match: they weigh 18 % in the density and the inlays (research п. 9). */
 	dimmed?: ReadonlySet<string>;
+	/** Rendered at the strip's end, after the zoom: the chapters' «+» while the space has none. */
+	trailing?: Snippet | null;
 }>;
 
 /** A record's time with the weight it adds to the density; 1 when unsaid. */

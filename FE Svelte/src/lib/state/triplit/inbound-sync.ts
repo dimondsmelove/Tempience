@@ -12,6 +12,8 @@ export const INBOUND_COLLECTIONS = [
 	'scopes',
 	'intersections',
 	'periods',
+	'chapters',
+	'chapterStages',
 	'intentionAssessments',
 	'traceKinds',
 	'traceKindVersions',

@@ -40,6 +40,8 @@ export const SUBJECT_KEYS: Record<EntityType, MessageKey> = {
 	scope: 'history.subjectScope',
 	scopeSegment: 'history.subjectScope',
 	period: 'history.subjectPeriod',
+	chapter: 'history.subjectChapter',
+	chapterStage: 'history.subjectStage',
 	traceKind: 'history.subjectKind',
 	traceKindV: 'history.subjectKind',
 	source: 'history.subjectOther',

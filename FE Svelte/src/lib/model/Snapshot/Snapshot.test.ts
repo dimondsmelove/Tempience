@@ -66,4 +66,25 @@ describe('Explorer synthetic conformance coverage', () => {
 			'Duplicate Explorer entity id'
 		);
 	});
+
+	it('keeps the chapters of the space an overlay is merged over, and adds none where there are none', () => {
+		const chapters = [
+			{
+				id: 'chapter:one',
+				name: 'Глава',
+				note: '',
+				colorHue: null,
+				colorChroma: null,
+				colorDepth: null,
+				start: '2026-09-01T00:00:00+02:00',
+				end: null,
+				closedAt: null,
+				lineup: [],
+				stages: []
+			}
+		];
+		const merged = mergeExplorerSnapshots({ ...emptySnapshot(), chapters }, emptySnapshot());
+		expect(merged.chapters).toEqual(chapters);
+		expect(mergeExplorerSnapshots(emptySnapshot(), emptySnapshot())).not.toHaveProperty('chapters');
+	});
 });

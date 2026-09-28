@@ -3,6 +3,8 @@ export type EntityType =
 	| 'traceKind'
 	| 'traceKindV'
 	| 'period'
+	| 'chapter'
+	| 'chapterStage'
 	| 'scope'
 	| 'intersection'
 	| 'scopeSegment'

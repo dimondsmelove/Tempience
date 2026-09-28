@@ -1,11 +1,16 @@
 <script lang="ts">
 	import Button from '$lib/ui/Button/Button.svelte';
+	import DemoStories from '$lib/ui/DemoStories/DemoStories.svelte';
+	import {
+		type DemoStoryEntry,
+		demoStoriesFor,
+		demoStoryOfDataSpace
+	} from '$lib/scenarios/demo/registry';
 	import { errorText } from '$lib/state/Locale/errors';
-	import { t } from '$lib/state/Locale/Locale.svelte';
+	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import { tour } from '$lib/state/Tour/Tour.svelte';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { activeDataSpace, triplit } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
 	import { deleteDemoAndReload, openDemoAndReload } from '$lib/state/triplit/demo-actions';
 	import { DEMO_MENU_CONFIRM_DELETE_TEST_ID, DEMO_MENU_DELETE_TEST_ID } from './constants';
 	import type { DemoMenuProps } from './types';
@@ -13,7 +18,11 @@
 	let { onleave }: DemoMenuProps = $props();
 	const id = $props.id();
 	// The active DataSpace is fixed for the module lifetime: a switch reloads the app.
-	const demo = activeDataSpace.id === DEMO_DATA_SPACE_ID;
+	const active = demoStoryOfDataSpace(activeDataSpace.id);
+	/** Every story written in the interface language except the one already open. */
+	const stories = $derived(
+		demoStoriesFor(locale.current).filter((entry) => entry.id !== active?.id)
+	);
 	let confirming = $state(false);
 	let busy = $state(false);
 	/** What the last step failed with, read in the language of the moment. */
@@ -24,13 +33,13 @@
 		tour.show();
 	};
 
-	/** Opening the demo reloads the app, so an open form and retained input are asked about first. */
-	const openDemo = (): void => {
+	/** Opening a story reloads the app, so an open form and retained input are asked about first. */
+	const openDemo = (entry: DemoStoryEntry): void => {
 		draftGuard.exitReloading(() => {
 			failure = null;
 			busy = true;
 			try {
-				openDemoAndReload();
+				openDemoAndReload(entry);
 			} catch (cause: unknown) {
 				failure = cause ?? new Error();
 				busy = false;
@@ -58,10 +67,8 @@
 >
 	<h3 id={`${id}-title`} class="cg-label">{t('demo.menu.title')}</h3>
 	<Button size="sm" onclick={openTour}>{t('onboarding.menu.open')}</Button>
-	{#if !demo}
-		<Button size="sm" disabled={busy} onclick={openDemo}>{t('demo.menu.open')}</Button>
-	{:else}
-		<p>{t('demo.notice')}</p>
+	{#if active}
+		<p>{t('demo.notice', { story: t(active.titleKey) })}</p>
 		{#if confirming}
 			<p>{t('demo.deleteConfirm')}</p>
 			<div class="flex flex-wrap gap-2">
@@ -82,6 +89,11 @@
 				>{t('demo.delete')}</Button
 			>
 		{/if}
+	{/if}
+	<!-- The catalog offers whatever is not already open; with nothing left to offer it is not shown. -->
+	{#if stories.length}
+		<h4 class="cg-label">{t('demo.catalog.title')}</h4>
+		<DemoStories variant="list" entries={stories} onopen={openDemo} {busy} />
 	{/if}
 	{#if failure !== null}<p role="alert">{errorText(failure)}</p>{/if}
 </section>

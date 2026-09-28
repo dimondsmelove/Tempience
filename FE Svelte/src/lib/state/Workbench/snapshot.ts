@@ -1,3 +1,4 @@
+import type { Chapter } from '$lib/model/Chapters/types';
 import type { VersionSummary } from '$lib/model/TraceForm/summary-fields';
 import type { TempienceRepository, TraceRepository } from '$lib/state/triplit/repository';
 import type { IntentionAssessment, Trace } from '$lib/state/triplit/types';
@@ -68,8 +69,28 @@ export type ExplorerRepositoryReader = Pick<
 	'listTraces' | 'listScopes' | 'listPeriods' | 'listIntersections' | 'listScopeSegments'
 > &
 	Partial<
-		Pick<TempienceRepository, 'listTraceHeads' | 'listLinkHeads' | 'listIntentionAssessments'>
+		Pick<
+			TempienceRepository,
+			'listTraceHeads' | 'listLinkHeads' | 'listIntentionAssessments' | 'listChapters'
+		>
 	>;
+
+/**
+ * The chapters as the repository reads them: ends derived, deleted Scopes left out of lineups.
+ * They frame the ribbon but are not its data: a failed read (a storage whose schema lags, a
+ * broken row) is logged and the space loads without chapters rather than not at all.
+ */
+const readChapters = async (
+	repository: ExplorerRepositoryReader
+): Promise<readonly Chapter[] | null> => {
+	if (!repository.listChapters) return null;
+	try {
+		return await repository.listChapters();
+	} catch (cause: unknown) {
+		console.warn('[tempience:chapters] the chapters are not read', cause);
+		return null;
+	}
+};
 
 /** How a read of the snapshot is timed: a step's name and its run; by default not at all. */
 export type SnapshotTimer = <T>(step: 'records' | 'links', run: () => Promise<T>) => Promise<T>;
@@ -105,6 +126,7 @@ export const buildRepositoryExplorerSnapshot = async (
 		repository.listScopeSegments()
 	]);
 	const origin = { kind: 'canonical' as const, sourceId };
+	const chapters = await readChapters(repository);
 	// Each intention's derived result, once, so the ribbon can tell a closed intention from an
 	// open one (owner, 2026-09-15); a reader without assessments shows every intention open.
 	const assessments: readonly IntentionAssessment[] = repository.listIntentionAssessments
@@ -188,6 +210,7 @@ export const buildRepositoryExplorerSnapshot = async (
 			label: segment.label,
 			position: segment.position,
 			origin
-		}))
+		})),
+		...(chapters ? { chapters } : {})
 	};
 };

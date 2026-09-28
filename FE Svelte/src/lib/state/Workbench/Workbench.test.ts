@@ -229,3 +229,49 @@ describe('WorkbenchState.refresh — the read after a change from another device
 		warn.mockRestore();
 	});
 });
+
+describe('one Context form at a time (owner review of PR #83)', () => {
+	type Opener = 'newScope' | 'kinds' | 'capture' | 'chapter' | 'stage';
+	const open = (workbench: WorkbenchState, opener: Opener): void => {
+		if (opener === 'newScope') workbench.createScope(null);
+		else if (opener === 'kinds') workbench.showCatalog();
+		else if (opener === 'capture') workbench.openCapture();
+		else if (opener === 'chapter')
+			workbench.chapters.edit({
+				mode: 'new',
+				start: '2026-09-07T00:00:00+02:00',
+				fromChapterId: null
+			});
+		else workbench.chapters.edit({ mode: 'stage', chapterId: 'c', stageId: null });
+	};
+	/** Which forms hold the Context now. */
+	const shown = (workbench: WorkbenchState): Opener[] => {
+		const forms: Opener[] = [];
+		if (workbench.forms.newScope) forms.push('newScope');
+		if (workbench.forms.open) forms.push('kinds');
+		if (workbench.capture) forms.push('capture');
+		const editing = workbench.chapters.formOpen ? workbench.chapters.editing : null;
+		if (editing) forms.push(editing.mode === 'stage' ? 'stage' : 'chapter');
+		return forms;
+	};
+	const openers: Opener[] = ['newScope', 'kinds', 'capture', 'chapter', 'stage'];
+	for (const first of openers)
+		for (const second of openers) {
+			if (first === second) continue;
+			it(`${first}, then ${second}: only ${second} is left`, () => {
+				const workbench = new WorkbenchState(new ViewportState(window));
+				open(workbench, first);
+				expect(shown(workbench)).toEqual([first]);
+				open(workbench, second);
+				expect(shown(workbench)).toEqual([second]);
+			});
+		}
+
+	it('a record’s edit form ends when a chapter form opens', () => {
+		const workbench = new WorkbenchState(new ViewportState(window));
+		workbench.forms.editingId = 't1';
+		open(workbench, 'chapter');
+		expect(workbench.forms.editingId).toBeNull();
+		expect(shown(workbench)).toEqual(['chapter']);
+	});
+});

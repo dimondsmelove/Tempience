@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
 	IntentionAssessment,
 	Intersection,
@@ -302,6 +302,45 @@ describe('repository Explorer adapter', () => {
 		expect(byId.get('f:result')).toMatchObject({ closesIntentionIds: ['i:papers'] });
 		expect(byId.get('f:result')).not.toHaveProperty('intentOpen');
 		expect(byId.get('i:papers')).not.toHaveProperty('closesIntentionIds');
+	});
+
+	it('carries the chapters the repository reads, and none where it reads none', async () => {
+		const chapter = {
+			id: 'chapter:one',
+			name: 'Собрать систему',
+			note: '',
+			colorHue: 80,
+			colorChroma: 90,
+			colorDepth: 2,
+			start: '2026-09-01T00:00:00+02:00',
+			end: null,
+			closedAt: null,
+			lineup: [{ scopeId: scope.id, level: 'focus' as const }],
+			stages: []
+		};
+		const withChapters = await buildRepositoryExplorerSnapshot(
+			{ ...repositoryWith({ scopes: [scope] }), listChapters: () => Promise.resolve([chapter]) },
+			'source:fixture'
+		);
+		expect(withChapters.chapters).toEqual([chapter]);
+		const without = await buildRepositoryExplorerSnapshot(repositoryWith(), 'source:fixture');
+		expect(without).not.toHaveProperty('chapters');
+	});
+
+	it('loads the space without chapters when they cannot be read, and says so in the log', async () => {
+		const failure = Object.assign(new Error('storage schema lags'), { code: 'storage_schema' });
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const snapshot = await buildRepositoryExplorerSnapshot(
+				{ ...repositoryWith({ scopes: [scope] }), listChapters: () => Promise.reject(failure) },
+				'source:fixture'
+			);
+			expect(snapshot.scopes.map((item) => item.id)).toEqual([scope.id]);
+			expect(snapshot).not.toHaveProperty('chapters');
+			expect(warn).toHaveBeenCalledWith('[tempience:chapters] the chapters are not read', failure);
+		} finally {
+			warn.mockRestore();
+		}
 	});
 
 	it('propagates a rejected repository read', async () => {

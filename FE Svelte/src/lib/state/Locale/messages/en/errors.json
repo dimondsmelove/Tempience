@@ -127,5 +127,20 @@
 	"error.records_unreadable": "Could not read the records.",
 	"error.storage_schema_missing": "The storage is not updated to the current Tempience schema: it has no {{path}}. New operations are stopped; the stored data is unchanged.",
 	"error.storage_schema_type": "The storage is not updated to the current Tempience schema: {{path}} is stored as {{actual}} instead of {{expected}}. New operations are stopped; the stored data is unchanged.",
-	"error.storage_schema_required": "The storage is not updated to the current Tempience schema: {{path}} is required in the storage but should be optional. New operations are stopped; the stored data is unchanged."
+	"error.storage_schema_required": "The storage is not updated to the current Tempience schema: {{path}} is required in the storage but should be optional. New operations are stopped; the stored data is unchanged.",
+	"error.chapter_invalid": "The chapter or stage is not filled in correctly.",
+	"error.chapter_invalid_name": "A name is required.",
+	"error.chapter_invalid_instant": "The time could not be read: it needs a date and a time with a time zone.",
+	"error.chapter_invalid_note": "The note has to be text.",
+	"error.chapter_invalid_colour": "The colour is not valid.",
+	"error.chapter_invalid_lineup": "The lineup is not valid: each Scope once, in the focus or in support.",
+	"error.chapter_clash": "Another chapter already starts at this moment.",
+	"error.chapter_missing": "This chapter could not be found.",
+	"error.chapter_missing_deleted": "This chapter was deleted and can no longer be changed.",
+	"error.stage_missing": "This stage could not be found.",
+	"error.stage_missing_deleted": "This stage was deleted and can no longer be changed.",
+	"error.stage_before_chapter": "A stage can’t start before its chapter.",
+	"error.chapter_invalid_stages": "Stage “{{name}}” starts before the chapter’s new start: move or delete it first.",
+	"error.chapter_invalid_close": "A chapter has to end after it starts.",
+	"error.chapter_invalid_closeAfterNext": "The chapter can’t end after the next one, “{{name}}”, starts."
 }

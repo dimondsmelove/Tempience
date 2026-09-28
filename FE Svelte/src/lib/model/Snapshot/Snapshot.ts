@@ -49,7 +49,10 @@ export const mergeExplorerSnapshots = (
 		scopes: snapshots.flatMap((snapshot) => snapshot.scopes),
 		periods: snapshots.flatMap((snapshot) => snapshot.periods),
 		intersections: snapshots.flatMap((snapshot) => snapshot.intersections),
-		scopeSegments: snapshots.flatMap((snapshot) => snapshot.scopeSegments)
+		scopeSegments: snapshots.flatMap((snapshot) => snapshot.scopeSegments),
+		...(snapshots.some((snapshot) => snapshot.chapters)
+			? { chapters: snapshots.flatMap((snapshot) => snapshot.chapters ?? []) }
+			: {})
 	};
 	const roleById = new Map<string, string>();
 	for (const [role, records] of snapshotRecords(merged)) {

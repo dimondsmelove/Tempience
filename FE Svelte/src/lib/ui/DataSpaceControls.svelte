@@ -4,10 +4,10 @@
 	import DataSpaceNotice from './DataSpaceNotice.svelte';
 	import DemoLanguage from './DemoLanguage/DemoLanguage.svelte';
 	import { activeDataSpace } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
+	import { isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
 	let { identity = false }: { identity?: boolean } = $props();
 	// The identity bar carries no scenario menu (c5ab937); «Удалить демо» has no other way in.
-	const demo = activeDataSpace.id === DEMO_DATA_SPACE_ID;
+	const demo = isDemoDataSpaceId(activeDataSpace.id);
 </script>
 
 <DataSpaceSwitcher />

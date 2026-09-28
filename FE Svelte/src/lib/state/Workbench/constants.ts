@@ -5,7 +5,8 @@ export const EMPTY_SNAPSHOT: ExplorerSnapshot = Object.freeze({
 	scopes: [],
 	periods: [],
 	intersections: [],
-	scopeSegments: []
+	scopeSegments: [],
+	chapters: []
 });
 
 /**

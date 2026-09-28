@@ -219,7 +219,8 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		const children = liveChildren(scopeId);
 		// The children this row can unfold: those no lane claimed. With none left, the row has no
 		// chevron and stands folded — the claimed children stay in its roll-up (review 2026-09-19, п. 32).
-		const emitted = children.filter((childId) => !claimed.has(childId));
+		const emitted =
+			state.laneChildren?.get(scopeId) ?? children.filter((childId) => !claimed.has(childId));
 		const isExpanded = emitted.length > 0 && expanded.has(scopeId);
 		const marks: Mark[] = [];
 		for (const traceId of all) {

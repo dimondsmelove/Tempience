@@ -15,6 +15,10 @@ const queryFor = (client: TempienceTriplitClient, collection: Collection) => {
 			return client.query('traces');
 		case 'periods':
 			return client.query('periods');
+		case 'chapters':
+			return client.query('chapters');
+		case 'chapterStages':
+			return client.query('chapterStages');
 		case 'scopes':
 			return client.query('scopes');
 		case 'scopeSegments':

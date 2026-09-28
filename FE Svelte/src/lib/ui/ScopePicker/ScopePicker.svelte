@@ -4,11 +4,12 @@
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { positionPopover } from '$lib/ui/Popover/position';
 	import { PICKER_INDENT_PX, PICKER_LIST_MAX_HEIGHT, PICKER_MIN_WIDTH_REM } from './constants';
-	import { scopePath, scopeRows } from './tree';
+	import { groupedScopeRows, scopePath, scopeRows } from './tree';
 	import type { ScopePickerProps } from './types';
 
 	let {
 		scopes,
+		groups = null,
 		label,
 		value = null,
 		exclude = [],
@@ -34,8 +35,12 @@
 	/** Scopes folded by the user; a search unfolds everything for its duration. */
 	const collapsed = new SvelteSet<string>();
 	const excluded = $derived(new Set(exclude));
-	const rows = $derived(scopeRows(scopes, query, collapsed));
 	const searching = $derived(Boolean(query.trim()));
+	const rows = $derived(
+		groups && !searching
+			? groupedScopeRows(scopes, groups, collapsed)
+			: scopeRows(scopes, query, collapsed)
+	);
 	/** What Enter and the arrows walk: the «none» line first, then every offered Scope. */
 	const choices = $derived<(string | null)[]>([
 		...(none && !searching ? [null] : []),
@@ -174,6 +179,15 @@
 		{/if}
 		{#each rows as row (row.id)}
 			{@const taken = excluded.has(row.id)}
+			{#if row.caption}
+				<li
+					class="scope-picker-caption px-2 pt-2 pb-0.5 font-mono text-xs text-muted"
+					role="presentation"
+					data-testid="scope-picker-caption"
+				>
+					{row.caption}
+				</li>
+			{/if}
 			<!-- The keyboard walks the options from the search box (aria-activedescendant); a click here is the pointer's way. -->
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<li

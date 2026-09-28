@@ -11,10 +11,20 @@ export type ScopeRow = Readonly<{
 	hasChildren: boolean;
 	/** False for a line shown only because something under it matched the search. */
 	match: boolean;
+	/** The heading of a group this line opens, when the list is grouped. */
+	caption?: string;
+}>;
+
+/** Groups that lead the list before a search: each under its caption, then the rest under its own. */
+export type ScopePickerGroups = Readonly<{
+	groups: readonly Readonly<{ label: string; ids: readonly string[] }>[];
+	rest: string;
 }>;
 
 export type ScopePickerProps = Readonly<{
 	scopes: readonly ScopeOption[];
+	/** Lead the list with these groups while nothing is searched; the search still finds everything. */
+	groups?: ScopePickerGroups | null;
 	/** Accessible name of the control; also the name of its list. */
 	label: string;
 	/** The chosen Scope of a single-choice picker; a multi-choice picker leaves it null. */

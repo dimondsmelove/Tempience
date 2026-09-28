@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/ui/Button/Button.svelte';
+	import DemoStories from '$lib/ui/DemoStories/DemoStories.svelte';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { ONBOARDING_STEPS } from './constants';
 	import { parseEmphasis } from './emphasis';
@@ -60,14 +61,13 @@
 		</div>
 		<h1 class="text-2xl font-semibold leading-tight">{t(STEP_TITLE_KEY[step])}</h1>
 		{#if step === 'try'}
+			<!-- The catalog of demo stories; each card opens its own space. -->
+			<DemoStories
+				variant="cards"
+				busy={ondemo === undefined}
+				onopen={(entry) => ondemo?.(entry)}
+			/>
 			<div class="grid gap-3 sm:grid-cols-2">
-				{@render card(
-					t('onboarding.try.demo.title'),
-					t('onboarding.try.demo.body'),
-					`${id}-demo`,
-					ondemo,
-					ondemo === undefined
-				)}
 				{@render card(
 					t('onboarding.try.own.title'),
 					t('onboarding.try.own.body'),

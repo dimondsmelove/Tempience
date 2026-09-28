@@ -225,8 +225,22 @@ const assertAssessmentReferences = (collections: BackupCollections): void => {
 	}
 };
 
+/** Every stage belongs to a chapter of the file; one that went with its chapter carries its deletion. */
+const assertChapterReferences = (collections: BackupCollections): void => {
+	const chaptersById = new Map(collections.chapters.map((row) => [row.id, row]));
+	for (const row of collections.chapterStages) {
+		if (!chaptersById.has(row.chapterId as string))
+			throw new CodedError(
+				'backup_stage_chapter',
+				`Этап ${row.id} ссылается на отсутствующую главу.`,
+				{ id: row.id }
+			);
+	}
+};
+
 export const assertBackupReferences = (collections: BackupCollections): void => {
 	assertIntersectionReferences(collections);
 	assertTraceReferences(collections);
 	assertAssessmentReferences(collections);
+	assertChapterReferences(collections);
 };

@@ -79,6 +79,50 @@ export const schema = S.Collections({
 			updatedAt: S.String()
 		})
 	},
+	/**
+	 * Chapters (issue #82): authored stretches of life. A chapter's end is never stored — it is
+	 * the next chapter's start, or `closedAt` for an explicit early close; its records are never
+	 * stored either — they follow from its lineup inside its window. `lineup` is the ordered
+	 * «Состав», `[{ scopeId, level: 'focus' | 'support' }]`, read only through `Chapters/`.
+	 */
+	chapters: {
+		schema: S.Schema({
+			id: S.Id(),
+			name: S.String(),
+			note: S.Optional(S.String()),
+			colorHue: S.Optional(S.Number()),
+			colorChroma: S.Optional(S.Number()),
+			colorDepth: S.Optional(S.Number()),
+			/** ISO instant with offset. */
+			startedAt: S.String(),
+			/** ISO instant with offset: «Закрыть главу» before the next chapter starts. */
+			closedAt: S.Optional(S.String()),
+			lineup: S.Json(),
+			isDeleted: S.Boolean(),
+			/** The deletion that removed the chapter; its stages deleted with it carry the same. */
+			deletionOperationId: S.Optional(S.String()),
+			createdAt: S.String(),
+			updatedAt: S.String()
+		})
+	},
+	/** Stages of a chapter: each runs until the next one starts, or to the chapter's end. */
+	chapterStages: {
+		schema: S.Schema({
+			id: S.Id(),
+			chapterId: S.String(),
+			name: S.String(),
+			note: S.Optional(S.String()),
+			/** ISO instant with offset. */
+			startedAt: S.String(),
+			/** The stage's own «Состав»; absent or null — «как у главы». */
+			lineup: S.Optional(S.Json()),
+			isDeleted: S.Boolean(),
+			/** Set when the stage went with its chapter's deletion: that deletion's operation. */
+			deletionOperationId: S.Optional(S.String()),
+			createdAt: S.String(),
+			updatedAt: S.String()
+		})
+	},
 	scopes: {
 		schema: S.Schema({
 			id: S.Id(),

@@ -6,6 +6,8 @@ export const SYNC_COLLECTIONS = [
 	'traceKindVersions',
 	'traces',
 	'periods',
+	'chapters',
+	'chapterStages',
 	'scopes',
 	'scopeSegments',
 	'intersections',

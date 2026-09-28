@@ -25,11 +25,19 @@ export const ORIGINAL_BACKUP_COLLECTIONS: readonly BackupCollection[] = [
 
 /**
  * Exact collection sets of every export this format has shipped, oldest first:
- * original 15, C10 with Scope capture settings (9cd1fe3), current with assessments.
+ * original 15, C10 with Scope capture settings (9cd1fe3), with assessments, current with
+ * chapters and their stages (loop 012).
  * A file must match one profile exactly; collections introduced later restore as empty.
  */
 export const BACKUP_COLLECTION_PROFILES: readonly (readonly BackupCollection[])[] = [
 	ORIGINAL_BACKUP_COLLECTIONS,
 	[...ORIGINAL_BACKUP_COLLECTIONS, 'scopeCaptureSettings'],
-	[...ORIGINAL_BACKUP_COLLECTIONS, 'scopeCaptureSettings', 'intentionAssessments']
+	[...ORIGINAL_BACKUP_COLLECTIONS, 'scopeCaptureSettings', 'intentionAssessments'],
+	[
+		...ORIGINAL_BACKUP_COLLECTIONS,
+		'scopeCaptureSettings',
+		'intentionAssessments',
+		'chapters',
+		'chapterStages'
+	]
 ];

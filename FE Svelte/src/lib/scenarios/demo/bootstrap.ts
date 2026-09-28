@@ -1,8 +1,6 @@
 import { demoSeedLocale } from '$lib/state/triplit/demo-actions';
 import { WORKBENCH_OPEN_AT_KEY } from '$lib/state/Workbench/constants';
 import { buildDemoSeed, demoManifestId, demoRecordId } from './batch';
-import { DEMO_DATA_SPACE_ID, DEMO_SEED_MARKER_KEY, DEMO_START_STORY_ID } from './constants';
-import { DEMO_STORY } from './story';
 import type { DemoSeedBootstrapInput, DemoSeedBootstrapResult, DemoSeedSkipReason } from './types';
 
 const skipped = (reason: DemoSeedSkipReason, manifestId: string): DemoSeedBootstrapResult => ({
@@ -12,31 +10,33 @@ const skipped = (reason: DemoSeedSkipReason, manifestId: string): DemoSeedBootst
 });
 
 /**
- * Seeds the demo replica once. The marker names the manifest the replica was seeded with; a
+ * Seeds one story's replica once. The marker names the manifest the replica was seeded with; a
  * replica that already holds anything is left as it is, the same way a DataPack is: a seed in
  * another language keeps that language's marker (the header offers to rebuild it), the user's
- * own additions after the marker was lost are marked with the language of the moment. Watson's
- * verdicts are created through their evidence links once the records exist, so each is ordered
- * by its fact's date (a direct assessment would carry the install day). A seed that was applied
- * asks the workbench, once, to open on the notebook's first page.
+ * own additions after the marker was lost are marked with the language of the moment. The
+ * story module is imported only once the replica is really about to be seeded. Verdicts are
+ * created through their evidence links once the records exist, so each is ordered by its fact's
+ * date (a direct assessment would carry the install day). A seed that was applied asks the
+ * workbench, once, to open on the notebook's first page.
  */
 export const bootstrapDemoSeed = async ({
 	dataSpace,
+	entry,
 	repository,
 	importRepository,
 	clock,
 	storage,
 	locale
 }: DemoSeedBootstrapInput): Promise<DemoSeedBootstrapResult> => {
-	const manifestId = demoManifestId(locale);
+	const manifestId = demoManifestId(entry, locale);
 	if (
-		dataSpace.id !== DEMO_DATA_SPACE_ID ||
+		dataSpace.id !== entry.dataSpaceId ||
 		dataSpace.kind !== 'scenario' ||
 		dataSpace.syncEnabled
 	) {
 		return skipped('not-target', manifestId);
 	}
-	if (storage.getItem(DEMO_SEED_MARKER_KEY) === manifestId) return skipped('marker', manifestId);
+	if (storage.getItem(entry.seedMarkerKey) === manifestId) return skipped('marker', manifestId);
 
 	const [kinds, traces, scopes, periods, intersections] = await Promise.all([
 		repository.listTraceKinds(),
@@ -46,11 +46,12 @@ export const bootstrapDemoSeed = async ({
 		repository.listIntersections(true)
 	]);
 	if (kinds.length + traces.length + scopes.length + periods.length + intersections.length > 0) {
-		if (demoSeedLocale(storage) === null) storage.setItem(DEMO_SEED_MARKER_KEY, manifestId);
+		if (demoSeedLocale(entry, storage) === null) storage.setItem(entry.seedMarkerKey, manifestId);
 		return skipped('existing-data', manifestId);
 	}
 
-	const seed = buildDemoSeed({ locale, capturedAt: clock() });
+	const story = await entry.load();
+	const seed = buildDemoSeed({ locale, capturedAt: clock(), entry }, story);
 	for (const kind of seed.kinds) await repository.ensureTraceKind(kind, 'system');
 	const receipt = await importRepository.apply(seed.batch);
 	if (receipt.failures.length)
@@ -67,10 +68,10 @@ export const bootstrapDemoSeed = async ({
 		assessments += 1;
 	}
 	// The Scopes' colours are the story's own; the import carries none, so they are set here.
-	for (const scope of DEMO_STORY.scopes) {
+	for (const scope of story.scopes) {
 		if (!scope.colour) continue;
 		await repository.editScope(
-			demoRecordId(scope.id),
+			demoRecordId(entry, scope.id),
 			{
 				colorHue: scope.colour.hue,
 				colorChroma: scope.colour.chroma ?? null,
@@ -79,10 +80,10 @@ export const bootstrapDemoSeed = async ({
 			'system'
 		);
 	}
-	storage.setItem(DEMO_SEED_MARKER_KEY, manifestId);
-	storage.setItem(WORKBENCH_OPEN_AT_KEY, demoRecordId(DEMO_START_STORY_ID));
+	storage.setItem(entry.seedMarkerKey, manifestId);
+	storage.setItem(WORKBENCH_OPEN_AT_KEY, demoRecordId(entry, entry.startId));
 	const count = (type: string): number =>
-		seed.batch.entries.filter((entry) => entry.type === type).length;
+		seed.batch.entries.filter((item) => item.type === type).length;
 	return {
 		status: 'applied',
 		manifestId,

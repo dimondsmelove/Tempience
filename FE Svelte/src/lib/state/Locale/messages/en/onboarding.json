@@ -21,8 +21,6 @@
 	"onboarding.links.p3": "No link is required. But each one makes a thought stop being a lonely line and become part of the flow.",
 	"onboarding.links.p4": "**Period** — a stretch of the calendar: a day, a week, a month, a year, a decade. Choose one on the axis and you see everything that fell into it, and which Scopes were active at the time. Nothing needs to be put into a Period: records land there on their own, by time. And about a period as a whole you can leave one note — the month's summary, a thought about the year.",
 	"onboarding.try.title": "Try it",
-	"onboarding.try.demo.title": "Dr. Watson's notebook",
-	"onboarding.try.demo.body": "1881–1894: meeting Holmes, “The Speckled Band”, “The Hound of the Baskervilles”, Reichenbach and the return. It opens on Watson's preface — follow its links; “To the selected” takes you to the entry's time. Made-up data in a separate space, removed with one button.",
 	"onboarding.try.own.title": "Start with your own records",
 	"onboarding.try.own.body": "Name your first Scope — and the first record is already waiting.",
 	"onboarding.storage": "The data is kept in the browser on this device. A copy can be saved through “Export data”.",
@@ -34,6 +32,5 @@
 	"firstGroup.placeholder": "For example, Work",
 	"firstGroup.create": "Create the Scope",
 	"firstGroup.skip": "Start without a Scope",
-	"firstGroup.preparing": "Preparing…",
-	"firstGroup.demo": "Open Watson's notebook"
+	"firstGroup.preparing": "Preparing…"
 }

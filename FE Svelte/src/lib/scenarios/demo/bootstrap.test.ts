@@ -16,10 +16,13 @@ import type { Intersection, Trace } from '$lib/state/triplit/types';
 import { WORKBENCH_OPEN_AT_KEY } from '$lib/state/Workbench/constants';
 import { bootstrapDemoSeed } from './bootstrap';
 import { demoRecordId } from './batch';
+import { WATSON_STORY } from './registry';
 import { DEMO_STORY } from './story';
 import type { DemoSeedStorage } from './types';
 
 const NOW = '2026-09-19T10:00:00.000Z';
+/** Watson's record ids, the only ones these tests speak of. */
+const recordId = (storyId: string): string => demoRecordId(WATSON_STORY, storyId);
 
 const storage = (
 	values: Record<string, string> = {}
@@ -60,11 +63,10 @@ describe('demo seed bootstrap', () => {
 		const intersectionsById = new Map<string, Intersection>(
 			(await repository.listIntersections(true)).map((row) => [row.id, row])
 		);
-		return evaluateIntention(
-			demoRecordId(storyId),
-			await repository.listIntentionAssessments(true),
-			{ tracesById, intersectionsById }
-		);
+		return evaluateIntention(recordId(storyId), await repository.listIntentionAssessments(true), {
+			tracesById,
+			intersectionsById
+		});
 	};
 
 	const bootstrap = (
@@ -74,6 +76,7 @@ describe('demo seed bootstrap', () => {
 	) =>
 		bootstrapDemoSeed({
 			dataSpace,
+			entry: WATSON_STORY,
 			repository,
 			importRepository,
 			clock: () => NOW,
@@ -101,9 +104,9 @@ describe('demo seed bootstrap', () => {
 		// The seed marks the replica and asks the workbench, once, to open on the notebook's first page.
 		expect(target.dump()).toEqual({
 			[DEMO_SEED_MARKER_KEY]: 'watson-v1:ru',
-			[WORKBENCH_OPEN_AT_KEY]: demoRecordId('w.start')
+			[WORKBENCH_OPEN_AT_KEY]: recordId('w.start')
 		});
-		expect(demoRecordId('w.start')).toBe('demo-w-start');
+		expect(recordId('w.start')).toBe('demo-w-start');
 		const [kinds, scopes, traces, periods, intersections] = await Promise.all([
 			repository.listTraceKinds(),
 			repository.listScopes(),
@@ -120,11 +123,11 @@ describe('demo seed bootstrap', () => {
 			intersections.filter((link) => link.fromEntityType === 'traceKind').map((link) => link.id)
 		).toEqual(
 			expect.arrayContaining([
-				`demo-kind-case:${demoRecordId('s.cases')}:belongs_to`,
-				`demo-kind-wire:${demoRecordId('s.holmes')}:belongs_to`
+				`demo-kind-case:${recordId('s.cases')}:belongs_to`,
+				`demo-kind-wire:${recordId('s.holmes')}:belongs_to`
 			])
 		);
-		const start = traces.find((trace) => trace.id === demoRecordId('w.start'));
+		const start = traces.find((trace) => trace.id === recordId('w.start'));
 		expect(start).toMatchObject({
 			content: 'Начните отсюда',
 			relation: 'actual',
@@ -138,7 +141,7 @@ describe('demo seed bootstrap', () => {
 			}
 		});
 		expect(start?.description).toMatch(/\n→ дальше: «Вы были в Афганистане, я вижу»$/);
-		const hound = traces.find((trace) => trace.id === demoRecordId('w.hound.case'));
+		const hound = traces.find((trace) => trace.id === recordId('w.hound.case'));
 		expect(hound).toMatchObject({
 			kindId: 'demo-kind-case',
 			kindVId: 'demo-kind-case-v1',
@@ -148,22 +151,22 @@ describe('demo seed bootstrap', () => {
 			description: null,
 			aboutTime: { basis: 'absolute', precision: 'day', certainty: 'exact', start: '1889-10-20' }
 		});
-		const wire = traces.find((trace) => trace.id === demoRecordId('w.wire.1'));
+		const wire = traces.find((trace) => trace.id === recordId('w.wire.1'));
 		expect(wire).toMatchObject({
 			kindId: 'demo-kind-wire',
 			content:
 				'Холмс отправил телеграмму Бэрримору в Баскервиль-холл с пометкой „вручить лично“: если он в Дартмуре, он не мог сидеть в кэбе на Риджент-стрит. Почтмейстер ответил, что телеграмму вручили — жене Бэрримора, сам он был на чердаке. Ответ ничего не доказал.',
 			data: { to: 'Бэрримор, Баскервиль-холл', words: 12, pence: 6 }
 		});
-		expect(scopes.find((scope) => scope.id === demoRecordId('s.hound'))).toMatchObject({
+		expect(scopes.find((scope) => scope.id === recordId('s.hound'))).toMatchObject({
 			name: 'Собака Баскервилей',
 			note: 'Октябрь 1889. Дартмур: наследство, легенда и собака с фосфорной мордой. Три недели — как я думал — без Холмса.'
 		});
-		expect(scopes.find((scope) => scope.id === demoRecordId('s.holmes'))).toMatchObject({
+		expect(scopes.find((scope) => scope.id === recordId('s.holmes'))).toMatchObject({
 			name: 'Шерлок Холмс',
 			note: 'Знает химию глубоко, литературу — ноль. Скрипка, табак в персидской туфле.'
 		});
-		expect(periods.find((period) => period.id === demoRecordId('p.1889-10'))).toMatchObject({
+		expect(periods.find((period) => period.id === recordId('p.1889-10'))).toMatchObject({
 			name: 'Октябрь 1889',
 			time: { precision: 'month', start: '1889-10', end: '1889-10' },
 			timezone: 'Europe/London'
@@ -173,6 +176,7 @@ describe('demo seed bootstrap', () => {
 	it("colours every Scope with the story's own hue, saturation and depth", async () => {
 		await bootstrapDemoSeed({
 			dataSpace: DATA_SPACES['demo-v1'],
+			entry: WATSON_STORY,
 			repository,
 			importRepository,
 			clock: () => NOW,
@@ -182,7 +186,7 @@ describe('demo seed bootstrap', () => {
 		const scopes = await repository.listScopes();
 		expect(scopes).toHaveLength(17);
 		for (const story of DEMO_STORY.scopes) {
-			const stored = scopes.find((scope) => scope.id === demoRecordId(story.id));
+			const stored = scopes.find((scope) => scope.id === recordId(story.id));
 			expect(stored?.colorHue, story.id).toBe(story.colour!.hue);
 			expect(stored?.colorChroma, story.id).toBe(story.colour!.chroma ?? null);
 			expect(stored?.colorDepth, story.id).toBe(story.colour!.depth ?? null);
@@ -221,8 +225,8 @@ describe('demo seed bootstrap', () => {
 			'1889-10-20T00:00:00.000Z'
 		]);
 		expect(hound.sources.map((source) => source.assessment.factId)).toEqual([
-			demoRecordId('w.night'),
-			demoRecordId('w.hound.answer')
+			recordId('w.night'),
+			recordId('w.hound.answer')
 		]);
 		expect(hound.outcome.sourceId).toBe(hound.sources[1].assessment.id);
 		const search = await evaluate('w.mire.search');

@@ -18,16 +18,20 @@ describe('first Scope setup', () => {
 		expect(text).toContain('Создать Scope');
 		expect(text).toContain('Начать без Scope');
 		expect(text).not.toContain('Открыть записную книжку Ватсона');
+		expect(text).not.toContain('Или посмотрите предзаполненную базу');
 		expect(text).not.toMatch(/групп/);
 		expect(oncreate).not.toHaveBeenCalled();
 		expect(onskip).not.toHaveBeenCalled();
 	});
 
-	it('shows the demo link only when a demo is offered', () => {
+	it('shows the hint and the catalog of demo stories only when a demo is offered', () => {
 		const { body } = render(FirstGroup, {
 			props: { oncreate: vi.fn(async () => {}), onskip: vi.fn(), ondemo: vi.fn() }
 		});
-		expect(textOf(body)).toContain('Открыть записную книжку Ватсона');
+		const text = textOf(body);
+		expect(text).toContain('Или посмотрите предзаполненную базу');
+		expect(text).toContain('Записная книжка доктора Ватсона');
+		expect(text).toContain('Открыть записную книжку Ватсона');
 	});
 
 	it('names the Scope in its refusals', () => {

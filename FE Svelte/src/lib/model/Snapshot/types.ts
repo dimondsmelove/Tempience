@@ -1,4 +1,5 @@
 import type { IntentionOutcome } from '$lib/state/triplit/IntentionAssessments/types';
+import type { Chapter } from '$lib/model/Chapters/types';
 import type { KindCatalog } from '$lib/model/TraceForm/summary';
 import type {
 	IntersectionKind,
@@ -117,4 +118,9 @@ export type ExplorerSnapshot = Readonly<{
 	periods: readonly ExplorerPeriod[];
 	intersections: readonly ExplorerIntersection[];
 	scopeSegments: readonly ExplorerScopeSegment[];
+	/**
+	 * The chapters of the canonical space that are not deleted, in time, ends derived; absent
+	 * where the reader has none (scenario packs, fakes).
+	 */
+	chapters?: readonly Chapter[];
 }>;

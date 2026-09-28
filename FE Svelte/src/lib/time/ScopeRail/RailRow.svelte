@@ -31,6 +31,9 @@
 		drop,
 		merged,
 		claimed,
+		lead = null,
+		heavy = false,
+		quiet = false,
 		onhover,
 		onpress,
 		onselect,
@@ -79,6 +82,7 @@
 	onpointerenter={onhover}
 	onpointerdown={onpress}
 >
+	{@render lead?.(row)}
 	{#if arrangeable}<span class="grip shrink-0" aria-hidden="true" data-handle></span>{/if}
 	<!-- The chevron: a group's children, or a merged row's members beneath it (C5); the search
 	     unfolds the tree on its own, a merged row folds as it likes. -->
@@ -121,7 +125,13 @@
 			class={[
 				'min-w-0 flex-1 truncate py-2 text-left focus-visible:outline-2 focus-visible:outline-accent',
 				arrangeable && 'handle',
-				lit ? 'font-semibold' : row.kind === 'unscoped' ? 'font-normal' : 'font-medium',
+				lit || heavy
+					? 'font-semibold'
+					: quiet
+						? 'font-normal text-[color:var(--cg-text-secondary)]'
+						: row.kind === 'unscoped'
+							? 'font-normal'
+							: 'font-medium',
 				pulse && 'pulse'
 			]}
 			aria-label={t('rail.select', { name: row.name })}

@@ -16,6 +16,8 @@ type Collection =
 	| 'traceKindVersions'
 	| 'traces'
 	| 'periods'
+	| 'chapters'
+	| 'chapterStages'
 	| 'scopes'
 	| 'scopeSegments'
 	| 'intersections'
@@ -34,6 +36,8 @@ const createFakeClient = (): RepositoryClient => {
 		traceKindVersions: new Map(),
 		traces: new Map(),
 		periods: new Map(),
+		chapters: new Map(),
+		chapterStages: new Map(),
 		scopes: new Map(),
 		intersections: new Map(),
 		intentionAssessments: new Map(),

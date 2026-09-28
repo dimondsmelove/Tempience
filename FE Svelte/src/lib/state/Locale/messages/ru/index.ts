@@ -17,7 +17,9 @@ import timeline from './timeline.json';
 import life from './life.json';
 
 import onboarding from './onboarding.json';
+import chapters from './chapters.json';
 import demo from './demo.json';
+import demoAnya from './demo-anya.json';
 
 /** The Russian catalog: one JSON per area, one flat key space. */
 export const ru = {
@@ -35,5 +37,7 @@ export const ru = {
 	...timeline,
 	...life,
 	...onboarding,
-	...demo
+	...chapters,
+	...demo,
+	...demoAnya
 };

@@ -1,7 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import ScopePicker from './ScopePicker.svelte';
-import { scopeAncestors, scopeOptionsOf, scopePath, scopeRows } from './tree';
+import { groupedScopeRows, scopeAncestors, scopeOptionsOf, scopePath, scopeRows } from './tree';
 
 const scopes = [
 	{ id: 'people', name: 'Люди', parentId: null },
@@ -95,5 +95,38 @@ describe('ScopePicker', () => {
 			props: { scopes, label: 'Scope', none: 'Любой', onpick: () => {} }
 		}).body;
 		expect(body.indexOf('Любой')).toBeLessThan(body.indexOf('Люди'));
+	});
+});
+
+describe('groupedScopeRows', () => {
+	it('leads the Scope picker with the lineup, the rest after, nothing twice', () => {
+		const options = [
+			{ id: 'digital', name: 'Цифровая жизнь', parentId: null },
+			{ id: 'tempience', name: 'Tempience', parentId: 'digital' },
+			{ id: 'people', name: 'Люди', parentId: null },
+			{ id: 'mama', name: 'Мама', parentId: 'people' },
+			{ id: 'work', name: 'Работа', parentId: null }
+		];
+		const rows = groupedScopeRows(options, {
+			groups: [
+				{ label: 'Фокус', ids: ['tempience'] },
+				{ label: 'Поддержка', ids: ['people', 'mama'] }
+			],
+			rest: 'Остальные'
+		});
+		expect(rows.map((row) => [row.id, row.depth, row.caption ?? ''])).toEqual([
+			['tempience', 0, 'Фокус'],
+			['people', 0, 'Поддержка'],
+			['mama', 1, ''],
+			['digital', 0, 'Остальные'],
+			['work', 0, '']
+		]);
+		expect(rows.find((row) => row.id === 'digital')?.hasChildren).toBe(false);
+		const folded = groupedScopeRows(
+			options,
+			{ groups: [{ label: 'Поддержка', ids: ['people'] }], rest: 'Остальные' },
+			new Set(['people'])
+		);
+		expect(folded.map((row) => row.id)).toEqual(['people', 'digital', 'tempience', 'work']);
 	});
 });

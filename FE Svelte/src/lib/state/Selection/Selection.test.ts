@@ -42,6 +42,25 @@ describe('SelectionState', () => {
 		expect(selection.rowId).toBe('a+b');
 	});
 
+	it('records a chapter and each stage pick as entries of their own, walked like any other', () => {
+		const selection = new SelectionState();
+		selection.select({ kind: 'chapter', chapterId: 'c', stage: null }, 'context');
+		selection.select({ kind: 'chapter', chapterId: 'c', stage: null }, 'context');
+		selection.select({ kind: 'chapter', chapterId: 'c', stage: 'whole' }, 'context');
+		selection.select({ kind: 'chapter', chapterId: 'c', stage: 's1' }, 'context');
+		selection.select({ kind: 'scope', scopeId: 'c' }, 'context');
+		expect(selection.entries).toHaveLength(4);
+		expect(selection.chapter).toBeNull();
+		selection.back();
+		expect(selection.chapter).toEqual({ chapterId: 'c', stage: 's1' });
+		selection.back();
+		expect(selection.chapter).toEqual({ chapterId: 'c', stage: 'whole' });
+		expect(selection.scopeId).toBeNull();
+		expect(selection.entityId).toBeNull();
+		selection.rest();
+		expect(selection.chapter).toBeNull();
+	});
+
 	it('keeps Scope and Trace distinct in history even when their ids match', () => {
 		const selection = new SelectionState();
 		selection.select({ kind: 'scope', scopeId: 'a' }, 'rail');

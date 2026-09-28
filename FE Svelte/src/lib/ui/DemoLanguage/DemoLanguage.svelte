@@ -5,7 +5,7 @@
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { activeDataSpace, triplit } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
+	import { demoStoryOfDataSpace } from '$lib/scenarios/demo/registry';
 	import { demoSeedLocale, reseedDemoAndReload } from '$lib/state/triplit/demo-actions';
 	import {
 		DEMO_LANGUAGE_CONFIRM_TEST_ID,
@@ -15,13 +15,13 @@
 	import type { LanguageName } from './types';
 
 	// The active DataSpace is fixed for the module lifetime: a space switch reloads the app.
-	const demo = activeDataSpace.id === DEMO_DATA_SPACE_ID;
+	const entry = demoStoryOfDataSpace(activeDataSpace.id);
 	// A fresh replica is seeded on boot, after this header mounted, so the marker is read again
 	// whenever the language changes — the only moment the notebook and the interface can start to
 	// differ. A rebuild reloads the app.
 	const seeded = $derived.by(() => {
 		void locale.current;
-		return demo ? demoSeedLocale() : null;
+		return entry ? demoSeedLocale(entry) : null;
 	});
 	const languageName: LanguageName = (value) =>
 		LOCALES.find((option) => option.value === value)?.label ?? value;

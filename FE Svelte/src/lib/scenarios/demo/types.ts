@@ -18,6 +18,7 @@ import type {
 	TraceRelativeTimeRelation
 } from '$lib/state/triplit/types';
 import type { SEASON_MONTHS } from './constants';
+import type { DemoStoryEntry } from './registry';
 
 /** A calendar day of the notebook, `YYYY-MM-DD`, in the seed timezone. */
 export type StoryDate = string;
@@ -147,6 +148,8 @@ export type DemoSeedInput = Readonly<{
 	locale: Locale;
 	/** The instant of the import, the batch's own timestamp: no date of the notebook derives from it. */
 	capturedAt: string;
+	/** Which story is being seeded: its replica, its zone, its ids and its first page. */
+	entry: DemoStoryEntry;
 }>;
 
 export type DemoSeed = Readonly<{
@@ -176,6 +179,8 @@ export type DemoSeedStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export type DemoSeedBootstrapInput = Readonly<{
 	dataSpace: DataSpace;
+	/** The story whose replica this is; the story module itself is loaded from it. */
+	entry: DemoStoryEntry;
 	repository: DemoSeedRepository;
 	importRepository: Pick<ScenarioImportRepository, 'apply'>;
 	clock: () => string;

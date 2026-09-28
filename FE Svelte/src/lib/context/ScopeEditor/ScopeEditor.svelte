@@ -12,6 +12,7 @@
 	import type { ScopeColour } from '$lib/theme/scope-colour';
 	import ColorBlossomPicker from './ColorBlossomPicker/ColorBlossomPicker.svelte';
 	import ColorHuePicker from './ColorHuePicker/ColorHuePicker.svelte';
+	import EditorShell from '$lib/context/EditorShell/EditorShell.svelte';
 	import type { ScopeEditorProps } from './types';
 	import { ROOT_SCOPE_KEY } from './constants';
 	let { scope, parentId = null, onsaved, oncancel, hold, watch }: ScopeEditorProps = $props();
@@ -88,47 +89,46 @@
 	/>
 {/snippet}
 
-<section
-	class="grid gap-3"
-	data-testid="scope-editor"
-	aria-label={scope ? t('scope.edit') : t('scope.new')}
+<EditorShell
+	heading={scope ? t('scope.edit') : t('scope.new')}
+	testId="scope-editor"
+	busy={saving.busy}
 >
-	<h2 class="text-lg font-semibold">{scope ? t('scope.edit') : t('scope.new')}</h2>
-	<fieldset disabled={saving.busy} class="grid min-w-0 gap-3 border-0 p-0">
-		<label class="grid gap-1 text-sm"
-			>{t('scope.name')}<input class="cg-control cg-field" bind:value={name} /></label
-		>
-		<label class="grid gap-1 text-sm"
-			>{t('scope.note')}<textarea class="cg-control cg-field" bind:value={note}></textarea></label
-		>
-		<!-- The colour: the Blossom flower (owner 2026-09-19); the plain bars stand in where the
-		     flower cannot mount — off the browser, or should the library fail. -->
-		<svelte:boundary>
-			{#if browser}
-				<ColorBlossomPicker
-					hue={colorHue}
-					chroma={colorChroma}
-					depth={colorDepth}
-					label={t('scope.colour')}
-					testId="scope-colour"
-					onpick={pickColour}
-				/>
-			{:else}
-				{@render plainPicker()}
-			{/if}
-			{#snippet failed()}{@render plainPicker()}{/snippet}
-		</svelte:boundary>
-		<div class="grid gap-1 text-sm">
-			<span id="scope-parent-label">{t('scope.parent')}</span>
-			<ScopePicker
-				scopes={options}
-				value={parent}
-				none={t(ROOT_SCOPE_KEY)}
-				label={t('scope.parent')}
-				testId="scope-parent"
-				onpick={(id) => (parent = id)}
+	<label class="grid gap-1 text-sm"
+		>{t('scope.name')}<input class="cg-control cg-field" bind:value={name} /></label
+	>
+	<label class="grid gap-1 text-sm"
+		>{t('scope.note')}<textarea class="cg-control cg-field" bind:value={note}></textarea></label
+	>
+	<!-- The colour: the Blossom flower (owner 2026-09-19); the plain bars stand in where the
+	     flower cannot mount — off the browser, or should the library fail. -->
+	<svelte:boundary>
+		{#if browser}
+			<ColorBlossomPicker
+				hue={colorHue}
+				chroma={colorChroma}
+				depth={colorDepth}
+				label={t('scope.colour')}
+				testId="scope-colour"
+				onpick={pickColour}
 			/>
-		</div>
+		{:else}
+			{@render plainPicker()}
+		{/if}
+		{#snippet failed()}{@render plainPicker()}{/snippet}
+	</svelte:boundary>
+	<div class="grid gap-1 text-sm">
+		<span id="scope-parent-label">{t('scope.parent')}</span>
+		<ScopePicker
+			scopes={options}
+			value={parent}
+			none={t(ROOT_SCOPE_KEY)}
+			label={t('scope.parent')}
+			testId="scope-parent"
+			onpick={(id) => (parent = id)}
+		/>
+	</div>
+	{#snippet alerts()}
 		{#if failure !== null}<p role="alert" class="text-sm">{errorText(failure)}</p>{/if}
 		{#if saving.failure?.stage === 'write'}<p role="alert" class="text-sm">
 				{errorText(saving.failure.cause)}
@@ -138,17 +138,17 @@
 				{t('nested.savedNotReturned', { message: errorText(saving.failure.cause) })}
 			</p>
 		{/if}
-		<div class="flex flex-wrap gap-2">
-			{#if saving.committed !== null}
-				<Button variant="primary" data-testid="scope-retry-return" onclick={save}
-					>{t('nested.retryReturn')}</Button
-				>
-			{:else}
-				<Button variant="primary" disabled={!name.trim() || saving.busy} onclick={save}
-					>{t('scope.save')}</Button
-				>
-			{/if}
-			<Button onclick={oncancel}>{t('common.cancel')}</Button>
-		</div>
-	</fieldset>
-</section>
+	{/snippet}
+	{#snippet actions()}
+		{#if saving.committed !== null}
+			<Button variant="primary" data-testid="scope-retry-return" onclick={save}
+				>{t('nested.retryReturn')}</Button
+			>
+		{:else}
+			<Button variant="primary" disabled={!name.trim() || saving.busy} onclick={save}
+				>{t('scope.save')}</Button
+			>
+		{/if}
+		<Button onclick={oncancel}>{t('common.cancel')}</Button>
+	{/snippet}
+</EditorShell>

@@ -1,27 +1,40 @@
 import { CodedError } from '$lib/model/Errors/CodedError';
+import { DEFAULT_LOCALE } from '$lib/state/Locale/constants';
+import { translate } from '$lib/state/Locale/messages';
 import type { MessageKey } from '$lib/state/Locale/types';
 import { createId } from './ids';
 import { DATA_PACKS, canOpenDataPack } from '$lib/scenarios/DataPacks/DataPacks';
+import {
+	DEMO_STORIES,
+	WATSON_STORY,
+	type DemoDataSpaceId,
+	type DemoStoryEntry,
+	demoStoryOfDataSpace
+} from '$lib/scenarios/demo/registry';
 
 export const CANONICAL_DATA_SPACE_ID = 'canonical';
 export const BELGRADE_SCENARIO_DATA_SPACE_ID = 'belgrade-what-if-v1';
 export const E2E_SYNTHETIC_DATA_SPACE_ID = 'e2e-synthetic';
-/** Dr. Watson's notebook, seeded by the app itself (not a DataPack); available in every build. */
-export const DEMO_DATA_SPACE_ID = 'demo-v1';
+/**
+ * Dr. Watson's notebook, seeded by the app itself (not a DataPack); available in every build.
+ * The first story of the registry, named here for the paths that still speak of one demo; the
+ * demo spaces themselves are derived from `DEMO_STORIES`.
+ */
+export const DEMO_DATA_SPACE_ID = WATSON_STORY.dataSpaceId;
 export const DATA_SPACE_STORAGE_KEY = 'tempience.data-space.active';
 // Test-only opt-in. Without this flag `e2e-synthetic` is not a valid DataSpace id, so it cannot be
 // reached from the switcher, from a stale persisted value or by hand.
 export const E2E_SYNTHETIC_ENABLED_KEY = 'tempience.e2e.data-space-enabled';
 /** «Удалить демо» sets it; while set, `demo-v1` is not a valid DataSpace id (like the e2e gate, inverted). */
-export const DEMO_DISMISSED_KEY = 'tempience.demo.dismissed';
-/** The manifest id the demo seed was written with; cleared with the replica on dismiss. */
-export const DEMO_SEED_MARKER_KEY = 'tempience.demo.seed';
+export const DEMO_DISMISSED_KEY = WATSON_STORY.dismissedKey;
+/** The manifest id Watson's seed was written with; cleared with the replica on dismiss. */
+export const DEMO_SEED_MARKER_KEY = WATSON_STORY.seedMarkerKey;
 
 export type BuiltInDataSpaceId =
 	| typeof CANONICAL_DATA_SPACE_ID
 	| typeof BELGRADE_SCENARIO_DATA_SPACE_ID
 	| typeof E2E_SYNTHETIC_DATA_SPACE_ID
-	| typeof DEMO_DATA_SPACE_ID;
+	| DemoDataSpaceId;
 
 export type ImportedDataSpaceId = `imported-${string}`;
 export type DataSpaceId = BuiltInDataSpaceId | ImportedDataSpaceId;
@@ -46,6 +59,25 @@ export type DataSpace = Readonly<{
 /** The name shown for a space: the interface's own for the canonical one, the registered one otherwise. */
 export const dataSpaceLabel = (space: DataSpace, translate: (key: MessageKey) => string): string =>
 	space.labelKey ? translate(space.labelKey) : space.label;
+
+/** A story's own space: its name, its description and its isolated storage come from the entry. */
+const demoDataSpace = (entry: DemoStoryEntry): DataSpace => ({
+	// Every registry entry names a built-in id; the registry owns that part of the union.
+	id: entry.dataSpaceId as DemoDataSpaceId,
+	kind: 'scenario',
+	// The label shown is the interface's (`labelKey`); this one is the registered fallback.
+	label: translate(DEFAULT_LOCALE, entry.labelKey),
+	labelKey: entry.labelKey,
+	descriptionKey: entry.descriptionKey,
+	storageName: entry.storageName,
+	syncEnabled: false
+});
+
+/** One space per story, in registry order; `DATA_SPACES` and the switcher both read these. */
+const DEMO_SPACES: readonly DataSpace[] = DEMO_STORIES.map(demoDataSpace);
+const DEMO_DATA_SPACES = Object.fromEntries(
+	DEMO_SPACES.map((space) => [space.id, space])
+) as Readonly<Record<DemoDataSpaceId, DataSpace>>;
 
 export const DATA_SPACES: Readonly<Record<BuiltInDataSpaceId, DataSpace>> = {
 	[CANONICAL_DATA_SPACE_ID]: {
@@ -73,15 +105,7 @@ export const DATA_SPACES: Readonly<Record<BuiltInDataSpaceId, DataSpace>> = {
 		storageName: 'tempience-triplit-e2e-synthetic',
 		syncEnabled: false
 	},
-	[DEMO_DATA_SPACE_ID]: {
-		id: DEMO_DATA_SPACE_ID,
-		kind: 'scenario',
-		label: 'Демо · Ватсон',
-		labelKey: 'demo.space.label',
-		descriptionKey: 'demo.space.description',
-		storageName: 'tempience-triplit-demo-v1',
-		syncEnabled: false
-	}
+	...DEMO_DATA_SPACES
 };
 
 export type DataSpaceStorage = Pick<Storage, 'getItem' | 'setItem'> &
@@ -186,21 +210,27 @@ export const registerImportedDataSpace = (
 	target.setItem(key, JSON.stringify({ label: space.label }));
 };
 
-export const isDemoDismissed = (target: DataSpaceStorage | null = browserStorage()): boolean => {
+/** Whether one story was deleted by «Удалить демо»; each story answers for itself. */
+export const isDemoDismissed = (
+	entry: DemoStoryEntry,
+	target: DataSpaceStorage | null = browserStorage()
+): boolean => {
 	if (!target) return false;
 	try {
-		return target.getItem(DEMO_DISMISSED_KEY) === '1';
+		return target.getItem(entry.dismissedKey) === '1';
 	} catch {
 		return false;
 	}
 };
 
-/** The switchable spaces in their offered order: the user's own, the demo, the packs, the imports. */
+/** The switchable spaces in their offered order: the user's own, the demos, the packs, the imports. */
 export const listDataSpaceOptions = (
 	target: DataSpaceStorage | null = browserStorage()
 ): readonly DataSpace[] => [
 	DATA_SPACES[CANONICAL_DATA_SPACE_ID],
-	...(isDemoDismissed(target) ? [] : [DATA_SPACES[DEMO_DATA_SPACE_ID]]),
+	...DEMO_STORIES.flatMap((entry, index) =>
+		isDemoDismissed(entry, target) ? [] : [DEMO_SPACES[index]]
+	),
 	...DATA_PACKS.filter((pack) => canOpenDataPack(pack)).map(
 		(pack) => DATA_SPACES[pack.dataSpaceId]
 	),
@@ -223,14 +253,18 @@ export const isE2eSyntheticEnabled = (
 export const isDataSpaceId = (
 	value: unknown,
 	target: DataSpaceStorage | null = browserStorage()
-): value is DataSpaceId =>
-	value === CANONICAL_DATA_SPACE_ID ||
-	(value === DEMO_DATA_SPACE_ID && !isDemoDismissed(target)) ||
-	Boolean(readImportedDataSpace(value, target)) ||
-	DATA_PACKS.some((pack) => pack.dataSpaceId === value && canOpenDataPack(pack)) ||
-	(import.meta.env.PUBLIC_BUILD !== '1' &&
-		value === E2E_SYNTHETIC_DATA_SPACE_ID &&
-		isE2eSyntheticEnabled(target));
+): value is DataSpaceId => {
+	const demo = demoStoryOfDataSpace(value);
+	return (
+		value === CANONICAL_DATA_SPACE_ID ||
+		(demo !== null && !isDemoDismissed(demo, target)) ||
+		Boolean(readImportedDataSpace(value, target)) ||
+		DATA_PACKS.some((pack) => pack.dataSpaceId === value && canOpenDataPack(pack)) ||
+		(import.meta.env.PUBLIC_BUILD !== '1' &&
+			value === E2E_SYNTHETIC_DATA_SPACE_ID &&
+			isE2eSyntheticEnabled(target))
+	);
+};
 
 export const readActiveDataSpaceId = (
 	target: DataSpaceStorage | null = browserStorage()
@@ -283,16 +317,18 @@ export const resetScenarioDataSpace = async (
 };
 
 /**
- * «Удалить демо»: the demo replica is cleared whole (the seed and whatever was added to it),
- * the seed marker goes with it, the space stops being offered, and the user's own data becomes
- * the active space. The caller reloads the page, as the switcher does.
+ * «Удалить демо»: the replica of the story the space belongs to is cleared whole (the seed and
+ * whatever was added to it), its seed marker goes with it, the space stops being offered, and
+ * the user's own data becomes the active space. The caller reloads the page, as the switcher
+ * does. Which story it is comes from the space itself; any other space is refused.
  */
 export const dismissDemoDataSpace = async (
 	dataSpace: DataSpace,
 	target: DataSpaceResetTarget,
 	storage: DataSpaceStorage | null = browserStorage()
 ): Promise<void> => {
-	if (dataSpace.id !== DEMO_DATA_SPACE_ID) {
+	const entry = demoStoryOfDataSpace(dataSpace.id);
+	if (!entry) {
 		throw new CodedError('data_space_dismiss_demo', 'Удалить так можно только демо.');
 	}
 	if (!storage)
@@ -301,18 +337,22 @@ export const dismissDemoDataSpace = async (
 			'Браузерное хранилище недоступно: DataSpace нельзя переключить.'
 		);
 	await target.clear({ full: true });
-	removeKey(storage, DEMO_SEED_MARKER_KEY);
-	storage.setItem(DEMO_DISMISSED_KEY, '1');
+	removeKey(storage, entry.seedMarkerKey);
+	storage.setItem(entry.dismissedKey, '1');
 	saveActiveDataSpaceId(CANONICAL_DATA_SPACE_ID, storage);
 };
 
-/** «Открыть записную книжку Ватсона» after a dismiss: the space is offered again and becomes active; the seed rebuilds it. */
-export const restoreDemoDataSpace = (storage: DataSpaceStorage | null = browserStorage()): void => {
+/** «Открыть …» after a dismiss: that story's space is offered again and becomes active; the seed rebuilds it. */
+export const restoreDemoDataSpace = (
+	entry: DemoStoryEntry,
+	storage: DataSpaceStorage | null = browserStorage()
+): void => {
 	if (!storage)
 		throw new CodedError(
 			'data_space_storage',
 			'Браузерное хранилище недоступно: DataSpace нельзя переключить.'
 		);
-	removeKey(storage, DEMO_DISMISSED_KEY);
-	saveActiveDataSpaceId(DEMO_DATA_SPACE_ID, storage);
+	removeKey(storage, entry.dismissedKey);
+	// Every registry entry names a built-in id; the registry owns that part of the union.
+	saveActiveDataSpaceId(entry.dataSpaceId as DataSpaceId, storage);
 };

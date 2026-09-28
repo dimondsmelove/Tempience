@@ -127,5 +127,20 @@
 	"error.records_unreadable": "Не удалось прочитать записи.",
 	"error.storage_schema_missing": "Хранилище не обновлено до текущей схемы Tempience: в нём нет {{path}}. Новые операции остановлены; сохранённые данные не изменены.",
 	"error.storage_schema_type": "Хранилище не обновлено до текущей схемы Tempience: {{path}} хранится как {{actual}} вместо {{expected}}. Новые операции остановлены; сохранённые данные не изменены.",
-	"error.storage_schema_required": "Хранилище не обновлено до текущей схемы Tempience: {{path}} в хранилище обязательно, а должно быть необязательным. Новые операции остановлены; сохранённые данные не изменены."
+	"error.storage_schema_required": "Хранилище не обновлено до текущей схемы Tempience: {{path}} в хранилище обязательно, а должно быть необязательным. Новые операции остановлены; сохранённые данные не изменены.",
+	"error.chapter_invalid": "Глава или этап заполнены неверно.",
+	"error.chapter_invalid_name": "Нужно название.",
+	"error.chapter_invalid_instant": "Время не распознано: нужны дата и время с часовым поясом.",
+	"error.chapter_invalid_note": "Заметка должна быть текстом.",
+	"error.chapter_invalid_colour": "Цвет задан неверно.",
+	"error.chapter_invalid_lineup": "Состав задан неверно: каждый Scope — один раз, в фокусе или в поддержке.",
+	"error.chapter_clash": "В этот момент уже начинается другая глава.",
+	"error.chapter_missing": "Глава не найдена.",
+	"error.chapter_missing_deleted": "Глава удалена: изменить её уже нельзя.",
+	"error.stage_missing": "Этап не найден.",
+	"error.stage_missing_deleted": "Этап удалён: изменить его уже нельзя.",
+	"error.stage_before_chapter": "Этап не может начаться раньше своей главы.",
+	"error.chapter_invalid_stages": "Этап «{{name}}» начинается раньше нового начала главы: сначала передвиньте или удалите его.",
+	"error.chapter_invalid_close": "Конец главы должен быть позже её начала.",
+	"error.chapter_invalid_closeAfterNext": "Глава не может закончиться позже начала следующей — «{{name}}»."
 }

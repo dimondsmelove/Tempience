@@ -56,6 +56,11 @@ import { mergeExplorerSnapshots } from '$lib/model/Snapshot/Snapshot';
 import { periodTimeBounds } from '$lib/state/triplit/period-time';
 import type { ExplorerEntity, ExplorerSnapshot } from '$lib/model/Snapshot/types';
 import { EMPTY_SNAPSHOT } from './constants';
+import { ChaptersState } from '$lib/state/Chapters/Chapters.svelte';
+import { OPEN_CHAPTER_FIT_DAYS } from '$lib/state/Chapters/constants';
+import { endOf, ms, stageWindows } from '$lib/model/Chapters';
+import type { StagePick } from '$lib/model/Chapters/types';
+import { DAY_MS } from '$lib/state/Viewport/constants';
 
 export type WorkbenchStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -95,6 +100,19 @@ export class WorkbenchState {
 	/** The rows as arranged on this device (research п. 7): lanes over the Scopes of the view; the app binds its store. */
 	readonly arrangement = new ArrangementState(() => laneIds(this.view));
 	readonly selection = new SelectionState();
+	/** The chapters of the space: while one is in force it orders the rows (issue #82). */
+	readonly chapters = new ChaptersState(
+		() => this.view,
+		this.selection,
+		// A chapter or stage form is one Context form among the others: it ends them first.
+		(then) =>
+			this.exitGuard.exit(() => {
+				this.closeForms();
+				this.forms.open = false;
+				then();
+			}),
+		() => this.arrangement.current
+	);
 	readonly filters = new FiltersState();
 	readonly hover = new HoverState();
 	readonly forms = new FormsState();
@@ -135,10 +153,14 @@ export class WorkbenchState {
 		grouping: this.rows.grouping,
 		language: locale.current,
 		proposals: this.proposals ? proposalDecisions(this.proposals) : undefined,
-		arrangement: this.arrangement.current
+		arrangement: this.chapters.arrangement ?? this.arrangement.current,
+		laneChildren: this.chapters.arrangement ? this.chapters.nested : null
 	});
 	readonly projection: Projection = $derived(
-		projectSnapshot(this.view, { ...this.projectionInputs, expanded: this.rows.expanded })
+		projectSnapshot(this.view, {
+			...this.projectionInputs,
+			expanded: this.rows.expanded
+		})
 	);
 	/** The numbers beside the filter items (loop 008, C7): each Kind's records in the view, each hidden Scope's `n · Σ m`. */
 	readonly filterCounts: FilterCounts = $derived(filterCounts(this.view, this.projectionInputs));
@@ -162,6 +184,7 @@ export class WorkbenchState {
 		if (current.kind === 'period')
 			return { kind: 'period', range: { start: current.period.start, end: current.period.end } };
 		if (current.kind === 'row') return { kind: 'row', rowId: current.rowId };
+		if (current.kind === 'chapter') return null;
 		if (current.kind === 'period-record') {
 			const record = this.view.periods.find((item) => item.id === current.periodId);
 			return record
@@ -266,6 +289,7 @@ export class WorkbenchState {
 		if (current.kind === 'row')
 			return this.projection.rows.find((row) => row.id === current.rowId)?.range ?? null;
 		if (current.kind === 'intersection') return null;
+		if (current.kind === 'chapter') return this.chapterRange(current.chapterId, current.stage);
 		if (current.kind === 'period-record') {
 			const record = this.view.periods.find((item) => item.id === current.periodId);
 			return record ? periodTimeBounds(record.time, record.timezone) : null;
@@ -311,7 +335,11 @@ export class WorkbenchState {
 		// pulsing before is no longer what is shown.
 		const current = this.selection.current;
 		const target =
-			navigated && current && current.kind !== 'period' && current.kind !== 'period-record'
+			navigated &&
+			current &&
+			current.kind !== 'period' &&
+			current.kind !== 'period-record' &&
+			current.kind !== 'chapter'
 				? current
 				: null;
 		this.endPulse();
@@ -327,12 +355,16 @@ export class WorkbenchState {
 		this.pulse = null;
 	}
 
-	/** Ends the open Trace form; callers pass the exit guard first. */
+	/**
+	 * Ends the open Context form — «Записать», a record's edit, a new Scope, a chapter's or a
+	 * stage's; callers pass the exit guard first. Exactly one form holds the Context at a time.
+	 */
 	closeForms(): void {
 		this.capture = false;
 		this.forms.editingId = null;
 		this.forms.newScope = null;
 		this.forms.captureReturn = null;
+		this.chapters.closeForm();
 	}
 
 	/** DP7: a choice made on the ribbon, by pointer or through its DOM twin, leaves the window alone. */
@@ -362,6 +394,40 @@ export class WorkbenchState {
 			this.revealSelected();
 			this.settled(source);
 		});
+	}
+
+	/**
+	 * A chapter chosen (the band's or the rail header's click: nothing chosen in its strip yet),
+	 * or the strip's «Вся глава» / a stage: an entry of the history; nothing revealed or pulsed.
+	 * `fit` puts the chapter on the ribbon: an open one up to three weeks past «сейчас».
+	 */
+	selectChapter(chapterId: string, stage: StagePick = null, fit = true): void {
+		this.leave(() => {
+			this.chapters.closeForm();
+			this.selection.select({ kind: 'chapter', chapterId, stage }, 'context');
+			this.settled('context');
+			const range = fit ? this.chapterRange(chapterId, stage) : null;
+			if (range) this.viewport.fit(range.start, range.end);
+		});
+	}
+
+	/**
+	 * The time a chapter or its chosen stage takes on the ribbon (owner 2026-09-28: going to a
+	 * chapter is going to it, as «К выбранному»): an open end runs three weeks past «сейчас».
+	 */
+	private chapterRange(chapterId: string, stage: StagePick): TimeRange | null {
+		const chapter = this.chapters.chapter(chapterId);
+		if (!chapter) return null;
+		const picked =
+			typeof stage === 'string' && stage !== 'whole'
+				? stageWindows(chapter).find((item) => item.stage.id === stage)
+				: null;
+		const start = picked?.start ?? ms(chapter.start);
+		const end = (picked ? picked.end : null) ?? endOf(chapter);
+		return {
+			start,
+			end: end ?? Math.max(this.chapters.now, start) + OPEN_CHAPTER_FIT_DAYS * DAY_MS
+		};
 	}
 
 	selectIntersection(intersectionId: string, source: SelectSource = 'context'): void {
@@ -411,6 +477,7 @@ export class WorkbenchState {
 	/** Покой: the selection steps aside but stays in history; the slot list belongs to it and closes. */
 	rest(): void {
 		this.leave(() => {
+			this.chapters.closeForm();
 			this.selection.rest();
 			this.endPulse();
 		});
@@ -458,7 +525,25 @@ export class WorkbenchState {
 			this.forms.captureReturn = this.forms.open ? (this.forms.kindId ?? null) : null;
 			this.forms.open = false;
 			this.forms.editingId = null;
+			this.forms.newScope = null;
+			this.chapters.closeForm();
 			this.capture = true;
+		});
+	}
+
+	/** The Trace Kind catalog in the Context, open on a Kind: every other form ends first. */
+	showCatalog(kindId?: string): void {
+		this.exitGuard.exit(() => {
+			this.closeForms();
+			this.forms.showCatalog(kindId);
+		});
+	}
+
+	/** The catalog on a new Kind's constructor with these memberships: every other form ends first. */
+	createKind(scopeIds: readonly string[]): void {
+		this.exitGuard.exit(() => {
+			this.closeForms();
+			this.forms.createKind(scopeIds);
 		});
 	}
 

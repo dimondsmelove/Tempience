@@ -5,3 +5,8 @@
  */
 export const TINT_BACKGROUND_PERCENT = 18;
 export const TINT_BORDER_PERCENT = 55;
+
+/** An ancestor shrinks no narrower than this before the path collapses to «…» (px). */
+export const PATH_MIN_ANCESTOR_PX = 28;
+/** What stands for the ancestors a collapsed path leaves out. */
+export const PATH_ELLIPSIS = '…';

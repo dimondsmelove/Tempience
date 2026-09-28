@@ -5,7 +5,7 @@
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { activeDataSpace } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
+	import { isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
 	import { inbound } from '$lib/state/Workbench/inbound.svelte';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import { inboundFeed } from '$lib/state/triplit/inbound-sync-instance';
@@ -42,11 +42,21 @@
 	import { provideLens } from '$lib/ui/LensSource';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import type { SheetPosition } from '$lib/ui/BottomSheet/types';
+	import ChapterAdd from '$lib/time/ChapterBand/ChapterAdd.svelte';
+	import ChapterBand from '$lib/time/ChapterBand/ChapterBand.svelte';
+	import { BAND_HEIGHT_PX } from '$lib/time/ChapterBand/constants';
+	import ChapterHeader from '$lib/time/ChapterHeader/ChapterHeader.svelte';
+	import ChapterOverlay from '$lib/time/ChapterOverlay/ChapterOverlay.svelte';
+	import ChapterTicks from '$lib/time/ChapterTicks/ChapterTicks.svelte';
+	import { tempienceRepository } from '$lib/state/triplit';
+	import { chapterColour } from '$lib/theme/chapter-colour';
+	import { freeMidnight, msToIso } from '$lib/model/Chapters';
+	import type { ProjectedRow } from '$lib/model/Projection/types';
 
 	let { preview }: { preview?: WorkbenchPreview } = $props();
 	/** Import and Apply belong to the calibration scenarios; the demo is a scenario without them. */
 	const calibrationSpace =
-		activeDataSpace.kind === 'scenario' && activeDataSpace.id !== DEMO_DATA_SPACE_ID;
+		activeDataSpace.kind === 'scenario' && !isDemoDataSpaceId(activeDataSpace.id);
 	const timeInput = provideTimeInputHost();
 	// Every reference under the workbench — in the Context, the filters, the forms — lights the ribbon (loop 008, C3).
 	provideLens(workbench.hover);
@@ -74,6 +84,8 @@
 			// A seed or an import asked, once, to open on a record: the Context and the ribbon go there.
 			if (!preview && workbench.status === 'ready') consumeOpenAt(workbench, localStorage);
 		});
+		// The chapters of the space, live from Triplit; their commands write through the repository.
+		const stopChapters = preview ? () => {} : workbench.chapters.connect(tempienceRepository);
 		// Changes from other devices reach the ribbon for as long as the workbench is shown.
 		const stopInbound = preview
 			? () => {}
@@ -84,6 +96,7 @@
 				});
 		return () => {
 			stopInbound();
+			stopChapters();
 			workbench.viewport.motionEnabled = false;
 			workbench.viewport.set(workbench.viewport.window);
 		};
@@ -171,6 +184,32 @@
 
 	const projection = $derived(workbench.projection);
 	const selection = $derived(workbench.selection);
+	const chapters = $derived(workbench.chapters);
+	/** The space has chapters: the band, the lines, the ticks; with none the workbench is as it was. */
+	const chaptered = $derived(chapters.list.length > 0);
+	/** The chapter row above the axis, while the space has chapters. */
+	const bandPx = $derived(chaptered && !interaction ? BAND_HEIGHT_PX : 0);
+	const chapterPick = $derived(chapters.pick);
+	/** The lineup's levels by row: focus rows read heavier (weight, not words). */
+	const chapterLevels = $derived(chapters.levels(projection.rows));
+	/** Focus names at 600 in ink; the lineup below the divider at normal weight in the secondary colour. */
+	const rowsAt = (level: 'focus' | 'support') =>
+		chapterLevels
+			? new Set([...chapterLevels].flatMap(([rowId, at]) => (at === level ? [rowId] : [])))
+			: null;
+	const heavyRowIds = $derived(rowsAt('focus'));
+	const quietRowIds = $derived(chapters.shadowRows(projection.rows));
+	const startChapter = (): void => {
+		chapters.edit({
+			mode: 'new',
+			start: msToIso(
+				freeMidnight(chapters.list, chapters.now, chapters.timeZone),
+				chapters.timeZone
+			),
+			fromChapterId: (chapters.current ?? chapters.list.at(-1))?.id ?? null
+		});
+		togglePanel('context', true);
+	};
 	/** The periods with a note, for the axis bars: one matcher per snapshot, not one per cell. */
 	const hasNote = $derived(notedPeriods(workbench.view.periods));
 	/** Every Scope by id, and «Без Scope» under its row id: what names a lane and its composition (Q1-A). */
@@ -385,6 +424,19 @@
 	{/if}
 {/snippet}
 
+{#snippet chapterHistory(row: ProjectedRow)}
+	<ChapterTicks ticks={chapters.history(row.scopeId)} />
+{/snippet}
+
+{#snippet firstChapter()}
+	<!-- No chapter yet: the band's «+» alone, at the end of the overview, so no row is taken. -->
+	<ChapterAdd onclick={startChapter} />
+{/snippet}
+
+{#snippet currentChapter()}
+	<ChapterHeader {workbench} onopen={() => togglePanel('context', true)} />
+{/snippet}
+
 {#snippet scopeContent(onCanvas: boolean)}
 	<ScopeRail
 		{onCanvas}
@@ -396,6 +448,17 @@
 		selectedRowId={selection.scopeId ?? selection.rowId}
 		litRowIds={workbench.lit.rowIds}
 		lensRowIds={workbench.hover.target ? workbench.lens.rowIds : null}
+		rowLead={chaptered ? chapterHistory : null}
+		{heavyRowIds}
+		{quietRowIds}
+		chapterDriven={chapters.arrangement
+			? { rest: chapters.restMembers, ontoggleRest: () => chapters.toggleRest() }
+			: null}
+		chapterRows={chapters.driver
+			? { off: chapters.rowsOff, ontoggle: () => chapters.toggleRows() }
+			: null}
+		animateMoves={chapters.moving}
+		headerBand={bandPx ? { heightPx: bandPx + OVERVIEW_HEIGHT_PX, content: currentChapter } : null}
 		{veil}
 		pulseRowIds={workbench.pulseSet.rowIds}
 		onhoverrow={(rowId) => (rowId ? workbench.hover.row(rowId) : workbench.hover.clear())}
@@ -428,7 +491,7 @@
 	data-status={workbench.status}
 	style:--time-header-height={interaction
 		? `${axisHeaderHeight}px`
-		: `max(calc(var(--cg-axis-height) + ${phone ? 44 : OVERVIEW_HEIGHT_PX}px + var(--cg-border-width)), ${!compact && railOpen ? railHeaderHeight + 1 : 0}px)`}
+		: `max(calc(var(--cg-axis-height) + ${phone ? 44 : OVERVIEW_HEIGHT_PX}px + var(--cg-border-width) + ${bandPx}px), ${!compact && railOpen ? railHeaderHeight + 1 : 0}px)`}
 	style:grid-template-columns={!compact && contextOpen
 		? `minmax(0, 1fr) ${widths.context}px`
 		: 'minmax(0, 1fr)'}
@@ -523,7 +586,26 @@
 								rows={projection.rows}
 								dimmed={workbench.dimmed}
 								inWindow={workbench.inWindow}
+								trailing={chaptered ? null : firstChapter}
 							/>
+							{#if bandPx}
+								<ChapterBand
+									chapters={chapters.list}
+									window={viewport.window}
+									now={chapters.now}
+									timeZone={chapters.timeZone}
+									pickedId={chapterPick?.chapterId ?? null}
+									drivingId={chapters.driver?.chapter.id ?? null}
+									pickedStageId={chapterPick ? (chapters.driver?.stage?.id ?? null) : null}
+									onpick={(chapterId, stageId) => {
+										workbench.selectChapter(chapterId, stageId);
+										togglePanel('context', true);
+									}}
+									oncreate={startChapter}
+									onpan={(ratio) =>
+										viewport.pan(ratio * spanOf(viewport.target), WHEEL_DURATION_MS)}
+								/>
+							{/if}
 							<Axis
 								window={viewport.window}
 								now={viewport.now}
@@ -551,6 +633,19 @@
 						onscrollrows={(delta) => scroller?.scrollBy(0, delta)}
 						onempty={closeContext}
 					/>
+					{#if chaptered && !interaction}
+						<ChapterOverlay
+							chapters={chapters.list}
+							window={viewport.window}
+							now={chapters.now}
+							rows={projection.rows}
+							{rowHeightPx}
+							front={chapters.frontRows(projection.rows)}
+							levels={chapterLevels}
+							colour={chapterColour(chapters.driver?.chapter)}
+							railPx={!compact && railOpen && !phone ? widths.rail : 0}
+						/>
+					{/if}
 
 					{#if projection.parked.length && !phone && !interaction}
 						<Parked

@@ -1,4 +1,4 @@
-import type { ScopeOption, ScopeRow } from './types';
+import type { ScopeOption, ScopePickerGroups, ScopeRow } from './types';
 
 type Link = Readonly<{ kind: string; fromId: string; toId: string }>;
 
@@ -103,4 +103,52 @@ export const scopeRows = (
 	};
 	visit(null, 0, []);
 	return rows;
+};
+
+/**
+ * The list led by groups: each group's Scopes with their subtrees, in the group's order, the
+ * group's caption on its first line; then everything else in tree order under `rest`. A Scope
+ * listed by an earlier group is not repeated; a fold hides a subtree as in the plain tree.
+ */
+export const groupedScopeRows = (
+	scopes: readonly ScopeOption[],
+	{ groups, rest }: ScopePickerGroups,
+	collapsed: ReadonlySet<string> = new Set()
+): ScopeRow[] => {
+	const full = scopeRows(scopes);
+	const taken = new Set<string>();
+	const out: ScopeRow[] = [];
+	const push = (slice: readonly ScopeRow[], base: number, caption: string): void => {
+		let hideBelow: number | null = null;
+		let first = true;
+		slice.forEach((row, index) => {
+			if (hideBelow !== null && row.depth > hideBelow) return;
+			const hasChildren = (slice[index + 1]?.depth ?? -1) > row.depth;
+			hideBelow = hasChildren && collapsed.has(row.id) ? row.depth : null;
+			out.push({ ...row, depth: row.depth - base, hasChildren, ...(first ? { caption } : {}) });
+			first = false;
+		});
+	};
+	for (const group of groups) {
+		const lines: ScopeRow[] = [];
+		for (const id of group.ids) {
+			const at = full.findIndex((row) => row.id === id);
+			if (at < 0 || taken.has(id)) continue;
+			const base = full[at].depth;
+			let end = at + 1;
+			while (end < full.length && full[end].depth > base) end++;
+			for (const row of full.slice(at, end)) {
+				if (taken.has(row.id)) continue;
+				taken.add(row.id);
+				lines.push({ ...row, depth: row.depth - base });
+			}
+		}
+		push(lines, 0, group.label);
+	}
+	push(
+		full.filter((row) => !taken.has(row.id)),
+		0,
+		rest
+	);
+	return out;
 };

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	changeEnd,
 	changeStart,
+	dateLabel,
 	dayAt,
 	durationLabel,
 	shiftSelection,
@@ -179,5 +180,13 @@ describe('«Сейчас»', () => {
 		// A day chosen afterwards keeps the minute: «сейчас» was the user's choice.
 		state.chooseDay(time(21, 12));
 		expect(state.draft).toEqual({ start: time(21, 15, 42), end: null, timed: true });
+	});
+});
+
+describe('the time input’s day label', () => {
+	it('names the year of a day not in this year, and leaves this year’s out', () => {
+		const now = new Date(2026, 8, 27).getTime();
+		expect(dateLabel(new Date(2026, 9, 10).getTime(), now)).toBe('10 октября');
+		expect(dateLabel(new Date(2019, 9, 10).getTime(), now)).toBe('10 октября 2019');
 	});
 });

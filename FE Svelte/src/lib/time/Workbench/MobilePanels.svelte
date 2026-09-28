@@ -6,7 +6,7 @@
 	import Parked from '$lib/time/Parked/Parked.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { activeDataSpace } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID } from '$lib/state/triplit/data-space';
+	import { isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import type { MobilePanelsProps } from './types';
@@ -72,8 +72,7 @@
 						>{t('toolbar.pendingColon', { count: workbench.proposalCounts.pending })}</span
 					>{/if}
 				{#if workbench.proposalCounts.accepted}<Button
-						disabled={activeDataSpace.kind !== 'scenario' ||
-							activeDataSpace.id === DEMO_DATA_SPACE_ID}
+						disabled={activeDataSpace.kind !== 'scenario' || isDemoDataSpaceId(activeDataSpace.id)}
 						data-testid="apply-proposals"
 						onclick={() =>
 							workbench.applyProposals(

@@ -2,13 +2,14 @@
 	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { activeDataSpace, triplit } from '$lib/state/triplit/client';
-	import { DEMO_DATA_SPACE_ID, resetScenarioDataSpace } from '$lib/state/triplit/data-space';
+	import { demoStoryOfDataSpace } from '$lib/scenarios/demo/registry';
+	import { resetScenarioDataSpace } from '$lib/state/triplit/data-space';
 	import { deleteDemoAndReload } from '$lib/state/triplit/demo-actions';
 
 	/** Which edge of the trigger the popover hangs from: the end (its own place) or the start (the identity bar). */
 	let { align = 'end' }: { align?: 'start' | 'end' } = $props();
 	// The active DataSpace is fixed for the module lifetime: a switch reloads the app.
-	const demo = activeDataSpace.id === DEMO_DATA_SPACE_ID;
+	const story = demoStoryOfDataSpace(activeDataSpace.id);
 	let confirmingReset = $state(false);
 	let resetting = $state(false);
 	let failure = $state.raw<unknown>(null);
@@ -51,8 +52,10 @@
 				align === 'start' ? 'left-2 sm:left-0' : 'right-2 sm:right-0'
 			]}
 		>
-			{#if demo}
-				<p class="w-full" data-testid="demo-notice">{t('demo.notice')}</p>
+			{#if story}
+				<p class="w-full" data-testid="demo-notice">
+					{t('demo.notice', { story: t(story.titleKey) })}
+				</p>
 				{#if confirmingReset}
 					<span>{t('demo.deleteConfirm')}</span>
 					<button

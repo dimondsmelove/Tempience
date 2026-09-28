@@ -53,6 +53,7 @@
 			dimmed={workbench.dimmed}
 			searching={workbench.searching}
 			{rowHeightPx}
+			animateRows={workbench.chapters.moving}
 			onselect={(traceId, source) => workbench.selectTrace(traceId, source)}
 			onhover={(target) => workbench.hover.set(target)}
 			onzoomto={(range, traceIds) => workbench.zoomToCluster(range, traceIds)}

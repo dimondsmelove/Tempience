@@ -8,14 +8,21 @@ import {
 import { assertTraceTemporalPlacement, parseTraceAboutTime } from '$lib/state/triplit/trace-time';
 import type { TraceAboutTime } from '$lib/state/triplit/types';
 import { buildDemoSeed, demoRecordId } from './batch';
-import { DEMO_TIMEZONE } from './constants';
+import { WATSON_STORY, type DemoStoryEntry } from './registry';
 import { DEMO_STORY } from './story';
+import type { DemoStory } from './types';
 
 const CAPTURED_AT = '2026-09-19T10:00:00.000Z';
+const DEMO_TIMEZONE = WATSON_STORY.timezone;
+/** Watson's record ids, the only ones these tests speak of. */
+const recordId = (storyId: string): string => demoRecordId(WATSON_STORY, storyId);
 
 type Entry<T extends ScenarioImportEntry['type']> = Extract<ScenarioImportEntry, { type: T }>;
 
-const seed = buildDemoSeed({ locale: 'ru', capturedAt: CAPTURED_AT });
+const seed = buildDemoSeed(
+	{ locale: 'ru', capturedAt: CAPTURED_AT, entry: WATSON_STORY },
+	DEMO_STORY
+);
 const of = <T extends ScenarioImportEntry['type']>(type: T): Entry<T>[] =>
 	seed.batch.entries.filter((entry): entry is Entry<T> => entry.type === type);
 const scopes = of('scope');
@@ -25,7 +32,7 @@ const links = of('intersection');
 const scopeIds = new Set(scopes.map((entry) => entry.id));
 const traceIds = new Set(traces.map((entry) => entry.id));
 const trace = (storyId: string): Entry<'trace'> => {
-	const found = traces.find((entry) => entry.id === demoRecordId(storyId));
+	const found = traces.find((entry) => entry.id === recordId(storyId));
 	if (!found) throw new Error(`missing ${storyId}`);
 	return found;
 };
@@ -35,7 +42,7 @@ const traceById = (id: string): Entry<'trace'> => {
 	return found;
 };
 const period = (storyId: string): Entry<'period'> => {
-	const found = periods.find((entry) => entry.id === demoRecordId(storyId));
+	const found = periods.find((entry) => entry.id === recordId(storyId));
 	if (!found) throw new Error(`missing ${storyId}`);
 	return found;
 };
@@ -71,24 +78,24 @@ describe('demo seed batch', () => {
 		expect(byKind('revisits')).toHaveLength(2);
 		expect(links).toHaveLength(113 + 13 + 3 + 7 + 6 + 11 + 2);
 		expect(seed.kindScopes).toEqual({
-			'demo-kind-case': [demoRecordId('s.cases')],
-			'demo-kind-wire': [demoRecordId('s.holmes')]
+			'demo-kind-case': [recordId('s.cases')],
+			'demo-kind-wire': [recordId('s.holmes')]
 		});
 		// The preface's links are the table of contents; the steps close on the intention.
-		const start = demoRecordId('w.start');
+		const start = recordId('w.start');
 		expect(
 			byKind('related_to', 'trace')
 				.filter((entry) => entry.draft.fromId === start || entry.draft.toId === start)
 				.map((entry) => (entry.draft.fromId === start ? entry.draft.toId : entry.draft.fromId))
 				.toSorted()
-		).toEqual(['w.final', 'w.hound.intent', 'w.meet', 'w.return'].map(demoRecordId).toSorted());
+		).toEqual(['w.final', 'w.hound.intent', 'w.meet', 'w.return'].map(recordId).toSorted());
 		expect(
 			byKind('related_to', 'trace').filter((entry) =>
-				[entry.draft.fromId, entry.draft.toId].includes(demoRecordId('w.mire.search'))
+				[entry.draft.fromId, entry.draft.toId].includes(recordId('w.mire.search'))
 			)
 		).toHaveLength(1);
 		// The story in print sits beside the fall it tells; the colonel beside the intention to take him.
-		const pair = (a: string, b: string) => [demoRecordId(a), demoRecordId(b)].toSorted();
+		const pair = (a: string, b: string) => [recordId(a), recordId(b)].toSorted();
 		expect(
 			byKind('related_to', 'trace')
 				.filter((entry) => ![entry.draft.fromId, entry.draft.toId].includes(start))
@@ -102,11 +109,11 @@ describe('demo seed batch', () => {
 			].toSorted()
 		);
 		expect(
-			byKind('part_of').every((entry) => entry.draft.toId === demoRecordId('w.hound.intent'))
+			byKind('part_of').every((entry) => entry.draft.toId === recordId('w.hound.intent'))
 		).toBe(true);
 		expect(byKind('revisits').map((entry) => [entry.draft.fromId, entry.draft.toId])).toEqual([
-			[demoRecordId('w.revisit.barrymore'), demoRecordId('w.hyp.barrymore')],
-			[demoRecordId('w.return'), demoRecordId('w.final')]
+			[recordId('w.revisit.barrymore'), recordId('w.hyp.barrymore')],
+			[recordId('w.return'), recordId('w.final')]
 		]);
 	});
 
@@ -130,7 +137,7 @@ describe('demo seed batch', () => {
 		expect(new Set(seed.assessments.map((item) => item.candidateId))).toEqual(
 			new Set(evidence.keys())
 		);
-		const search = demoRecordId('w.mire.search');
+		const search = recordId('w.mire.search');
 		expect(trace('w.mire.search').draft).toMatchObject({
 			relation: 'intend',
 			content: 'Найти Стэплтона в трясине',
@@ -143,7 +150,7 @@ describe('demo seed batch', () => {
 				.filter((entry) => entry.draft.fromId === search)
 				.map((entry) => entry.draft.toId)
 				.toSorted()
-		).toEqual([demoRecordId('s.hound'), demoRecordId('s.mire')].toSorted());
+		).toEqual([recordId('s.hound'), recordId('s.mire')].toSorted());
 	});
 
 	it('references only records of the batch or Kinds of the seed, with a complete mapping', () => {
@@ -234,13 +241,13 @@ describe('demo seed batch', () => {
 		expect(trace('w.list').draft.aboutTime).toEqual({
 			basis: 'relative',
 			precision: 'unknown',
-			anchorTraceId: demoRecordId('w.rooms'),
+			anchorTraceId: recordId('w.rooms'),
 			relation: 'after'
 		});
 		expect(trace('w.mycroft').draft.aboutTime).toEqual({
 			basis: 'relative',
 			precision: 'year',
-			anchorTraceId: demoRecordId('w.hiatus.tibet'),
+			anchorTraceId: recordId('w.hiatus.tibet'),
 			relation: 'during'
 		});
 		expect(trace('w.hiatus.persia').draft.aboutTime).toEqual({ basis: 'unknown' });
@@ -329,7 +336,7 @@ describe('demo seed batch', () => {
 			if (time.end !== null) expect(yearOf(time.end), entry.id).toBeGreaterThanOrEqual(1880);
 		}
 		// The Scope «Собака Баскервилей» spans one year: June to October 1889.
-		const hound = demoRecordId('s.hound');
+		const hound = recordId('s.hound');
 		const houndStarts = byKind('belongs_to')
 			.filter((entry) => entry.draft.toId === hound)
 			.map((entry) => absolute(traceById(entry.draft.fromId)).start)
@@ -478,8 +485,8 @@ describe('demo seed batch', () => {
 			'w.hiatus.tibet',
 			'w.hiatus.montpellier',
 			'w.adair'
-		].map(demoRecordId);
-		const PLANNED_AHEAD = ['w.step.night'].map(demoRecordId);
+		].map(recordId);
+		const PLANNED_AHEAD = ['w.step.night'].map(recordId);
 		const pad = (value: number) => String(value).padStart(2, '0');
 		const firstDay = (value: string): string => `${value}-01-01`.slice(0, 10);
 		const lastDay = (value: string): string => {
@@ -509,7 +516,10 @@ describe('demo seed batch', () => {
 	});
 
 	it('writes the notebook in the seed language, once, with no empty text', () => {
-		const en = buildDemoSeed({ locale: 'en', capturedAt: CAPTURED_AT });
+		const en = buildDemoSeed(
+			{ locale: 'en', capturedAt: CAPTURED_AT, entry: WATSON_STORY },
+			DEMO_STORY
+		);
 		expect(seed.manifestId).toBe('watson-v1:ru');
 		expect(en.manifestId).toBe('watson-v1:en');
 		expect(seed.batch.targetDataSpaceId).toBe('demo-v1');
@@ -545,7 +555,7 @@ describe('demo seed batch', () => {
 			expect(JSON.stringify(built)).not.toMatch(/"demo\.(scope|kind|period|trace)\./);
 		}
 		const draftOf = (built: typeof seed, storyId: string) =>
-			built.batch.entries.find((entry) => entry.id === demoRecordId(storyId))?.draft;
+			built.batch.entries.find((entry) => entry.id === recordId(storyId))?.draft;
 		expect(draftOf(seed, 's.hound')).toMatchObject({ name: 'Собака Баскервилей' });
 		expect(draftOf(en, 's.hound')).toMatchObject({ name: 'The Hound of the Baskervilles' });
 		expect(draftOf(en, 's.cases')).toMatchObject({ name: 'Cases' });
@@ -577,5 +587,92 @@ describe('demo story colours', () => {
 			byParent.set(key, [...(byParent.get(key) ?? []), scope.colour!.hue]);
 		}
 		for (const [parent, hues] of byParent) expect(new Set(hues).size, parent).toBe(hues.length);
+	});
+});
+
+describe('a story whose first page is dated by the install', () => {
+	const FIXTURE_STORY: DemoStory = {
+		scopes: [],
+		scopeLinks: [],
+		kinds: [],
+		periods: [],
+		traces: [
+			{
+				id: 'f.start',
+				relation: 'actual',
+				time: { type: 'year', value: 2023 },
+				captured: '2023-01-01',
+				contentKey: 'demo.trace.start',
+				scopeIds: []
+			},
+			{
+				id: 'f.later',
+				relation: 'actual',
+				time: { type: 'day', value: '2024-03-04' },
+				captured: '2024-03-04',
+				contentKey: 'demo.trace.start',
+				scopeIds: []
+			}
+		],
+		traceLinks: [],
+		assessments: []
+	};
+	const FIXTURE: DemoStoryEntry = {
+		...WATSON_STORY,
+		id: 'fixture',
+		manifestPrefix: 'fixture-v1',
+		recordPrefix: 'fix-',
+		timezone: 'Europe/Belgrade',
+		captureTime: '21:00',
+		startId: 'f.start',
+		startAtInstall: true,
+		load: async () => FIXTURE_STORY
+	};
+	const fixture = buildDemoSeed(
+		{ locale: 'ru', capturedAt: CAPTURED_AT, entry: FIXTURE },
+		FIXTURE_STORY
+	);
+	const draftOf = (id: string): Entry<'trace'>['draft'] => {
+		const found = fixture.batch.entries.find(
+			(item): item is Entry<'trace'> => item.type === 'trace' && item.id === id
+		);
+		if (!found) throw new Error(`missing ${id}`);
+		return found.draft;
+	};
+
+	it("dates the entry's start record by the install day and instant, in the story's zone", () => {
+		// 2026-09-19T10:00Z is 12:00 in Belgrade: the same day there, whatever zone the browser is in.
+		expect(draftOf('fix-f-start')).toMatchObject({
+			capturedAt: CAPTURED_AT,
+			timezone: 'Europe/Belgrade',
+			aboutKind: 'instant',
+			aboutTime: {
+				basis: 'absolute',
+				precision: 'day',
+				certainty: 'exact',
+				start: '2026-09-19',
+				end: null
+			}
+		});
+	});
+
+	it('leaves every other record of that story on its own date and wall-clock hour', () => {
+		expect(draftOf('fix-f-later')).toMatchObject({
+			// 21:00 in Belgrade on a March day before the change of clocks is 20:00 UTC.
+			capturedAt: '2024-03-04T20:00:00.000Z',
+			aboutTime: { basis: 'absolute', precision: 'day', start: '2024-03-04' }
+		});
+	});
+
+	it("writes the seed into the entry's own space under the entry's own manifest", () => {
+		expect(fixture.manifestId).toBe('fixture-v1:ru');
+		expect(fixture.batch.manifestId).toBe('fixture-v1:ru');
+		expect(fixture.batch.targetDataSpaceId).toBe(FIXTURE.dataSpaceId);
+	});
+
+	it('keeps a story without the flag on the dates written in its own file', () => {
+		expect(WATSON_STORY.startAtInstall).toBe(false);
+		expect(trace('w.start').draft.capturedAt).toBe('1894-05-01T12:00:00.000Z');
+		expect(trace('w.start').draft.capturedAt).not.toBe(CAPTURED_AT);
 	});
 });
