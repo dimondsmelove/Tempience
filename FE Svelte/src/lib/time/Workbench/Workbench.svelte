@@ -49,7 +49,6 @@
 	import ChapterOverlay from '$lib/time/ChapterOverlay/ChapterOverlay.svelte';
 	import ChapterTicks from '$lib/time/ChapterTicks/ChapterTicks.svelte';
 	import { tempienceRepository } from '$lib/state/triplit';
-	import { chapterColour } from '$lib/theme/chapter-colour';
 	import { freeMidnight, msToIso } from '$lib/model/Chapters';
 	import type { ProjectedRow } from '$lib/model/Projection/types';
 
@@ -638,11 +637,6 @@
 							chapters={chapters.list}
 							window={viewport.window}
 							now={chapters.now}
-							rows={projection.rows}
-							{rowHeightPx}
-							front={chapters.frontRows(projection.rows)}
-							levels={chapterLevels}
-							colour={chapterColour(chapters.driver?.chapter)}
 							railPx={!compact && railOpen && !phone ? widths.rail : 0}
 						/>
 					{/if}

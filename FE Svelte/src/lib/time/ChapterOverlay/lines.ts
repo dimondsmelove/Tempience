@@ -1,6 +1,5 @@
 import { endOf, ms, sortChapters, statusAt } from '$lib/model/Chapters';
-import type { Chapter, Level } from '$lib/model/Chapters/types';
-import type { ProjectedRow } from '$lib/model/Projection/types';
+import type { Chapter } from '$lib/model/Chapters/types';
 import { pxAtTime } from '$lib/state/Viewport/math';
 import type { TimeWindow } from '$lib/state/Viewport/types';
 
@@ -39,20 +38,4 @@ export const chapterLines = (
 			});
 	});
 	return lines.filter((line) => line.x >= 0 && line.x <= widthPx);
-};
-
-/** Where the front ends and the folded rest begins, as a row index; -1 — no boundary. */
-export const frontEnd = (
-	rows: readonly ProjectedRow[],
-	front: ReadonlySet<string> | null
-): number => (front ? rows.findIndex((row) => !front.has(row.id)) : -1);
-
-/** Where the focus ends and the rest of the lineup begins, as a row index; -1 — none. */
-export const focusEnd = (
-	rows: readonly ProjectedRow[],
-	levels: ReadonlyMap<string, Level> | null
-): number => {
-	if (!levels) return -1;
-	const first = rows.findIndex((row) => levels.get(row.id) === 'support');
-	return first > 0 && levels.get(rows[first - 1].id) === 'focus' ? first : -1;
 };

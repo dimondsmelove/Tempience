@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { chapter, chapters, now } from '$lib/model/Chapters/Chapters.fixture';
 import { resolveEnds } from '$lib/model/Chapters';
-import type { ProjectedRow } from '$lib/model/Projection/types';
 import { ms } from '$lib/model/Chapters';
-import { chapterLines, focusEnd, frontEnd } from './lines';
+import { chapterLines } from './lines';
 
 const window = { start: ms('2026-08-01T00:00:00+02:00'), end: ms('2026-10-31T00:00:00+02:00') };
-const row = (id: string) => ({ id }) as unknown as ProjectedRow;
 
 describe('the chapters over the lanes', () => {
 	it('draws a line where each chapter starts, and an end only before a gap or at an early close', () => {
@@ -25,17 +23,5 @@ describe('the chapters over the lanes', () => {
 			'b:start'
 		]);
 		expect(chapterLines(chapters, window, 0, now)).toEqual([]);
-	});
-	it('finds where the front ends and where the focus ends', () => {
-		const rows = ['f1', 'f2', 's1', 'rest'].map(row);
-		expect(frontEnd(rows, new Set(['f1', 'f2', 's1']))).toBe(3);
-		expect(frontEnd(rows, null)).toBe(-1);
-		const levels = new Map([
-			['f1', 'focus' as const],
-			['f2', 'focus' as const],
-			['s1', 'support' as const]
-		]);
-		expect(focusEnd(rows, levels)).toBe(2);
-		expect(focusEnd(rows, new Map([['s1', 'support' as const]]))).toBe(-1);
 	});
 });
