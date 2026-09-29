@@ -26,6 +26,7 @@ describe('legendKeysOf — every row of the vocabulary', () => {
 		expect(keys()).toEqual(['fact']);
 		expect(keys({ kind: 'interval' })).toEqual(['interval']);
 		expect(keys({ kind: 'fuzzy' })).toEqual(['fuzzy']);
+		expect(keys({ kind: 'fuzzy', lasting: true })).toEqual(['fuzzySpan']);
 	});
 
 	it('an open interval («длится») is open and an interval, and never overdue; an open intention stays «намерение»', () => {
@@ -88,6 +89,7 @@ describe('legendKeysOf — every row of the vocabulary', () => {
 			...keys(),
 			...keys({ kind: 'interval' }),
 			...keys({ kind: 'fuzzy' }),
+			...keys({ kind: 'fuzzy', lasting: true }),
 			...keys({ intent: true, end: NOW - DAY }),
 			...keys({ intent: true, closed: true }),
 			...keys({ kind: 'fuzzy', intent: true }),

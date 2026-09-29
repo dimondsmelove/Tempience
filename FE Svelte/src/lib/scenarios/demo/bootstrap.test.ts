@@ -16,6 +16,7 @@ import type { Intersection, Trace } from '$lib/state/triplit/types';
 import { WORKBENCH_OPEN_AT_KEY } from '$lib/state/Workbench/constants';
 import { bootstrapDemoSeed } from './bootstrap';
 import { demoRecordId } from './batch';
+import { demoContentHash, demoContentKey } from './freshness';
 import { WATSON_STORY } from './registry';
 import { DEMO_STORY } from './story';
 import type { DemoSeedStorage } from './types';
@@ -94,16 +95,19 @@ describe('demo seed bootstrap', () => {
 			manifestId: 'watson-v1:ru',
 			counts: {
 				kinds: 2,
-				scopes: 17,
-				traces: 72,
+				scopes: 27,
+				traces: 101,
 				periods: 6,
-				intersections: 155 + 2,
-				assessments: 11
+				intersections: 213 + 2,
+				assessments: 12,
+				chapters: 9,
+				stages: 10
 			}
 		});
 		// The seed marks the replica and asks the workbench, once, to open on the notebook's first page.
 		expect(target.dump()).toEqual({
 			[DEMO_SEED_MARKER_KEY]: 'watson-v1:ru',
+			[demoContentKey(WATSON_STORY)]: demoContentHash(WATSON_STORY, DEMO_STORY, 'ru'),
 			[WORKBENCH_OPEN_AT_KEY]: recordId('w.start')
 		});
 		expect(recordId('w.start')).toBe('demo-w-start');
@@ -115,10 +119,10 @@ describe('demo seed bootstrap', () => {
 			repository.listIntersections()
 		]);
 		expect(kinds.map((kind) => kind.name).toSorted()).toEqual(['Дело', 'Телеграмма']);
-		expect(scopes).toHaveLength(17);
-		expect(traces).toHaveLength(72);
+		expect(scopes).toHaveLength(27);
+		expect(traces).toHaveLength(101);
 		expect(periods).toHaveLength(6);
-		expect(intersections).toHaveLength(157);
+		expect(intersections).toHaveLength(215);
 		expect(
 			intersections.filter((link) => link.fromEntityType === 'traceKind').map((link) => link.id)
 		).toEqual(
@@ -171,6 +175,35 @@ describe('demo seed bootstrap', () => {
 			time: { precision: 'month', start: '1889-10', end: '1889-10' },
 			timezone: 'Europe/London'
 		});
+		// Chapters come through the chapter repository: ends derived, lineups on seeded Scopes.
+		const chapters = await repository.listChapters();
+		expect(chapters.map((chapter) => [chapter.name, chapter.stages.length])).toEqual([
+			['Возвращение из Афганистана', 0],
+			['Знакомство', 2],
+			['Тихие годы', 0],
+			['Первая слава', 0],
+			['Мэри Морстен', 0],
+			['Дело Баскервилей', 4],
+			['Женитьба и Паддингтон', 0],
+			['Без Холмса', 4],
+			['Снова на Бейкер-стрит', 0]
+		]);
+		expect(chapters[5]).toMatchObject({
+			note: expect.stringMatching(/^Всё началось со смерти сэра Чарльза/),
+			colorHue: 160
+		});
+		// Each chapter ends where the next starts; the last closes where the notebook ends.
+		chapters.forEach((chapter, index) => {
+			const next = chapters[index + 1];
+			expect(chapter.end, chapter.name).toBe(next ? next.start : '1894-06-01T00:00:00.000Z');
+		});
+		const scopeIds = new Set(scopes.map((scope) => scope.id));
+		for (const chapter of chapters)
+			for (const entry of [
+				chapter.lineup,
+				...chapter.stages.map((stage) => stage.lineup ?? [])
+			].flat())
+				expect(scopeIds.has(entry.scopeId), entry.scopeId).toBe(true);
 	});
 
 	it("colours every Scope with the story's own hue, saturation and depth", async () => {
@@ -184,7 +217,7 @@ describe('demo seed bootstrap', () => {
 			locale: 'ru'
 		});
 		const scopes = await repository.listScopes();
-		expect(scopes).toHaveLength(17);
+		expect(scopes).toHaveLength(27);
 		for (const story of DEMO_STORY.scopes) {
 			const stored = scopes.find((scope) => scope.id === recordId(story.id));
 			expect(stored?.colorHue, story.id).toBe(story.colour!.hue);
@@ -193,11 +226,11 @@ describe('demo seed bootstrap', () => {
 		}
 	});
 
-	it('closes every assessed intention as completed through its evidence, and leaves the mire search open', async () => {
+	it('closes every assessed intention through its evidence, Openshaw lost, and leaves the mire search open', async () => {
 		await bootstrap(storage());
 
 		const assessments = await repository.listIntentionAssessments();
-		expect(assessments).toHaveLength(11);
+		expect(assessments).toHaveLength(12);
 		expect(new Set(assessments.map((item) => item.source))).toEqual(new Set(['evidence']));
 		expect(new Set(assessments.map((item) => item.evidenceId))).toEqual(
 			new Set(
@@ -206,6 +239,9 @@ describe('demo seed bootstrap', () => {
 					.map((link) => link.id)
 			)
 		);
+		const lost = await evaluate('w.pips.intent');
+		expect(lost.outcome.value).toBe('not_completed');
+		expect(lost.open.value).toBe(false);
 		for (const storyId of ['w.hound.intent', 'w.step.barrymore', 'w.moran.intent']) {
 			const result = await evaluate(storyId);
 			expect(result.outcome.value, storyId).toBe('completed');
@@ -249,7 +285,7 @@ describe('demo seed bootstrap', () => {
 			manifestId: 'watson-v1:ru'
 		});
 		expect(await repository.listTraces()).toHaveLength(traces.length);
-		expect(await repository.listIntentionAssessments()).toHaveLength(11);
+		expect(await repository.listIntentionAssessments()).toHaveLength(12);
 		// A skip never asks to open anything.
 		expect(target.dump()[WORKBENCH_OPEN_AT_KEY]).toBe('');
 	});

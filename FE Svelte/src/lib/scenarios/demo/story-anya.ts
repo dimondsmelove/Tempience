@@ -4,6 +4,7 @@ import type {
 	DemoStory,
 	StoryAssessment,
 	StoryCaptured,
+	StoryChapter,
 	StoryDate,
 	StoryKind,
 	StoryPeriod,
@@ -17,20 +18,19 @@ import type {
 } from './types';
 
 /**
- * «Записная книжка Ани»: a second demo notebook, in Russian only for now (English is a separate
- * loop — see `en/index.ts`). Anya, born 2 March 1994, a QA engineer, moves from Russia to
- * Belgrade in September 2023; Maxim, her partner, stays behind to hand over his studio and never
- * arrives. The notebook runs May 2023 to September 2026, Europe/Belgrade time (this branch still
- * builds under Watson's `DEMO_TIMEZONE` constant, Europe/London — a multi-timezone seed is a
- * separate change), and reads as a diary of stages that do not follow the calendar: before the
- * move, adaptation, a plateau, a depression, a catharsis and a life of her own. A relocation
- * stopover sits in the background throughout, never a stage of its own. Every fact (`actual`) has
- * an exact day, minute or day interval; every intention (`intend`) is dated by the day it targets,
- * not the day it arose — `captured` carries that earlier day instead, from the skeleton's «зап.»
- * mark, or narratively where the skeleton gives none. Vague time (month/season/unknown) and
- * relative time are each used only where the skeleton says life itself was vague. Source of truth:
- * `research/active/expat-demo-story.md` (synopsis) and `research/active/expat-demo-skeleton.md`
- * (the data skeleton this file implements 1:1). `t.start` carries a placeholder day
+ * «Записная книжка Ани»: a second demo notebook, in Russian only for now (English waits until the
+ * Russian text is approved — see `en/index.ts`). Anya, born 2 March 1994, a QA engineer, moves
+ * from Russia to Belgrade in September 2023; Maxim, her partner, stays behind to hand over his
+ * studio and never arrives. The notebook runs May 2023 to September 2026 in Europe/Belgrade time
+ * and is divided into six chapters by her state, not by the calendar: before the move,
+ * adaptation, a plateau, a depression, a catharsis and a life of her own. Every record is written
+ * to be read cold: its title says what moved, its note first gives the situation, then one detail;
+ * hindsight lives only in chapter and period notes. Motifs run through `revisits`: the second
+ * room, the key made for Maxim, the New Year nights, the anniversaries. Every fact (`actual`)
+ * has an exact day, minute or day interval; every intention (`intend`) is dated by the day it
+ * targets, and `captured` carries the earlier day it arose. Vague and relative time are used only
+ * where life itself was vague. The synopsis `research/active/expat-demo-story.md` was the
+ * starting point; this file is the story's source. `t.start` carries a placeholder day
  * (2026-09-21) and captured; the seed replaces both with the install day (registry flag
  * `startAtInstall`).
  */
@@ -459,7 +459,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-05-14'),
 		'2023-05-14',
 		['s.lena'],
-		'demo.anya.trace.lena-3'
+		'demo.anya.trace.lena-3',
+		'demo.anya.trace.lena-3.desc'
 	),
 	plain(
 		't.we-decided',
@@ -476,7 +477,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		month('2023-09'),
 		'2023-05-20',
 		['s.legal'],
-		'demo.anya.trace.plan-move'
+		'demo.anya.trace.plan-move',
+		'demo.anya.trace.plan-move.desc'
 	),
 	plain(
 		't.plan-vnz',
@@ -484,7 +486,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		month('2023-12'),
 		'2023-05-20',
 		['s.legal'],
-		'demo.anya.trace.plan-vnz'
+		'demo.anya.trace.plan-vnz',
+		'demo.anya.trace.plan-vnz.desc'
 	),
 	plain(
 		't.jovana-contact',
@@ -498,10 +501,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.ticket',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 340, what: { key: 'demo.anya.value.ticket-sep' } },
+		{ amount: 340, what: { key: 'demo.anya.value.ticket.what' } },
 		day('2023-06-28'),
 		'2023-06-28',
-		['s.money']
+		['s.money'],
+		'demo.anya.trace.ticket'
 	),
 	plain(
 		't.tisha-mama',
@@ -545,7 +549,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-09-10'),
 		'2023-09-10',
 		['s.legal'],
-		'demo.anya.trace.get-vnz'
+		'demo.anya.trace.get-vnz',
+		'demo.anya.trace.get-vnz.desc'
 	),
 	plain(
 		't.step-card',
@@ -553,7 +558,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-09-10'),
 		'2023-09-10',
 		['s.legal'],
-		'demo.anya.trace.step-card'
+		'demo.anya.trace.step-card',
+		'demo.anya.trace.step-card.desc'
 	),
 	plain(
 		't.card-refuse',
@@ -568,13 +574,14 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.card-hostel',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.hostel-2' },
+			place: { key: 'demo.anya.value.card-hostel.place' },
 			wait: 30,
-			result: { key: 'demo.anya.value.hostel-card' }
+			result: { key: 'demo.anya.value.card-hostel.result' }
 		},
 		minute('2023-09-11T09:30'),
 		'2023-09-11T09:30',
-		['s.legal']
+		['s.legal'],
+		'demo.anya.trace.card-hostel'
 	),
 	plain(
 		't.menjacnica',
@@ -602,20 +609,27 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		['s.legal'],
 		'demo.anya.trace.step-ip'
 	),
-	typed('t.call-1', ANYA_KIND_CALL_ID, { minutes: 45 }, day('2023-09-16'), '2023-09-16', [
-		's.maxim'
-	]),
+	typed(
+		't.call-1',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 45 },
+		day('2023-09-16'),
+		'2023-09-16',
+		['s.maxim'],
+		'demo.anya.trace.call-1'
+	),
 	typed(
 		't.apr-submit',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.apr' },
+			place: { key: 'demo.anya.value.apr-submit.place' },
 			wait: 45,
-			result: { key: 'demo.anya.value.apr-accepted' }
+			result: { key: 'demo.anya.value.apr-submit.result' }
 		},
 		minute('2023-09-20T10:15'),
 		'2023-09-20T10:15',
-		['s.apr-bank']
+		['s.apr-bank'],
+		'demo.anya.trace.apr-submit'
 	),
 	plain(
 		't.golden',
@@ -632,11 +646,18 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-09-27'),
 		'2023-09-27',
 		['s.legal'],
-		'demo.anya.trace.ip-decision'
+		'demo.anya.trace.ip-decision',
+		'demo.anya.trace.ip-decision.desc'
 	),
-	typed('t.call-2', ANYA_KIND_CALL_ID, { minutes: 38 }, day('2023-09-29'), '2023-09-29', [
-		's.maxim'
-	]),
+	typed(
+		't.call-2',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 38 },
+		day('2023-09-29'),
+		'2023-09-29',
+		['s.maxim'],
+		'demo.anya.trace.call-2'
+	),
 	plain(
 		't.flat',
 		'actual',
@@ -649,10 +670,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.deposit',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 1100, what: { key: 'demo.anya.value.deposit-month' } },
+		{ amount: 1100, what: { key: 'demo.anya.value.deposit.what' } },
 		day('2023-10-01'),
 		'2023-10-01',
-		['s.money']
+		['s.money'],
+		'demo.anya.trace.deposit'
 	),
 	plain(
 		't.room-empty',
@@ -666,7 +688,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-1',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2023-10-05'),
 		'2023-10-05',
 		['s.money', 's.maxim'],
@@ -678,7 +700,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-10-08'),
 		'2023-10-08',
 		['s.legal'],
-		'demo.anya.trace.step-visarun'
+		'demo.anya.trace.step-visarun',
+		'demo.anya.trace.step-visarun.desc'
 	),
 	plain(
 		't.visegrad',
@@ -701,36 +724,45 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.bank-refuse',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.raiffeisen' },
+			place: { key: 'demo.anya.value.bank-refuse.place' },
 			wait: 25,
-			result: { key: 'demo.anya.value.bank-refused' }
+			result: { key: 'demo.anya.value.bank-refuse.result' }
 		},
 		minute('2023-10-10T11:00'),
 		'2023-10-10T11:00',
-		['s.apr-bank']
+		['s.apr-bank'],
+		'demo.anya.trace.bank-refuse'
 	),
-	typed('t.call-3', ANYA_KIND_CALL_ID, { minutes: 30 }, day('2023-10-11'), '2023-10-11', [
-		's.maxim'
-	]),
+	typed(
+		't.call-3',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 30 },
+		day('2023-10-11'),
+		'2023-10-11',
+		['s.maxim'],
+		'demo.anya.trace.call-3'
+	),
 	plain(
 		't.apostille-panic',
 		'actual',
 		day('2023-10-12'),
 		'2023-10-12',
 		['s.legal'],
-		'demo.anya.trace.apostille-panic'
+		'demo.anya.trace.apostille-panic',
+		'demo.anya.trace.apostille-panic.desc'
 	),
 	typed(
 		't.bank-ok',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.postal-savings' },
+			place: { key: 'demo.anya.value.bank-ok.place' },
 			wait: 120,
-			result: { key: 'demo.anya.value.bank-opened' }
+			result: { key: 'demo.anya.value.bank-ok.result' }
 		},
 		minute('2023-10-17T12:40'),
 		'2023-10-17T12:40',
-		['s.apr-bank']
+		['s.apr-bank'],
+		'demo.anya.trace.bank-ok'
 	),
 	plain(
 		't.apostille-no',
@@ -745,22 +777,37 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.card2',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 90,
-			result: { key: 'demo.anya.value.card-vracar' }
+			result: { key: 'demo.anya.value.card2.result' }
 		},
 		minute('2023-10-23T08:10'),
 		'2023-10-23T08:10',
-		['s.savska', 's.milos']
+		['s.savska', 's.milos'],
+		'demo.anya.trace.card2'
 	),
-	typed('t.call-4', ANYA_KIND_CALL_ID, { minutes: 25 }, day('2023-10-26'), '2023-10-26', [
-		's.maxim'
-	]),
-	plain('t.rain', 'actual', day('2023-11-03'), '2023-11-03', ['s.flat'], 'demo.anya.trace.rain'),
+	typed(
+		't.call-4',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 25 },
+		day('2023-10-26'),
+		'2023-10-26',
+		['s.maxim'],
+		'demo.anya.trace.call-4'
+	),
+	plain(
+		't.rain',
+		'actual',
+		day('2023-11-03'),
+		'2023-11-03',
+		['s.flat'],
+		'demo.anya.trace.rain',
+		'demo.anya.trace.rain.desc'
+	),
 	typed(
 		't.transfer-2',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2023-11-05'),
 		'2023-11-05',
 		['s.money']
@@ -774,9 +821,15 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.bar',
 		'demo.anya.trace.bar.desc'
 	),
-	typed('t.call-5', ANYA_KIND_CALL_ID, { minutes: 20 }, day('2023-11-08'), '2023-11-08', [
-		's.maxim'
-	]),
+	typed(
+		't.call-5',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 20 },
+		day('2023-11-08'),
+		'2023-11-08',
+		['s.maxim'],
+		'demo.anya.trace.call-5'
+	),
 	plain(
 		't.step-submit',
 		'intend',
@@ -789,13 +842,14 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.submit',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 150,
-			result: { key: 'demo.anya.value.submit-accepted' }
+			result: { key: 'demo.anya.value.apr-submit.result' }
 		},
 		minute('2023-11-10T07:00'),
 		'2023-11-10T07:00',
-		['s.savska']
+		['s.savska'],
+		'demo.anya.trace.submit'
 	),
 	plain(
 		't.wait',
@@ -803,18 +857,26 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		relative('t.submit', 'after', 'day'),
 		'2023-11-10',
 		['s.legal'],
-		'demo.anya.trace.wait'
+		'demo.anya.trace.wait',
+		'demo.anya.trace.wait.desc'
 	),
-	typed('t.call-6', ANYA_KIND_CALL_ID, { minutes: 18 }, day('2023-11-19'), '2023-11-19', [
-		's.maxim'
-	]),
+	typed(
+		't.call-6',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 18 },
+		day('2023-11-19'),
+		'2023-11-19',
+		['s.maxim'],
+		'demo.anya.trace.call-6'
+	),
 	plain(
 		't.maxim-confirm',
 		'actual',
 		day('2023-11-20'),
 		'2023-11-20',
 		['s.maxim'],
-		'demo.anya.trace.maxim-confirm'
+		'demo.anya.trace.maxim-confirm',
+		'demo.anya.trace.maxim-confirm.desc'
 	),
 	plain(
 		't.calls-twice',
@@ -822,13 +884,40 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2023-11-25'),
 		'2023-11-25',
 		['s.maxim'],
-		'demo.anya.trace.calls-twice'
+		'demo.anya.trace.calls-twice',
+		'demo.anya.trace.calls-twice.desc'
 	),
-	plain('t.dark', 'actual', day('2023-12-04'), '2023-12-04', ['s.flat'], 'demo.anya.trace.dark'),
+	plain(
+		't.no-ticket',
+		'actual',
+		day('2023-11-28'),
+		'2023-11-28',
+		['s.maxim'],
+		'demo.anya.trace.no-ticket',
+		'demo.anya.trace.no-ticket.desc'
+	),
+	typed(
+		't.key',
+		ANYA_KIND_EXPENSE_ID,
+		{ amount: 5, what: { key: 'demo.anya.value.key.what' } },
+		day('2023-11-30'),
+		'2023-11-30',
+		['s.flat', 's.maxim'],
+		'demo.anya.trace.key'
+	),
+	plain(
+		't.dark',
+		'actual',
+		day('2023-12-04'),
+		'2023-12-04',
+		['s.flat'],
+		'demo.anya.trace.dark',
+		'demo.anya.trace.dark.desc'
+	),
 	typed(
 		't.transfer-3',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2023-12-05'),
 		'2023-12-05',
 		['s.money']
@@ -848,20 +937,27 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		month('2024-01'),
 		'2023-12-08',
 		['s.maxim'],
-		'demo.anya.trace.maxim-jan'
+		'demo.anya.trace.maxim-jan',
+		'demo.anya.trace.maxim-jan.desc'
 	),
 	plain(
 		't.dec12',
 		'actual',
 		day('2023-12-12'),
 		'2023-12-12',
-		['s.maxim'],
+		['s.maxim', 's.room'],
 		'demo.anya.trace.dec12',
 		'demo.anya.trace.dec12.desc'
 	),
-	typed('t.call-7', ANYA_KIND_CALL_ID, { minutes: 15 }, day('2023-12-15'), '2023-12-15', [
-		's.maxim'
-	]),
+	typed(
+		't.call-7',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 15 },
+		day('2023-12-15'),
+		'2023-12-15',
+		['s.maxim'],
+		'demo.anya.trace.call-7'
+	),
 	plain(
 		't.smog',
 		'actual',
@@ -883,7 +979,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-4',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-01-05'),
 		'2024-01-05',
 		['s.money']
@@ -891,7 +987,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.pausal',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 300, what: { key: 'demo.anya.value.pausal-dec' } },
+		{ amount: 300, what: { key: 'demo.anya.value.pausal.what' } },
 		day('2024-01-10'),
 		'2024-01-10',
 		['s.money', 's.jovana'],
@@ -903,7 +999,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-01-21'),
 		'2024-01-21',
 		['s.maxim'],
-		'demo.anya.trace.maxim-spring'
+		'demo.anya.trace.maxim-spring',
+		'demo.anya.trace.maxim-spring.desc'
 	),
 	plain(
 		't.maxim-spring-i',
@@ -911,43 +1008,43 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		season(2024, 'spring'),
 		'2024-01-21',
 		['s.maxim'],
-		'demo.anya.trace.maxim-spring-i'
+		'demo.anya.trace.maxim-spring-i',
+		'demo.anya.trace.maxim-spring-i.desc'
 	),
 	typed(
 		't.transfer-5',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-02-05'),
 		'2024-02-05',
 		['s.money']
 	),
 	plain(
-		't.grey',
+		't.ny-plateau',
 		'actual',
 		day('2024-02-06'),
 		'2024-02-06',
-		['s.work'],
-		'demo.anya.trace.grey',
-		'demo.anya.trace.grey.desc'
+		['s.flat', 's.work'],
+		'demo.anya.trace.ny-plateau',
+		'demo.anya.trace.ny-plateau.desc'
 	),
-	typed('t.call-8', ANYA_KIND_CALL_ID, { minutes: 22 }, day('2024-02-11'), '2024-02-11', [
-		's.maxim'
-	]),
+	typed(
+		't.call-8',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 22 },
+		day('2024-02-11'),
+		'2024-02-11',
+		['s.maxim'],
+		'demo.anya.trace.call-8'
+	),
 	plain(
 		't.decision-call',
 		'actual',
 		day('2024-02-22'),
 		'2024-02-22',
 		['s.savska'],
-		'demo.anya.trace.decision-call'
-	),
-	plain(
-		't.ny-plateau',
-		'actual',
-		day('2024-02-25'),
-		'2024-02-25',
-		['s.flat'],
-		'demo.anya.trace.ny-plateau'
+		'demo.anya.trace.decision-call',
+		'demo.anya.trace.decision-call.desc'
 	),
 	plain(
 		't.bday30',
@@ -961,7 +1058,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-6',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-03-05'),
 		'2024-03-05',
 		['s.money']
@@ -970,13 +1067,14 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.card',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 40,
-			result: { key: 'demo.anya.value.card-until-2025' }
+			result: { key: 'demo.anya.value.card.result' }
 		},
 		minute('2024-03-11T08:30'),
 		'2024-03-11T08:30',
-		['s.savska', 's.legal']
+		['s.savska', 's.legal'],
+		'demo.anya.trace.card'
 	),
 	plain(
 		't.renew-hint',
@@ -984,7 +1082,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-03-11'),
 		'2024-03-11',
 		['s.jovana'],
-		'demo.anya.trace.renew-hint'
+		'demo.anya.trace.renew-hint',
+		'demo.anya.trace.renew-hint.desc'
 	),
 	plain(
 		't.renew-1',
@@ -992,7 +1091,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-01-10'),
 		'2024-03-11',
 		['s.legal'],
-		'demo.anya.trace.renew-1'
+		'demo.anya.trace.renew-1',
+		'demo.anya.trace.renew-1.desc'
 	),
 	plain(
 		't.spring',
@@ -1003,16 +1103,23 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.spring',
 		'demo.anya.trace.spring.desc'
 	),
-	typed('t.call-9', ANYA_KIND_CALL_ID, { minutes: 20 }, day('2024-03-17'), '2024-03-17', [
-		's.maxim'
-	]),
+	typed(
+		't.call-9',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 20 },
+		day('2024-03-17'),
+		'2024-03-17',
+		['s.maxim'],
+		'demo.anya.trace.call-9'
+	),
 	plain(
 		't.maxim-summer',
 		'actual',
 		day('2024-03-24'),
 		'2024-03-24',
 		['s.maxim'],
-		'demo.anya.trace.maxim-summer'
+		'demo.anya.trace.maxim-summer',
+		'demo.anya.trace.maxim-summer.desc'
 	),
 	plain(
 		't.maxim-summer-i',
@@ -1020,7 +1127,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		season(2024, 'summer'),
 		'2024-03-24',
 		['s.maxim'],
-		'demo.anya.trace.maxim-summer-i'
+		'demo.anya.trace.maxim-summer-i',
+		'demo.anya.trace.maxim-summer-i.desc'
 	),
 	plain(
 		't.course',
@@ -1028,7 +1136,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		interval('day', '2024-04-03', '2024-08-28'),
 		'2024-04-03',
 		['s.serbian'],
-		'demo.anya.trace.course'
+		'demo.anya.trace.course',
+		'demo.anya.trace.course.desc'
 	),
 	plain(
 		't.course-1',
@@ -1042,7 +1151,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-7',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-04-05'),
 		'2024-04-05',
 		['s.money']
@@ -1050,7 +1159,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-8',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-05-05'),
 		'2024-05-05',
 		['s.money']
@@ -1085,7 +1194,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-9',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-06-05'),
 		'2024-06-05',
 		['s.money']
@@ -1105,12 +1214,13 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-07-02'),
 		'2024-07-02',
 		['s.room'],
-		'demo.anya.trace.room-closed'
+		'demo.anya.trace.room-closed',
+		'demo.anya.trace.room-closed.desc'
 	),
 	typed(
 		't.transfer-10',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-07-05'),
 		'2024-07-05',
 		['s.money']
@@ -1130,15 +1240,22 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-09-09'),
 		'2024-07-14',
 		['s.maxim'],
-		'demo.anya.trace.maxim-sept-i'
+		'demo.anya.trace.maxim-sept-i',
+		'demo.anya.trace.maxim-sept-i.desc'
 	),
-	typed('t.call-11', ANYA_KIND_CALL_ID, { minutes: 10 }, day('2024-07-21'), '2024-07-21', [
-		's.maxim'
-	]),
+	typed(
+		't.call-11',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 10 },
+		day('2024-07-21'),
+		'2024-07-21',
+		['s.maxim'],
+		'demo.anya.trace.call-11'
+	),
 	typed(
 		't.transfer-11',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-08-05'),
 		'2024-08-05',
 		['s.money']
@@ -1149,7 +1266,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-08-07'),
 		'2024-08-07',
 		['s.serbian'],
-		'demo.anya.trace.course-drop'
+		'demo.anya.trace.course-drop',
+		'demo.anya.trace.course-drop.desc'
 	),
 	plain(
 		't.few-notes',
@@ -1163,7 +1281,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-12',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-09-05'),
 		'2024-09-05',
 		['s.money']
@@ -1183,7 +1301,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-12-30'),
 		'2024-09-09',
 		['s.maxim'],
-		'demo.anya.trace.maxim-ny-i'
+		'demo.anya.trace.maxim-ny-i',
+		'demo.anya.trace.maxim-ny-i.desc'
 	),
 	plain(
 		't.tisha-plan',
@@ -1191,7 +1310,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-12-30'),
 		'2024-09-12',
 		['s.tisha', 's.maxim'],
-		'demo.anya.trace.tisha-plan'
+		'demo.anya.trace.tisha-plan',
+		'demo.anya.trace.tisha-plan.desc'
 	),
 	plain(
 		't.step-chip',
@@ -1199,7 +1319,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-09-12'),
 		'2024-09-12',
 		['s.tisha', 's.mama'],
-		'demo.anya.trace.step-chip'
+		'demo.anya.trace.step-chip',
+		'demo.anya.trace.step-chip.desc'
 	),
 	plain(
 		't.chip-done',
@@ -1216,23 +1337,31 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		relative('t.chip-done', 'after', 'day'),
 		'2024-09-12',
 		['s.tisha'],
-		'demo.anya.trace.step-blood'
+		'demo.anya.trace.step-blood',
+		'demo.anya.trace.step-blood.desc'
 	),
-	typed('t.call-12', ANYA_KIND_CALL_ID, { minutes: 12 }, day('2024-09-15'), '2024-09-15', [
-		's.maxim'
-	]),
+	typed(
+		't.call-12',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 12 },
+		day('2024-09-15'),
+		'2024-09-15',
+		['s.maxim'],
+		'demo.anya.trace.call-12'
+	),
 	plain(
 		't.autumn2',
 		'actual',
 		day('2024-09-27'),
 		'2024-09-27',
 		['s.flat'],
-		'demo.anya.trace.autumn2'
+		'demo.anya.trace.autumn2',
+		'demo.anya.trace.autumn2.desc'
 	),
 	typed(
 		't.transfer-13',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-10-05'),
 		'2024-10-05',
 		['s.money']
@@ -1243,7 +1372,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		minute('2024-10-09T21:40'),
 		'2024-10-09T21:40',
 		['s.health', 's.dorcol'],
-		'demo.anya.trace.tooth'
+		'demo.anya.trace.tooth',
+		'demo.anya.trace.tooth.desc'
 	),
 	plain(
 		't.find-dentist',
@@ -1251,19 +1381,21 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-10-10'),
 		'2024-10-10',
 		['s.health'],
-		'demo.anya.trace.find-dentist'
+		'demo.anya.trace.find-dentist',
+		'demo.anya.trace.find-dentist.desc'
 	),
 	typed(
 		't.marko',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.marko' },
+			place: { key: 'demo.anya.value.marko.place' },
 			wait: 20,
-			result: { key: 'demo.anya.value.crown-price' }
+			result: { key: 'demo.anya.value.marko.result' }
 		},
 		minute('2024-10-14T17:00'),
 		'2024-10-14T17:00',
-		['s.marko', 's.health']
+		['s.marko', 's.health'],
+		'demo.anya.trace.marko'
 	),
 	plain(
 		't.blood-done',
@@ -1274,7 +1406,15 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.blood-done',
 		'demo.anya.trace.blood-done.desc'
 	),
-	plain('t.pasha', 'actual', day('2024-10-19'), '2024-10-19', ['s.next'], 'demo.anya.trace.pasha'),
+	plain(
+		't.pasha',
+		'actual',
+		day('2024-10-19'),
+		'2024-10-19',
+		['s.next'],
+		'demo.anya.trace.pasha',
+		'demo.anya.trace.pasha.desc'
+	),
 	plain(
 		't.threshold',
 		'actual',
@@ -1290,7 +1430,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		unknownTime,
 		'2024-10-19',
 		['s.next'],
-		'demo.anya.trace.not-final'
+		'demo.anya.trace.not-final',
+		'demo.anya.trace.not-final.desc'
 	),
 	typed(
 		't.call-13',
@@ -1304,10 +1445,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.crown',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 720, what: { key: 'demo.anya.value.crown' } },
+		{ amount: 720, what: { key: 'demo.anya.value.crown.what' } },
 		day('2024-10-25'),
 		'2024-10-25',
-		['s.health', 's.money']
+		['s.health', 's.money'],
+		'demo.anya.trace.crown'
 	),
 	plain(
 		't.count',
@@ -1321,7 +1463,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-700',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 700, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 700, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-10-27'),
 		'2024-10-27',
 		['s.money', 's.maxim'],
@@ -1330,19 +1472,28 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-14',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-11-05'),
 		'2024-11-05',
 		['s.money']
 	),
-	plain('t.dark2', 'actual', day('2024-11-06'), '2024-11-06', ['s.flat'], 'demo.anya.trace.dark2'),
+	plain(
+		't.dark2',
+		'actual',
+		day('2024-11-06'),
+		'2024-11-06',
+		['s.flat'],
+		'demo.anya.trace.dark2',
+		'demo.anya.trace.dark2.desc'
+	),
 	plain(
 		't.room-storage',
 		'actual',
 		day('2024-11-10'),
 		'2024-11-10',
 		['s.room'],
-		'demo.anya.trace.room-storage'
+		'demo.anya.trace.room-storage',
+		'demo.anya.trace.room-storage.desc'
 	),
 	typed(
 		't.fight',
@@ -1368,18 +1519,26 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-11-27'),
 		'2024-11-27',
 		['s.maxim'],
-		'demo.anya.trace.come-you'
+		'demo.anya.trace.come-you',
+		'demo.anya.trace.come-you.desc'
 	),
-	typed('t.call-14', ANYA_KIND_CALL_ID, { minutes: 8 }, day('2024-11-30'), '2024-11-30', [
-		's.maxim'
-	]),
+	typed(
+		't.call-14',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 8 },
+		day('2024-11-30'),
+		'2024-11-30',
+		['s.maxim'],
+		'demo.anya.trace.call-14'
+	),
 	typed(
 		't.ticket-home',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 280, what: { key: 'demo.anya.value.ticket-home' } },
+		{ amount: 280, what: { key: 'demo.anya.value.ticket-home.what' } },
 		day('2024-12-03'),
 		'2024-12-03',
-		['s.money', 's.mama-home']
+		['s.money', 's.mama-home'],
+		'demo.anya.trace.ticket-home'
 	),
 	plain(
 		't.papers-q',
@@ -1387,20 +1546,35 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2024-12-03'),
 		'2024-12-03',
 		['s.mama', 's.tisha'],
-		'demo.anya.trace.papers-q'
+		'demo.anya.trace.papers-q',
+		'demo.anya.trace.papers-q.desc'
 	),
 	typed(
 		't.transfer-15',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2024-12-05'),
 		'2024-12-05',
 		['s.money']
 	),
-	plain('t.smog2', 'actual', day('2024-12-12'), '2024-12-12', ['s.flat'], 'demo.anya.trace.smog2'),
-	typed('t.call-15', ANYA_KIND_CALL_ID, { minutes: 7 }, day('2024-12-14'), '2024-12-14', [
-		's.maxim'
-	]),
+	plain(
+		't.smog2',
+		'actual',
+		day('2024-12-12'),
+		'2024-12-12',
+		['s.flat'],
+		'demo.anya.trace.smog2',
+		'demo.anya.trace.smog2.desc'
+	),
+	typed(
+		't.call-15',
+		ANYA_KIND_CALL_ID,
+		{ minutes: 7 },
+		day('2024-12-14'),
+		'2024-12-14',
+		['s.maxim'],
+		'demo.anya.trace.call-15'
+	),
 	plain(
 		't.fly-home',
 		'actual',
@@ -1420,24 +1594,35 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.talk.desc'
 	),
 	plain(
+		't.ny-mama',
+		'actual',
+		minute('2024-12-31T23:00'),
+		'2024-12-31T23:00',
+		['s.mama', 's.mama-home', 's.tisha'],
+		'demo.anya.trace.ny-mama',
+		'demo.anya.trace.ny-mama.desc'
+	),
+	plain(
 		't.mama-cat',
 		'actual',
 		day('2025-01-02'),
 		'2025-01-02',
 		['s.mama', 's.tisha'],
-		'demo.anya.trace.mama-cat'
+		'demo.anya.trace.mama-cat',
+		'demo.anya.trace.mama-cat.desc'
 	),
 	typed(
 		't.vet-export',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.vet-clinic' },
+			place: { key: 'demo.anya.value.vet-export.place' },
 			wait: 40,
-			result: { key: 'demo.anya.value.export-cert' }
+			result: { key: 'demo.anya.value.vet-export.result' }
 		},
 		minute('2025-01-03T10:00'),
 		'2025-01-03T10:00',
-		['s.tisha', 's.mama-home']
+		['s.tisha', 's.mama-home'],
+		'demo.anya.trace.vet-export'
 	),
 	plain(
 		't.tisha-home',
@@ -1451,7 +1636,7 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.transfer-16',
 		ANYA_KIND_TRANSFER_ID,
-		{ amount: 500, from: { key: 'demo.anya.value.maxim' } },
+		{ amount: 500, from: { key: 'demo.anya.value.transfer-1.from' } },
 		day('2025-01-05'),
 		'2025-01-05',
 		['s.money'],
@@ -1460,10 +1645,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.bowls',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 35, what: { key: 'demo.anya.value.bowls' } },
+		{ amount: 35, what: { key: 'demo.anya.value.bowls.what' } },
 		day('2025-01-07'),
 		'2025-01-07',
-		['s.tisha']
+		['s.tisha'],
+		'demo.anya.trace.bowls'
 	),
 	plain(
 		't.daily-cat',
@@ -1471,15 +1657,17 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-01-09'),
 		'2025-01-09',
 		['s.work', 's.tisha'],
-		'demo.anya.trace.daily-cat'
+		'demo.anya.trace.daily-cat',
+		'demo.anya.trace.daily-cat.desc'
 	),
 	typed(
 		't.desk',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 140, what: { key: 'demo.anya.value.desk-set' } },
+		{ amount: 140, what: { key: 'demo.anya.value.desk.what' } },
 		day('2025-01-20'),
 		'2025-01-20',
-		['s.desk', 's.room']
+		['s.desk', 's.room'],
+		'demo.anya.trace.desk'
 	),
 	plain(
 		't.room-cat',
@@ -1487,16 +1675,26 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-01-20'),
 		'2025-01-20',
 		['s.room'],
-		'demo.anya.trace.room-cat'
+		'demo.anya.trace.room-cat',
+		'demo.anya.trace.room-cat.desc'
 	),
-	plain('t.cv', 'actual', day('2025-01-25'), '2025-01-25', ['s.work'], 'demo.anya.trace.cv'),
+	plain(
+		't.cv',
+		'actual',
+		day('2025-01-25'),
+		'2025-01-25',
+		['s.work'],
+		'demo.anya.trace.cv',
+		'demo.anya.trace.cv.desc'
+	),
 	plain(
 		't.find-job',
 		'intend',
 		day('2025-04-30'),
 		'2025-01-25',
 		['s.work'],
-		'demo.anya.trace.find-job'
+		'demo.anya.trace.find-job',
+		'demo.anya.trace.find-job.desc'
 	),
 	plain(
 		't.stop-money',
@@ -1504,7 +1702,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-02-03'),
 		'2025-02-03',
 		['s.maxim', 's.money'],
-		'demo.anya.trace.stop-money'
+		'demo.anya.trace.stop-money',
+		'demo.anya.trace.stop-money.desc'
 	),
 	plain(
 		't.off-500',
@@ -1512,27 +1711,30 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-05-05'),
 		'2025-02-03',
 		['s.money'],
-		'demo.anya.trace.off-500'
+		'demo.anya.trace.off-500',
+		'demo.anya.trace.off-500.desc'
 	),
 	typed(
 		't.renew-submit',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 130,
-			result: { key: 'demo.anya.value.renew-accepted' }
+			result: { key: 'demo.anya.value.renew-submit.result' }
 		},
 		minute('2025-02-10T07:30'),
 		'2025-02-10T07:30',
-		['s.savska', 's.legal']
+		['s.savska', 's.legal'],
+		'demo.anya.trace.renew-submit'
 	),
 	typed(
 		't.net',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 60, what: { key: 'demo.anya.value.balcony-net' } },
+		{ amount: 60, what: { key: 'demo.anya.value.net.what' } },
 		day('2025-02-15'),
 		'2025-02-15',
-		['s.tisha', 's.flat']
+		['s.tisha', 's.flat'],
+		'demo.anya.trace.net'
 	),
 	plain(
 		't.interviews',
@@ -1540,7 +1742,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-02-20'),
 		'2025-02-20',
 		['s.work'],
-		'demo.anya.trace.interviews'
+		'demo.anya.trace.interviews',
+		'demo.anya.trace.interviews.desc'
 	),
 	plain(
 		't.minus-400',
@@ -1563,22 +1766,24 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.cards',
 		ANYA_KIND_SALE_ID,
-		{ amount: 255, what: { key: 'demo.anya.value.postcards' } },
+		{ amount: 255, what: { key: 'demo.anya.value.cards.what' } },
 		day('2025-03-08'),
 		'2025-03-08',
-		['s.desk', 's.money']
+		['s.desk', 's.money'],
+		'demo.anya.trace.cards'
 	),
 	typed(
 		't.card-2',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 30,
-			result: { key: 'demo.anya.value.card-year' }
+			result: { key: 'demo.anya.value.card-2.result' }
 		},
 		minute('2025-03-11T08:40'),
 		'2025-03-11T08:40',
-		['s.legal']
+		['s.legal'],
+		'demo.anya.trace.card-2'
 	),
 	plain(
 		't.rejections',
@@ -1586,7 +1791,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-03-21'),
 		'2025-03-21',
 		['s.work'],
-		'demo.anya.trace.rejections'
+		'demo.anya.trace.rejections',
+		'demo.anya.trace.rejections.desc'
 	),
 	plain(
 		't.minus-250',
@@ -1594,7 +1800,17 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-03-31'),
 		'2025-03-31',
 		['s.money'],
-		'demo.anya.trace.minus-250'
+		'demo.anya.trace.minus-250',
+		'demo.anya.trace.minus-250.desc'
+	),
+	plain(
+		't.renew-2',
+		'intend',
+		day('2026-01-10'),
+		'2025-03-11',
+		['s.legal'],
+		'demo.anya.trace.renew-2',
+		'demo.anya.trace.renew-2.desc'
 	),
 	plain(
 		't.offer',
@@ -1611,15 +1827,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-04-30'),
 		'2025-04-30',
 		['s.money'],
-		'demo.anya.trace.minus-100'
-	),
-	plain(
-		't.renew-2',
-		'intend',
-		day('2026-01-10'),
-		'2025-03-11',
-		['s.legal'],
-		'demo.anya.trace.renew-2'
+		'demo.anya.trace.minus-100',
+		'demo.anya.trace.minus-100.desc'
 	),
 	plain(
 		't.salary-1',
@@ -1642,10 +1851,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.market-1',
 		ANYA_KIND_SALE_ID,
-		{ amount: 400, what: { key: 'demo.anya.value.market-prints' } },
+		{ amount: 400, what: { key: 'demo.anya.value.market-1.what' } },
 		day('2025-05-17'),
 		'2025-05-17',
-		['s.desk', 's.dorcol']
+		['s.desk', 's.dorcol'],
+		'demo.anya.trace.market-1'
 	),
 	plain(
 		't.plus-300',
@@ -1653,7 +1863,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-05-31'),
 		'2025-05-31',
 		['s.money'],
-		'demo.anya.trace.plus-300'
+		'demo.anya.trace.plus-300',
+		'demo.anya.trace.plus-300.desc'
 	),
 	plain(
 		't.autotests',
@@ -1661,15 +1872,17 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		interval('day', '2025-06-02', '2025-09-25'),
 		'2025-06-02',
 		['s.work'],
-		'demo.anya.trace.autotests'
+		'demo.anya.trace.autotests',
+		'demo.anya.trace.autotests.desc'
 	),
 	typed(
 		't.cafe-series',
 		ANYA_KIND_SALE_ID,
-		{ amount: 300, what: { key: 'demo.anya.value.cafe-series' } },
+		{ amount: 300, what: { key: 'demo.anya.value.cafe-series.what' } },
 		day('2025-06-20'),
 		'2025-06-20',
-		['s.desk']
+		['s.desk'],
+		'demo.anya.trace.cafe-series'
 	),
 	plain(
 		't.bug',
@@ -1683,10 +1896,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.ac',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 450, what: { key: 'demo.anya.value.ac' } },
+		{ amount: 450, what: { key: 'demo.anya.value.ac.what' } },
 		day('2025-07-15'),
 		'2025-07-15',
-		['s.flat']
+		['s.flat'],
+		'demo.anya.trace.ac'
 	),
 	plain(
 		't.maxim-msg',
@@ -1703,9 +1917,18 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-07-27'),
 		'2025-07-27',
 		['s.ada', 's.milica'],
-		'demo.anya.trace.ada-milica'
+		'demo.anya.trace.ada-milica',
+		'demo.anya.trace.ada-milica.desc'
 	),
-	plain('t.insta', 'actual', day('2025-08-03'), '2025-08-03', ['s.desk'], 'demo.anya.trace.insta'),
+	plain(
+		't.insta',
+		'actual',
+		day('2025-08-03'),
+		'2025-08-03',
+		['s.desk'],
+		'demo.anya.trace.insta',
+		'demo.anya.trace.insta.desc'
+	),
 	plain(
 		't.anniv-2',
 		'actual',
@@ -1721,7 +1944,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-09-25'),
 		'2025-09-25',
 		['s.work'],
-		'demo.anya.trace.course-done'
+		'demo.anya.trace.course-done',
+		'demo.anya.trace.course-done.desc'
 	),
 	plain(
 		't.tbilisi-i',
@@ -1733,8 +1957,24 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.tbilisi-i.desc'
 	),
 	plain('t.gym', 'intend', day('2025-10-02'), '2025-10-02', ['s.gym'], 'demo.anya.trace.gym'),
-	plain('t.gym-1', 'actual', day('2025-10-02'), '2025-10-02', ['s.gym'], 'demo.anya.trace.gym-1'),
-	plain('t.avala', 'actual', day('2025-10-12'), '2025-10-12', ['s.hikes'], 'demo.anya.trace.avala'),
+	plain(
+		't.gym-1',
+		'actual',
+		day('2025-10-02'),
+		'2025-10-02',
+		['s.gym'],
+		'demo.anya.trace.gym-1',
+		'demo.anya.trace.gym-1.desc'
+	),
+	plain(
+		't.avala',
+		'actual',
+		day('2025-10-12'),
+		'2025-10-12',
+		['s.hikes'],
+		'demo.anya.trace.avala',
+		'demo.anya.trace.avala.desc'
+	),
 	plain(
 		't.luka',
 		'actual',
@@ -1750,7 +1990,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2025-10-19'),
 		'2025-10-19',
 		['s.lena', 's.tisha'],
-		'demo.anya.trace.tisha-lena'
+		'demo.anya.trace.tisha-lena',
+		'demo.anya.trace.tisha-lena.desc'
 	),
 	plain(
 		't.tbilisi',
@@ -1775,16 +2016,18 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'actual',
 		day('2025-11-09'),
 		'2025-11-09',
-		['s.hikes'],
-		'demo.anya.trace.kosmaj'
+		['s.hikes', 's.luka'],
+		'demo.anya.trace.kosmaj',
+		'demo.anya.trace.kosmaj.desc'
 	),
 	typed(
 		't.sofa',
 		ANYA_KIND_EXPENSE_ID,
-		{ amount: 380, what: { key: 'demo.anya.value.sofa' } },
+		{ amount: 380, what: { key: 'demo.anya.value.sofa.what' } },
 		day('2025-11-15'),
 		'2025-11-15',
-		['s.flat']
+		['s.flat'],
+		'demo.anya.trace.sofa'
 	),
 	plain(
 		't.zemun-walk',
@@ -1798,18 +2041,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.market-2',
 		ANYA_KIND_SALE_ID,
-		{ amount: 350, what: { key: 'demo.anya.value.market' } },
+		{ amount: 350, what: { key: 'demo.anya.value.market-2.what' } },
 		day('2025-11-29'),
 		'2025-11-29',
-		['s.desk']
-	),
-	typed(
-		't.corp-order',
-		ANYA_KIND_SALE_ID,
-		{ amount: 900, what: { key: 'demo.anya.value.corp-prints' } },
-		day('2025-12-18'),
-		'2025-12-18',
-		['s.desk']
+		['s.desk'],
+		'demo.anya.trace.market-2'
 	),
 	plain(
 		't.renew-2-note',
@@ -1820,15 +2056,6 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.renew-2-note'
 	),
 	plain(
-		't.ny-mine',
-		'actual',
-		minute('2025-12-31T23:00'),
-		'2025-12-31T23:00',
-		['s.lena', 's.milica', 's.luka', 's.flat'],
-		'demo.anya.trace.ny-mine',
-		'demo.anya.trace.ny-mine.desc'
-	),
-	plain(
 		't.gym-2',
 		'actual',
 		day('2025-12-09'),
@@ -1836,6 +2063,24 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		['s.gym', 's.luka'],
 		'demo.anya.trace.gym-2',
 		'demo.anya.trace.gym-2.desc'
+	),
+	typed(
+		't.corp-order',
+		ANYA_KIND_SALE_ID,
+		{ amount: 900, what: { key: 'demo.anya.value.corp-order.what' } },
+		day('2025-12-18'),
+		'2025-12-18',
+		['s.desk'],
+		'demo.anya.trace.corp-order'
+	),
+	plain(
+		't.ny-mine',
+		'actual',
+		minute('2025-12-31T23:00'),
+		'2025-12-31T23:00',
+		['s.lena', 's.milica', 's.luka', 's.flat'],
+		'demo.anya.trace.ny-mine',
+		'demo.anya.trace.ny-mine.desc'
 	),
 	plain(
 		't.renew-start',
@@ -1858,13 +2103,14 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		't.renew-submit-2',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 110,
-			result: { key: 'demo.anya.value.renew-accepted-2' }
+			result: { key: 'demo.anya.value.renew-submit-2.result' }
 		},
 		minute('2026-02-12T07:20'),
 		'2026-02-12T07:20',
-		['s.savska']
+		['s.savska'],
+		'demo.anya.trace.renew-submit-2'
 	),
 	plain(
 		't.wrist',
@@ -1872,19 +2118,21 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		minute('2026-02-18T19:30'),
 		'2026-02-18T19:30',
 		['s.health', 's.gym'],
-		'demo.anya.trace.wrist'
+		'demo.anya.trace.wrist',
+		'demo.anya.trace.wrist.desc'
 	),
 	typed(
 		't.physio',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.physio' },
+			place: { key: 'demo.anya.value.physio.place' },
 			wait: 10,
-			result: { key: 'demo.anya.value.wrist-rest' }
+			result: { key: 'demo.anya.value.physio.result' }
 		},
 		minute('2026-02-20T16:00'),
 		'2026-02-20T16:00',
-		['s.health']
+		['s.health'],
+		'demo.anya.trace.physio'
 	),
 	plain(
 		't.bday32',
@@ -1892,27 +2140,21 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2026-03-02'),
 		'2026-03-02',
 		['s.lena', 's.luka'],
-		'demo.anya.trace.bday32'
+		'demo.anya.trace.bday32',
+		'demo.anya.trace.bday32.desc'
 	),
 	typed(
 		't.card-3',
 		ANYA_KIND_VISIT_ID,
 		{
-			place: { key: 'demo.anya.value.savska-35' },
+			place: { key: 'demo.anya.value.card2.place' },
 			wait: 30,
-			result: { key: 'demo.anya.value.card-3-years' }
+			result: { key: 'demo.anya.value.card-3.result' }
 		},
 		minute('2026-03-05T08:30'),
 		'2026-03-05T08:30',
-		['s.legal']
-	),
-	plain(
-		't.automation',
-		'actual',
-		day('2026-03-16'),
-		'2026-03-16',
-		['s.work'],
-		'demo.anya.trace.automation'
+		['s.legal'],
+		'demo.anya.trace.card-3'
 	),
 	plain(
 		't.mama-visit-i',
@@ -1920,7 +2162,17 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		interval('day', '2026-05-09', '2026-05-23'),
 		'2026-03-10',
 		['s.mama'],
-		'demo.anya.trace.mama-visit-i'
+		'demo.anya.trace.mama-visit-i',
+		'demo.anya.trace.mama-visit-i.desc'
+	),
+	plain(
+		't.automation',
+		'actual',
+		day('2026-03-16'),
+		'2026-03-16',
+		['s.work'],
+		'demo.anya.trace.automation',
+		'demo.anya.trace.automation.desc'
 	),
 	plain(
 		't.fruska',
@@ -1928,7 +2180,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2026-04-19'),
 		'2026-04-19',
 		['s.hikes'],
-		'demo.anya.trace.fruska'
+		'demo.anya.trace.fruska',
+		'demo.anya.trace.fruska.desc'
 	),
 	plain(
 		't.mama-visit',
@@ -1940,12 +2193,22 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.mama-visit.desc'
 	),
 	plain(
+		't.key-mama',
+		'actual',
+		day('2026-05-09'),
+		'2026-05-09',
+		['s.mama', 's.flat'],
+		'demo.anya.trace.key-mama',
+		'demo.anya.trace.key-mama.desc'
+	),
+	plain(
 		't.mama-luka',
 		'actual',
 		day('2026-05-16'),
 		'2026-05-16',
 		['s.mama', 's.luka'],
-		'demo.anya.trace.mama-luka'
+		'demo.anya.trace.mama-luka',
+		'demo.anya.trace.mama-luka.desc'
 	),
 	plain(
 		't.mama-verdict',
@@ -1953,9 +2216,18 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2026-05-23'),
 		'2026-05-23',
 		['s.mama'],
-		'demo.anya.trace.mama-verdict'
+		'demo.anya.trace.mama-verdict',
+		'demo.anya.trace.mama-verdict.desc'
 	),
-	plain('t.ada-26', 'actual', day('2026-06-14'), '2026-06-14', ['s.ada'], 'demo.anya.trace.ada-26'),
+	plain(
+		't.ada-26',
+		'actual',
+		day('2026-06-14'),
+		'2026-06-14',
+		['s.ada'],
+		'demo.anya.trace.ada-26',
+		'demo.anya.trace.ada-26.desc'
+	),
 	plain(
 		't.tara',
 		'actual',
@@ -1977,10 +2249,11 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 	typed(
 		't.workshop-1',
 		ANYA_KIND_SALE_ID,
-		{ amount: 160, what: { key: 'demo.anya.value.workshop' } },
+		{ amount: 160, what: { key: 'demo.anya.value.workshop-1.what' } },
 		day('2026-08-22'),
 		'2026-08-22',
-		['s.desk', 's.dorcol']
+		['s.desk', 's.dorcol'],
+		'demo.anya.trace.workshop-1'
 	),
 	plain(
 		't.luka-zemun',
@@ -1997,7 +2270,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		unknownTime,
 		'2026-08-30',
 		['s.zemun', 's.luka'],
-		'demo.anya.trace.zemun-q'
+		'demo.anya.trace.zemun-q',
+		'demo.anya.trace.zemun-q.desc'
 	),
 	plain(
 		't.anniv-3',
@@ -2009,29 +2283,13 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		'demo.anya.trace.anniv-3.desc'
 	),
 	plain(
-		't.savings',
-		'actual',
-		day('2026-09-09'),
-		'2026-09-09',
-		['s.money'],
-		'demo.anya.trace.savings'
-	),
-	plain('t.pmz', 'intend', day('2026-11-30'), '2026-09-15', ['s.legal'], 'demo.anya.trace.pmz'),
-	plain(
-		't.pmz-list',
+		't.workshop-2',
 		'intend',
-		day('2026-10-05'),
-		'2026-10-05',
-		['s.jovana', 's.legal'],
-		'demo.anya.trace.pmz-list'
-	),
-	plain(
-		't.pmz-cert',
-		'intend',
-		day('2026-11-10'),
-		'2026-11-10',
-		['s.legal'],
-		'demo.anya.trace.pmz-cert'
+		day('2026-10-24'),
+		'2026-09-01',
+		['s.desk'],
+		'demo.anya.trace.workshop-2',
+		'demo.anya.trace.workshop-2.desc'
 	),
 	plain(
 		't.crown-check',
@@ -2039,15 +2297,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2026-10-15'),
 		'2026-09-10',
 		['s.health', 's.marko'],
-		'demo.anya.trace.crown-check'
-	),
-	plain(
-		't.workshop-2',
-		'intend',
-		day('2026-10-24'),
-		'2026-09-01',
-		['s.desk'],
-		'demo.anya.trace.workshop-2'
+		'demo.anya.trace.crown-check',
+		'demo.anya.trace.crown-check.desc'
 	),
 	plain(
 		't.market-3',
@@ -2055,7 +2306,33 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		day('2026-11-28'),
 		'2026-09-12',
 		['s.desk'],
-		'demo.anya.trace.market-3'
+		'demo.anya.trace.market-3',
+		'demo.anya.trace.market-3.desc'
+	),
+	plain(
+		't.pmz',
+		'intend',
+		day('2026-11-30'),
+		'2026-09-15',
+		['s.legal'],
+		'demo.anya.trace.pmz',
+		'demo.anya.trace.pmz.desc'
+	),
+	plain(
+		't.pmz-list',
+		'intend',
+		day('2026-10-05'),
+		'2026-09-15',
+		['s.jovana', 's.legal'],
+		'demo.anya.trace.pmz-list'
+	),
+	plain(
+		't.pmz-cert',
+		'intend',
+		day('2026-11-10'),
+		'2026-09-15',
+		['s.legal'],
+		'demo.anya.trace.pmz-cert'
 	),
 	plain(
 		't.mama-next',
@@ -2063,7 +2340,8 @@ export const ANYA_TRACES: readonly StoryTrace[] = [
 		season(2027, 'spring'),
 		'2026-05-23',
 		['s.mama'],
-		'demo.anya.trace.mama-next'
+		'demo.anya.trace.mama-next',
+		'demo.anya.trace.mama-next.desc'
 	),
 	plain(
 		't.start',
@@ -2082,7 +2360,7 @@ export const ANYA_TRACE_LINKS: readonly StoryTraceLink[] = [
 	{ kind: 'related_to', fromId: 't.start', toId: 't.maxim-after' },
 	{ kind: 'related_to', fromId: 't.start', toId: 't.talk' },
 	{ kind: 'related_to', fromId: 't.start', toId: 't.tisha-home' },
-	{ kind: 'related_to', fromId: 't.start', toId: 't.pmz' },
+	{ kind: 'related_to', fromId: 't.start', toId: 't.key-mama' },
 	{ kind: 'part_of', fromId: 't.step-card', toId: 't.get-vnz' },
 	{ kind: 'part_of', fromId: 't.step-ip', toId: 't.get-vnz' },
 	{ kind: 'part_of', fromId: 't.step-visarun', toId: 't.get-vnz' },
@@ -2120,25 +2398,33 @@ export const ANYA_TRACE_LINKS: readonly StoryTraceLink[] = [
 	{ kind: 'evidence_for', fromId: 't.course-done', toId: 't.autotests' },
 	{ kind: 'evidence_for', fromId: 't.tbilisi-back', toId: 't.tbilisi-i' },
 	{ kind: 'evidence_for', fromId: 't.mama-visit', toId: 't.mama-visit-i' },
+	{ kind: 'revisits', fromId: 't.bank-ok', toId: 't.pay-abroad' },
+	{ kind: 'revisits', fromId: 't.dec12', toId: 't.room-empty' },
+	{ kind: 'revisits', fromId: 't.room-closed', toId: 't.key' },
 	{ kind: 'revisits', fromId: 't.anniv-1', toId: 't.we-decided' },
 	{ kind: 'revisits', fromId: 't.autumn2', toId: 't.golden' },
 	{ kind: 'revisits', fromId: 't.dark2', toId: 't.dark' },
+	{ kind: 'revisits', fromId: 't.smog2', toId: 't.dec12' },
+	{ kind: 'revisits', fromId: 't.ny-mama', toId: 't.ny-lena' },
 	{ kind: 'revisits', fromId: 't.room-cat', toId: 't.room-empty' },
 	{ kind: 'revisits', fromId: 't.salary-1', toId: 't.transfer-1' },
 	{ kind: 'revisits', fromId: 't.ac', toId: 't.heat' },
 	{ kind: 'revisits', fromId: 't.anniv-2', toId: 't.anniv-1' },
 	{ kind: 'revisits', fromId: 't.tbilisi-back', toId: 't.threshold' },
-	{ kind: 'revisits', fromId: 't.ny-mine', toId: 't.ny-lena' },
+	{ kind: 'revisits', fromId: 't.ny-mine', toId: 't.ny-mama' },
 	{ kind: 'revisits', fromId: 't.automation', toId: 't.course-done' },
+	{ kind: 'revisits', fromId: 't.key-mama', toId: 't.key' },
+	{ kind: 'revisits', fromId: 't.ada-26', toId: 't.ada-1' },
 	{ kind: 'revisits', fromId: 't.bank-serbian', toId: 't.serbian-fail' },
 	{ kind: 'revisits', fromId: 't.anniv-3', toId: 't.arrive' },
+	{ kind: 'revisits', fromId: 't.anniv-3', toId: 't.minus-400' },
 	{ kind: 'related_to', fromId: 't.apostille-no', toId: 't.apostille-panic' },
 	{ kind: 'related_to', fromId: 't.bar', toId: 't.get-vnz' },
 	{ kind: 'related_to', fromId: 't.dec12', toId: 't.maxim-dec12' },
+	{ kind: 'related_to', fromId: 't.no-ticket', toId: 't.maxim-dec12' },
 	{ kind: 'related_to', fromId: 't.interviews', toId: 't.find-job' },
 	{ kind: 'related_to', fromId: 't.gym-1', toId: 't.gym' },
-	{ kind: 'related_to', fromId: 't.gym-2', toId: 't.gym' },
-	{ kind: 'related_to', fromId: 't.savings', toId: 't.minus-400' }
+	{ kind: 'related_to', fromId: 't.gym-2', toId: 't.gym' }
 ];
 
 const closed = (
@@ -2182,6 +2468,179 @@ export const ANYA_ASSESSMENTS: readonly StoryAssessment[] = [
 	closed('t.mama-visit', 't.mama-visit-i', 'completed')
 ];
 
+/**
+ * The six chapters Anya divides her notebook into, by state rather than by calendar: each starts
+ * where the one before it ends; the last stays open, because the notebook runs to today.
+ */
+export const ANYA_CHAPTERS: readonly StoryChapter[] = [
+	{
+		nameKey: 'demo.anya.chapter.before',
+		noteKey: 'demo.anya.chapter.before.note',
+		colour: { hue: 40, chroma: 35, depth: 1 },
+		start: '2023-05-01',
+		lineup: ['s.maxim', 's.lena', 's.jovana', 's.legal', 's.money', 's.tisha', 's.mama'],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.before.decision',
+				start: '2023-05-01',
+				lineup: ['s.maxim', 's.lena', 's.money', 's.work']
+			},
+			{
+				nameKey: 'demo.anya.stage.before.packing',
+				start: '2023-06-01',
+				lineup: ['s.jovana', 's.legal', 's.tisha', 's.mama', 's.maxim']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.anya.chapter.adaptation',
+		noteKey: 'demo.anya.chapter.adaptation.note',
+		colour: { hue: 50, chroma: 65, depth: 1 },
+		start: '2023-09-09',
+		lineup: [
+			's.lena',
+			's.dorcol',
+			's.legal',
+			's.jovana',
+			's.flat',
+			's.room',
+			's.maxim',
+			's.money',
+			's.apr-bank',
+			's.savska',
+			's.milos'
+		],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.adaptation.sofa',
+				start: '2023-09-09',
+				lineup: ['s.lena', 's.dorcol', 's.legal', 's.jovana', 's.apr-bank', 's.maxim']
+			},
+			{
+				nameKey: 'demo.anya.stage.adaptation.flat',
+				start: '2023-10-01',
+				lineup: ['s.flat', 's.room', 's.milos', 's.money', 's.apr-bank', 's.maxim', 's.legal']
+			},
+			{
+				nameKey: 'demo.anya.stage.adaptation.wait',
+				start: '2023-11-10',
+				lineup: ['s.savska', 's.legal', 's.maxim', 's.room', 's.flat']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.anya.chapter.plateau',
+		noteKey: 'demo.anya.chapter.plateau.note',
+		colour: { hue: 215, chroma: 15, depth: 1 },
+		start: '2024-01-01',
+		lineup: ['s.maxim', 's.legal', 's.savska', 's.serbian', 's.flat', 's.room', 's.ada', 's.money'],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.plateau.hundred',
+				start: '2024-01-01',
+				lineup: ['s.maxim', 's.money', 's.jovana', 's.savska']
+			},
+			{
+				nameKey: 'demo.anya.stage.plateau.card',
+				start: '2024-03-02',
+				lineup: ['s.savska', 's.legal', 's.lena', 's.maxim', 's.serbian', 's.ada']
+			},
+			{
+				nameKey: 'demo.anya.stage.plateau.closed',
+				start: '2024-06-01',
+				lineup: ['s.room', 's.flat', 's.maxim', 's.serbian']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.anya.chapter.depression',
+		noteKey: 'demo.anya.chapter.depression.note',
+		colour: { hue: 250, chroma: 30, depth: 1 },
+		start: '2024-09-09',
+		lineup: ['s.maxim', 's.tisha', 's.mama', 's.health', 's.money', 's.next', 's.lena'],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.depression.autumn',
+				start: '2024-09-09',
+				lineup: ['s.maxim', 's.tisha', 's.mama', 's.flat']
+			},
+			{
+				nameKey: 'demo.anya.stage.depression.tooth',
+				start: '2024-10-09',
+				lineup: ['s.health', 's.marko', 's.money', 's.next', 's.maxim']
+			},
+			{
+				nameKey: 'demo.anya.stage.depression.fight',
+				start: '2024-11-16',
+				lineup: ['s.maxim', 's.lena', 's.money']
+			},
+			{
+				nameKey: 'demo.anya.stage.depression.ticket',
+				start: '2024-12-03',
+				lineup: ['s.mama-home', 's.tisha', 's.mama', 's.maxim']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.anya.chapter.catharsis',
+		noteKey: 'demo.anya.chapter.catharsis.note',
+		colour: { hue: 355, chroma: 55, depth: 1 },
+		start: '2024-12-27',
+		lineup: ['s.maxim', 's.mama', 's.tisha', 's.mama-home', 's.room', 's.desk', 's.work'],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.catharsis.home',
+				start: '2024-12-27',
+				lineup: ['s.mama-home', 's.maxim', 's.mama']
+			},
+			{
+				nameKey: 'demo.anya.stage.catharsis.talk',
+				start: '2024-12-30',
+				lineup: ['s.maxim', 's.mama', 's.tisha']
+			},
+			{
+				nameKey: 'demo.anya.stage.catharsis.tisha',
+				start: '2025-01-05',
+				lineup: ['s.tisha', 's.room', 's.desk', 's.work']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.anya.chapter.own',
+		noteKey: 'demo.anya.chapter.own.note',
+		colour: { hue: 150, chroma: 50, depth: 1 },
+		start: '2025-02-03',
+		lineup: [
+			's.work',
+			's.desk',
+			's.money',
+			's.legal',
+			's.luka',
+			's.gym',
+			's.milica',
+			's.zemun',
+			's.mama'
+		],
+		stages: [
+			{
+				nameKey: 'demo.anya.stage.own.run',
+				start: '2025-02-03',
+				lineup: ['s.work', 's.money', 's.desk', 's.legal', 's.office', 's.milica']
+			},
+			{
+				nameKey: 'demo.anya.stage.own.wide',
+				start: '2025-10-01',
+				lineup: ['s.gym', 's.luka', 's.hikes', 's.tbilisi', 's.desk', 's.zemun']
+			},
+			{
+				nameKey: 'demo.anya.stage.own.steady',
+				start: '2026-02-12',
+				lineup: ['s.legal', 's.work', 's.mama', 's.luka', 's.zemun', 's.serbian']
+			}
+		]
+	}
+];
+
 export const ANYA_STORY: DemoStory = {
 	scopes: ANYA_SCOPES,
 	scopeLinks: ANYA_SCOPE_LINKS,
@@ -2189,5 +2648,6 @@ export const ANYA_STORY: DemoStory = {
 	periods: ANYA_PERIODS,
 	traces: ANYA_TRACES,
 	traceLinks: ANYA_TRACE_LINKS,
-	assessments: ANYA_ASSESSMENTS
+	assessments: ANYA_ASSESSMENTS,
+	chapters: ANYA_CHAPTERS
 };

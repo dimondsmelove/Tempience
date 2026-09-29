@@ -5,7 +5,16 @@ import type { LegendFilter, LegendKey } from './types';
 /** What the legend reads from a mark; everything else about a mark is geometry. */
 export type LegendMarkInput = Pick<
 	Mark,
-	'kind' | 'intent' | 'rollup' | 'proposal' | 'closed' | 'multi' | 'open' | 'end' | 'until'
+	| 'kind'
+	| 'intent'
+	| 'rollup'
+	| 'proposal'
+	| 'closed'
+	| 'multi'
+	| 'open'
+	| 'lasting'
+	| 'end'
+	| 'until'
 >;
 
 /** What the filter reads of a mark beyond its kinds: whether it is the closing result of an intention. */
@@ -14,7 +23,7 @@ export type LegendFollowInput = Pick<Mark, 'result'>;
 /**
  * The legend kinds a mark answers to (research п. 11–14, 17; the mock's
  * `kindsOf`). One silhouette per mark — proposal, fuzzy intention, intention,
- * fuzzy date, open interval («длится»: `open` and `interval` both), interval,
+ * fuzzy date, fuzzy interval, open interval («длится»: `open` and `interval` both), interval,
  * fact — plus the additive kinds: a roll-up, a record in several Scopes,
  * «закрытое намерение» for an intention that is closed now, and «просроченное»
  * for an open intention whose whole window ends before «сейчас». «Намерение»
@@ -32,7 +41,7 @@ export const legendKeysOf = (mark: LegendMarkInput, now: number): LegendKey[] =>
 		if (mark.kind === 'fuzzy') keys.push('fuzzyIntent');
 		if (mark.closed) keys.push('closed');
 		keys.push('intent');
-	} else if (mark.kind === 'fuzzy') keys.push('fuzzy');
+	} else if (mark.kind === 'fuzzy') keys.push(mark.lasting ? 'fuzzySpan' : 'fuzzy');
 	else if (mark.kind === 'interval' && mark.open) keys.push('open', 'interval');
 	else if (mark.kind === 'interval') keys.push('interval');
 	else keys.push('fact');

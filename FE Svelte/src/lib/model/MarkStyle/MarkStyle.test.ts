@@ -17,7 +17,8 @@ describe('markStyle: the mark language without frames', () => {
 			capsule: 1,
 			tick: false,
 			hollow: false,
-			ring: false
+			ring: false,
+			haze: false
 		});
 	});
 
@@ -38,9 +39,14 @@ describe('markStyle: the mark language without frames', () => {
 		expect(intent).toMatchObject({ span: false, band: null, capsule: null, tick: true });
 	});
 
-	it('a fuzzy date is the band of its window with no head', () => {
-		const style = markStyle({ ...fact, kind: 'fuzzy' }, plain);
-		expect(style).toMatchObject({ span: true, band: 0.3, capsule: null, tick: false });
+	it('a fuzzy date is a haze over its window, no band and no head', () => {
+		const style = markStyle({ ...fact, kind: 'fuzzy', end: 10 }, plain);
+		expect(style).toMatchObject({ span: true, band: null, capsule: null, tick: false, haze: true });
+	});
+
+	it('a fuzzy interval lasted: the band of its window with no head, no haze', () => {
+		const style = markStyle({ ...fact, kind: 'fuzzy', lasting: true, end: 10 }, plain);
+		expect(style).toMatchObject({ span: true, band: 0.3, capsule: null, tick: false, haze: false });
 	});
 
 	it('an open intention is a dotted tick alone; overdue is not marked apart', () => {

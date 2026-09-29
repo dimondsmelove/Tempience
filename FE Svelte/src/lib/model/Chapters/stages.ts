@@ -56,6 +56,21 @@ export const removeStage = (chapter: Chapter, stageId: string): Chapter => {
 };
 
 /**
+ * The rail header's ‹ › under the chapter: the pick one step before or after the stage in force
+ * (none — the whole chapter), in the order of the Context strip: «Вся глава», then the stages in
+ * time. Undefined at either end: the steps do not leave the chapter.
+ */
+export const stageStep = (
+	chapter: Chapter,
+	inForce: Stage | null,
+	delta: -1 | 1
+): Exclude<StagePick, null> | undefined => {
+	const steps = ['whole', ...chapter.stages.toSorted(byStart).map((stage) => stage.id)];
+	const index = steps.indexOf(inForce?.id ?? 'whole');
+	return index < 0 ? undefined : steps[index + delta];
+};
+
+/**
  * The stage in force for a pick: none for the whole chapter, the chosen one, or — with nothing
  * chosen — the stage current at `now` (none outside the chapter or before its first stage).
  */

@@ -1,5 +1,5 @@
 /** How a Context draws a record in its list: the ribbon's mark in its Scope's colour. */
-export type RecordShape = 'fact' | 'interval' | 'fuzzy' | 'intent';
+export type RecordShape = 'fact' | 'interval' | 'fuzzy' | 'fuzzySpan' | 'intent';
 
 /** A stretch of a list: a week, a day or a month, with its records. */
 export type RecordGroup<T> = Readonly<{

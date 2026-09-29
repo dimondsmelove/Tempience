@@ -28,8 +28,17 @@ describe('markPaint', () => {
 		const four = markPaint('interval', ['a', 'b', 'c', 'd'], 'ink');
 		expect(four.bandFill).toMatch(/^linear-gradient\(180deg/u);
 	});
-	it('gives a vague window no head and dots an intention', () => {
-		expect(markPaint('fuzzy', ['red'], 'ink')).toMatchObject({ head: 0, band: 16 });
+	it('gives a vague window no head — a haze for a date, the pale band for an interval — and dots an intention', () => {
+		expect(markPaint('fuzzy', ['red'], 'ink')).toMatchObject({
+			head: 0,
+			band: 16,
+			bandFill: 'color-mix(in oklab, red 60%, transparent)'
+		});
+		expect(markPaint('fuzzySpan', ['red'], 'ink')).toMatchObject({
+			head: 0,
+			band: 16,
+			bandFill: 'color-mix(in oklab, red 30%, transparent)'
+		});
 		expect(markPaint('intent', ['red', 'blue'], 'ink').dotted).toBe(true);
 	});
 });

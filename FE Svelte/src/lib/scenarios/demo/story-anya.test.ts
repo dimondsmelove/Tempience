@@ -10,6 +10,7 @@ import { buildDemoSeed, demoRecordId as recordIdOf } from './batch';
 import { ANYA_STORY_ENTRY } from './registry';
 import {
 	ANYA_ASSESSMENTS,
+	ANYA_CHAPTERS,
 	ANYA_KINDS,
 	ANYA_PERIODS,
 	ANYA_SCOPES,
@@ -66,29 +67,24 @@ const DATED_BY_ARISING_IDS = [
 	't.step-submit',
 	't.step-chip',
 	't.find-dentist',
-	't.gym',
-	't.pmz-list',
-	't.pmz-cert'
+	't.gym'
 ];
 // Intentions with an interval target and no separate arising day: captured equals the interval's
 // first day, for the same reason as the day-precision ones above.
 const DATED_BY_ARISING_INTERVAL_IDS = ['t.course', 't.autotests'];
 
 describe('demo story: Anya — structure', () => {
-	it('holds the whole notebook: 32 Scope, 5 Kind, 25 Period, 207 Trace, 27 assessments', () => {
-		// The skeleton's own "Итоги" summary undercounts several totals (Расход 12 vs 10 authored,
-		// Продажа 7 vs 6, Визит 15 vs 14, Записей ~213 vs 207, Намерений 33 vs 37, Оценок 24 vs 27):
-		// every one of those figures is a rough paragraph, not the per-row "Записи" table, which is
-		// the actual contract. This test asserts the exact counts the per-row table produces.
+	it('holds the whole notebook: 32 Scope, 5 Kind, 25 Period, 209 Trace, 27 assessments, 6 chapters', () => {
 		expect(ANYA_SCOPES).toHaveLength(32);
 		expect(ANYA_KINDS).toHaveLength(5);
 		expect(ANYA_PERIODS).toHaveLength(25);
-		expect(ANYA_TRACES).toHaveLength(207);
-		expect(new Set(ANYA_TRACES.map((t) => t.id)).size).toBe(207);
+		expect(ANYA_TRACES).toHaveLength(209);
+		expect(new Set(ANYA_TRACES.map((t) => t.id)).size).toBe(209);
 		expect(ANYA_ASSESSMENTS).toHaveLength(27);
+		expect(ANYA_CHAPTERS).toHaveLength(6);
 
 		expect(scopes).toHaveLength(32);
-		expect(traces).toHaveLength(207);
+		expect(traces).toHaveLength(209);
 		expect(periods).toHaveLength(25);
 		expect(seed.kinds).toHaveLength(5);
 		expect(byKind('belongs_to')).toHaveLength(
@@ -103,7 +99,7 @@ describe('demo story: Anya — structure', () => {
 		).toHaveLength(13);
 		expect(byKind('part_of')).toHaveLength(10);
 		expect(byKind('evidence_for')).toHaveLength(27);
-		expect(byKind('revisits')).toHaveLength(12);
+		expect(byKind('revisits')).toHaveLength(20);
 	});
 
 	it('ids are unique; every link, assessment and Kind membership resolves', () => {
@@ -211,6 +207,11 @@ describe('demo story: Anya — structure', () => {
 			}
 		}
 		for (const period of ANYA_PERIODS) add(period.noteKey);
+		for (const chapter of ANYA_CHAPTERS) {
+			add(chapter.nameKey);
+			add(chapter.noteKey);
+			for (const stage of chapter.stages) add(stage.nameKey);
+		}
 		for (const trace_ of ANYA_TRACES) {
 			add(trace_.contentKey);
 			add(trace_.descriptionKey);
@@ -265,7 +266,39 @@ describe('demo story: Anya — time policy', () => {
 		const relations = new Set(ANYA_TRACES.map((t) => t.relation));
 		expect(relations).toEqual(new Set(['actual', 'intend']));
 		expect(ANYA_TRACES.filter((t) => t.relation === 'intend')).toHaveLength(37);
-		expect(ANYA_TRACES.filter((t) => t.relation === 'actual')).toHaveLength(170);
+		expect(ANYA_TRACES.filter((t) => t.relation === 'actual')).toHaveLength(172);
+	});
+});
+
+describe('demo story: Anya — chapters and texts', () => {
+	it('chapters follow one another from the first record; only stages divide them, the last stays open', () => {
+		const starts = ANYA_CHAPTERS.map((chapter) => chapter.start);
+		expect(starts).toEqual(starts.toSorted());
+		expect(new Set(starts).size).toBe(starts.length);
+		const firstFact = ANYA_TRACES.filter((t) => t.relation === 'actual')
+			.map((t) => t.captured.slice(0, 10))
+			.toSorted()[0];
+		expect(starts[0] <= (firstFact as string)).toBe(true);
+		for (const chapter of ANYA_CHAPTERS) expect(chapter.closedAt, chapter.nameKey).toBeUndefined();
+
+		const scopeStoryIds = new Set(ANYA_SCOPES.map((scope) => scope.id));
+		ANYA_CHAPTERS.forEach((chapter, index) => {
+			const next = ANYA_CHAPTERS[index + 1]?.start;
+			for (const id of chapter.lineup) expect(scopeStoryIds.has(id), id).toBe(true);
+			expect(chapter.stages[0]?.start, chapter.nameKey).toBe(chapter.start);
+			const stageStarts = chapter.stages.map((stage) => stage.start);
+			expect(stageStarts).toEqual(stageStarts.toSorted());
+			for (const stage of chapter.stages) {
+				if (next) expect(stage.start < next, stage.nameKey).toBe(true);
+				for (const id of stage.lineup ?? []) expect(scopeStoryIds.has(id), id).toBe(true);
+			}
+		});
+	});
+
+	it('no text carries a «→ дальше» breadcrumb: chapters and stages lead through the story', () => {
+		for (const [key, text] of Object.entries(ruDemoAnya as Record<string, string>)) {
+			expect(text.includes('→'), key).toBe(false);
+		}
 	});
 });
 
@@ -368,7 +401,7 @@ describe('demo story: Anya — seed build', () => {
 		for (const kind of seed.kinds)
 			expect(() => assertTraceFormDefinition(kind.initialKindV)).not.toThrow();
 		const typedEntries = traces.filter((entry) => entry.draft.kindId !== null);
-		expect(typedEntries).toHaveLength(63);
+		expect(typedEntries).toHaveLength(64);
 		for (const entry of typedEntries) {
 			const kindV = kindVById.get(entry.draft.kindVId ?? '');
 			expect(kindV, entry.id).toBeDefined();

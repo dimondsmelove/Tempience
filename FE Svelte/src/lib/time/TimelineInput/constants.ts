@@ -21,3 +21,6 @@ export const PINCH_ZOOM_GAIN = 10;
  */
 export const MOUSE_WHEEL_MIN_DELTA = 40;
 export const TRACKPAD_GESTURE_GAP_MS = 200;
+
+/** A ribbon narrower than this is collapsed or hiding, not a scale to keep on resize. */
+export const KEEP_SCALE_MIN_PX = 100;

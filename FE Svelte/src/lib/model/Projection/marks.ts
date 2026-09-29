@@ -49,6 +49,7 @@ export const traceMarkTime = (trace: ExplorerTrace, now: number = Date.now()): M
 		end: open ? Math.max(bounds.start, now) : kind === 'moment' ? at : bounds.end,
 		...(kind === 'moment' ? { until: bounds.end } : {}),
 		...(open ? { open: true } : {}),
+		...(fuzzy && trace.aboutKind === 'interval' ? { lasting: true } : {}),
 		precision,
 		certainty
 	};

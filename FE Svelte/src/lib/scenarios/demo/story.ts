@@ -10,6 +10,7 @@ import type {
 	DemoStory,
 	StoryAssessment,
 	StoryCaptured,
+	StoryChapter,
 	StoryDate,
 	StoryKind,
 	StoryPeriod,
@@ -28,7 +29,10 @@ import type {
  * closes each step. Around it, the arc of the partnership: the meeting (1881), «The Speckled
  * Band» (April 1883), the evening Holmes named his brother (summer 1888), Reichenbach (May
  * 1891), the Great Hiatus (1891–1894, times unknown or approximate, from what Holmes said) and
- * the return (April 1894), which revisits the entry of 1891. Every date is absolute, London
+ * the return (April 1894), which revisits the entry of 1891. The years between are filled from
+ * the canon too: the early cases Holmes told by the fire, the resident patient (1886), Reigate,
+ * the five orange pips and the Study in print (1887), Irene Adler and Mary Morstan (1888), the
+ * naval treaty and the red-headed league (1890), Mary's death in the hiatus. Every date is absolute, London
  * time, 1880–1894: the legend of 1742 sits on the day Mortimer read it aloud, not in 1742.
  * Every record is dated by the event that caused it (an intention by the day it arose, a Case by
  * the day it closed) and knows only what Watson knew that day; `captured` carries the hour of
@@ -43,6 +47,11 @@ const aboutDay = (value: StoryDate): StoryTime => ({
 	certainty: 'approximate'
 });
 const month = (value: string): StoryTime => ({ type: 'month', value });
+const aboutMonth = (value: string): StoryTime => ({
+	type: 'month',
+	value,
+	certainty: 'approximate'
+});
 const minute = (value: string): StoryTime => ({ type: 'minute', value });
 const aboutMinute = (value: string): StoryTime => ({
 	type: 'minute',
@@ -131,6 +140,13 @@ export const STORY_SCOPES: readonly StoryScope[] = [
 		colour: { hue: 260, chroma: 25, depth: 1 }
 	},
 	{
+		id: 's.mary',
+		nameKey: 'demo.scope.mary',
+		noteKey: 'demo.scope.mary.note',
+		parentId: 's.people',
+		colour: { hue: 320, chroma: 55, depth: 1 }
+	},
+	{
 		id: 's.places',
 		nameKey: 'demo.scope.places',
 		colour: { hue: 95, chroma: 35, depth: 0 }
@@ -196,6 +212,69 @@ export const STORY_SCOPES: readonly StoryScope[] = [
 		noteKey: 'demo.scope.final.note',
 		parentId: 's.cases',
 		colour: { hue: 220, chroma: 20, depth: 2 }
+	},
+	{
+		id: 's.resident',
+		nameKey: 'demo.scope.resident',
+		noteKey: 'demo.scope.resident.note',
+		parentId: 's.cases',
+		colour: { hue: 25, chroma: 45, depth: 1 }
+	},
+	{
+		id: 's.reigate',
+		nameKey: 'demo.scope.reigate',
+		noteKey: 'demo.scope.reigate.note',
+		parentId: 's.cases',
+		colour: { hue: 100, chroma: 40, depth: 1 }
+	},
+	{
+		id: 's.pips',
+		nameKey: 'demo.scope.pips',
+		noteKey: 'demo.scope.pips.note',
+		parentId: 's.cases',
+		colour: { hue: 30, chroma: 85, depth: 2 }
+	},
+	{
+		id: 's.bohemia',
+		nameKey: 'demo.scope.bohemia',
+		noteKey: 'demo.scope.bohemia.note',
+		parentId: 's.cases',
+		colour: { hue: 280, chroma: 55, depth: 1 }
+	},
+	{
+		id: 's.four',
+		nameKey: 'demo.scope.four',
+		noteKey: 'demo.scope.four.note',
+		parentId: 's.cases',
+		colour: { hue: 310, chroma: 60, depth: 2 }
+	},
+	{
+		id: 's.carbuncle',
+		nameKey: 'demo.scope.carbuncle',
+		noteKey: 'demo.scope.carbuncle.note',
+		parentId: 's.cases',
+		colour: { hue: 200, chroma: 80, depth: 2 }
+	},
+	{
+		id: 's.beeches',
+		nameKey: 'demo.scope.beeches',
+		noteKey: 'demo.scope.beeches.note',
+		parentId: 's.cases',
+		colour: { hue: 125, chroma: 50, depth: 2 }
+	},
+	{
+		id: 's.naval',
+		nameKey: 'demo.scope.naval',
+		noteKey: 'demo.scope.naval.note',
+		parentId: 's.cases',
+		colour: { hue: 250, chroma: 45, depth: 1 }
+	},
+	{
+		id: 's.league',
+		nameKey: 'demo.scope.league',
+		noteKey: 'demo.scope.league.note',
+		parentId: 's.cases',
+		colour: { hue: 15, chroma: 90, depth: 1 }
 	},
 	{
 		id: 's.practice',
@@ -280,6 +359,15 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 		'demo.trace.afghan.desc'
 	),
 	plain(
+		'w.money',
+		'actual',
+		aboutMonth('1880-12'),
+		'1880-12-20',
+		['s.practice'],
+		'demo.trace.money',
+		'demo.trace.money.desc'
+	),
+	plain(
 		'w.stamford',
 		'actual',
 		month('1881-01'),
@@ -351,6 +439,25 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 		['s.scarlet'],
 		'demo.trace.scarlet.case'
 	),
+	// 1881–1882 — вечера у камина: дела до меня, со слов Холмса
+	plain(
+		'w.gloria',
+		'actual',
+		aboutMonth('1881-12'),
+		'1881-12-20',
+		['s.holmes', 's.cases'],
+		'demo.trace.gloria',
+		'demo.trace.gloria.desc'
+	),
+	plain(
+		'w.musgrave',
+		'actual',
+		aboutMonth('1882-01'),
+		'1882-01-20',
+		['s.holmes', 's.baker'],
+		'demo.trace.musgrave',
+		'demo.trace.musgrave.desc'
+	),
 	// Апрель 1883 — Пёстрая лента
 	plain(
 		'w.stoner',
@@ -421,6 +528,108 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 		['s.band'],
 		'demo.trace.band.case'
 	),
+	// 1886 — Постоянный пациент
+	plain(
+		'w.trevelyan',
+		'actual',
+		aboutMonth('1886-10'),
+		captured('1886-10-15', '12:00'),
+		['s.resident', 's.practice'],
+		'demo.trace.trevelyan',
+		'demo.trace.trevelyan.desc'
+	),
+	typed(
+		'w.resident.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.resident.case.client' }, fee: 0, days: 2 },
+		aboutMonth('1886-10'),
+		captured('1886-10-15', '15:00'),
+		['s.resident'],
+		'demo.trace.resident.case'
+	),
+	// 1887 — Первая слава
+	plain(
+		'w.lyon',
+		'actual',
+		day('1887-04-14'),
+		'1887-04-14',
+		['s.holmes'],
+		'demo.trace.lyon',
+		'demo.trace.lyon.desc'
+	),
+	plain(
+		'w.reigate',
+		'actual',
+		aboutDay('1887-04-26'),
+		captured('1887-04-26', '21:00'),
+		['s.reigate', 's.holmes'],
+		'demo.trace.reigate',
+		'demo.trace.reigate.desc'
+	),
+	typed(
+		'w.reigate.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.reigate.case.client' }, fee: 0, days: 1 },
+		aboutDay('1887-04-26'),
+		captured('1887-04-26', '22:00'),
+		['s.reigate'],
+		'demo.trace.reigate.case'
+	),
+	plain(
+		'w.pips.intent',
+		'intend',
+		aboutDay('1887-09-29'),
+		captured('1887-09-29', '22:00'),
+		['s.pips'],
+		'demo.trace.pips.intent',
+		'demo.trace.pips.intent.desc'
+	),
+	plain(
+		'w.pips',
+		'actual',
+		aboutDay('1887-09-30'),
+		captured('1887-09-30', '21:00'),
+		['s.pips', 's.holmes'],
+		'demo.trace.pips',
+		'demo.trace.pips.desc'
+	),
+	plain(
+		'w.study.print',
+		'actual',
+		aboutMonth('1887-11'),
+		'1887-11-25',
+		['s.scarlet', 's.holmes'],
+		'demo.trace.study.print',
+		'demo.trace.study.print.desc'
+	),
+	typed(
+		'w.pips.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.pips.case.client' }, fee: 0, days: 2 },
+		aboutMonth('1887-12'),
+		'1887-12-10',
+		['s.pips'],
+		'demo.trace.pips.case'
+	),
+	// 1888 — Та Женщина
+	plain(
+		'w.bohemia',
+		'actual',
+		day('1888-03-20'),
+		captured('1888-03-20', '22:00'),
+		['s.bohemia', 's.holmes'],
+		'demo.trace.bohemia',
+		'demo.trace.bohemia.desc'
+	),
+	typed(
+		'w.bohemia.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.bohemia.case.client' }, fee: 1000, days: 3 },
+		day('1888-03-22'),
+		captured('1888-03-22', '12:00'),
+		['s.bohemia'],
+		'demo.trace.bohemia.case'
+	),
 	// 1888 — Майкрофт
 	plain(
 		'w.mycroft.meet',
@@ -431,11 +640,94 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 		'demo.trace.mycroft.meet',
 		'demo.trace.mycroft.meet.desc'
 	),
+	// Сентябрь 1888 — Знак четырёх
+	plain(
+		'w.morstan',
+		'actual',
+		aboutDay('1888-09-18'),
+		captured('1888-09-18', '18:00'),
+		['s.mary', 's.four', 's.baker'],
+		'demo.trace.morstan',
+		'demo.trace.morstan.desc'
+	),
+	plain(
+		'w.thames',
+		'actual',
+		aboutDay('1888-09-21'),
+		captured('1888-09-21', '20:00'),
+		['s.four', 's.holmes'],
+		'demo.trace.thames',
+		'demo.trace.thames.desc'
+	),
+	plain(
+		'w.box',
+		'actual',
+		aboutDay('1888-09-21'),
+		captured('1888-09-21', '22:00'),
+		['s.four', 's.mary'],
+		'demo.trace.box',
+		'demo.trace.box.desc'
+	),
+	plain(
+		'w.engaged',
+		'actual',
+		aboutDay('1888-09-21'),
+		captured('1888-09-21', '23:30'),
+		['s.mary'],
+		'demo.trace.engaged',
+		'demo.trace.engaged.desc'
+	),
+	typed(
+		'w.four.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.four.case.client' }, fee: 0, days: 4 },
+		aboutDay('1888-09-21'),
+		captured('1888-09-21', '22:30'),
+		['s.four'],
+		'demo.trace.four.case'
+	),
+	// Зима и весна 1888/89 — Голубой карбункул, Медные буки
+	plain(
+		'w.carbuncle',
+		'actual',
+		aboutDay('1888-12-27'),
+		captured('1888-12-27', '21:00'),
+		['s.carbuncle', 's.holmes'],
+		'demo.trace.carbuncle',
+		'demo.trace.carbuncle.desc'
+	),
+	typed(
+		'w.carbuncle.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.carbuncle.case.client' }, fee: 0, days: 1 },
+		aboutDay('1888-12-27'),
+		captured('1888-12-27', '22:00'),
+		['s.carbuncle'],
+		'demo.trace.carbuncle.case'
+	),
+	plain(
+		'w.beeches',
+		'actual',
+		aboutDay('1889-04-05'),
+		captured('1889-04-05', '12:00'),
+		['s.beeches', 's.holmes'],
+		'demo.trace.beeches',
+		'demo.trace.beeches.desc'
+	),
+	typed(
+		'w.beeches.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.beeches.case.client' }, fee: 0, days: 2 },
+		aboutDay('1889-04-06'),
+		captured('1889-04-06', '23:00'),
+		['s.beeches'],
+		'demo.trace.beeches.case'
+	),
 	// Октябрь 1889 — Собака Баскервилей
 	plain(
 		'w.mortimer',
 		'actual',
-		month('1889-09'),
+		aboutDay('1889-09-26'),
 		captured('1889-09-26', '12:00'),
 		['s.hound', 's.baker'],
 		'demo.trace.mortimer',
@@ -444,7 +736,7 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 	plain(
 		'w.legend',
 		'actual',
-		month('1889-09'),
+		aboutDay('1889-09-26'),
 		captured('1889-09-26', '13:00'),
 		['s.hound', 's.hall'],
 		'demo.trace.legend',
@@ -453,7 +745,7 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 	plain(
 		'w.charles',
 		'actual',
-		month('1889-06'),
+		aboutDay('1889-05-04'),
 		captured('1889-09-26', '13:30'),
 		['s.hall', 's.hound'],
 		'demo.trace.charles',
@@ -743,11 +1035,62 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 	plain(
 		'w.married',
 		'actual',
-		month('1890-06'),
-		captured('1890-06-15', '12:00'),
-		['s.practice'],
+		aboutDay('1890-06-14'),
+		captured('1890-06-14', '21:00'),
+		['s.mary'],
 		'demo.trace.married',
 		'demo.trace.married.desc'
+	),
+	plain(
+		'w.practice.paddington',
+		'actual',
+		{
+			type: 'interval',
+			precision: 'day',
+			start: '1890-06-23',
+			end: '1891-08-31',
+			certainty: 'approximate'
+		},
+		'1890-06-23',
+		['s.practice'],
+		'demo.trace.practice.paddington',
+		'demo.trace.practice.paddington.desc'
+	),
+	plain(
+		'w.naval',
+		'actual',
+		aboutDay('1890-07-30'),
+		captured('1890-07-30', '12:00'),
+		['s.naval', 's.holmes'],
+		'demo.trace.naval',
+		'demo.trace.naval.desc'
+	),
+	typed(
+		'w.naval.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.naval.case.client' }, fee: 0, days: 3 },
+		aboutDay('1890-07-30'),
+		captured('1890-07-30', '14:00'),
+		['s.naval'],
+		'demo.trace.naval.case'
+	),
+	plain(
+		'w.league',
+		'actual',
+		aboutDay('1890-10-09'),
+		captured('1890-10-10', '02:00'),
+		['s.league', 's.holmes'],
+		'demo.trace.league',
+		'demo.trace.league.desc'
+	),
+	typed(
+		'w.league.case',
+		DEMO_KIND_CASE_ID,
+		{ client: { key: 'demo.trace.league.case.client' }, fee: 0, days: 2 },
+		aboutDay('1890-10-10'),
+		captured('1890-10-10', '12:00'),
+		['s.league'],
+		'demo.trace.league.case'
 	),
 	// 1891 — Последнее дело
 	plain(
@@ -789,11 +1132,26 @@ export const STORY_TRACES: readonly StoryTrace[] = [
 	plain(
 		'w.practice.91',
 		'actual',
-		month('1891-09'),
-		'1891-09-15',
+		{
+			type: 'interval',
+			precision: 'day',
+			start: '1891-09-01',
+			end: '1894-04-30',
+			certainty: 'approximate'
+		},
+		'1891-09-01',
 		['s.practice'],
 		'demo.trace.practice.91',
 		'demo.trace.practice.91.desc'
+	),
+	plain(
+		'w.mary.death',
+		'actual',
+		{ type: 'year', value: 1892 },
+		'1892-11-10',
+		['s.mary', 's.practice'],
+		'demo.trace.mary.death',
+		'demo.trace.mary.death.desc'
 	),
 	plain(
 		'w.published',
@@ -958,7 +1316,12 @@ export const STORY_TRACE_LINKS: readonly StoryTraceLink[] = [
 	// 1894
 	{ kind: 'revisits', fromId: 'w.return', toId: 'w.final' },
 	{ kind: 'related_to', fromId: 'w.moran.who', toId: 'w.moran.intent' },
-	{ kind: 'evidence_for', fromId: 'w.moran', toId: 'w.moran.intent' }
+	{ kind: 'evidence_for', fromId: 'w.moran', toId: 'w.moran.intent' },
+	// 1887: the one client Holmes lost; the Study in print beside the case it tells.
+	{ kind: 'evidence_for', fromId: 'w.pips', toId: 'w.pips.intent' },
+	{ kind: 'related_to', fromId: 'w.study.print', toId: 'w.scarlet.case' },
+	// The engagement of 1888 and the wedding of 1890.
+	{ kind: 'related_to', fromId: 'w.married', toId: 'w.engaged' }
 ];
 
 const closed = (factId: string, intentionId: string): StoryAssessment => ({
@@ -970,7 +1333,8 @@ const closed = (factId: string, intentionId: string): StoryAssessment => ({
 
 /**
  * Watson's verdicts, one per `evidence_for` link: every intention he wrote a confirmation for
- * is completed and closed. `w.mire.search` has no evidence and stays open, as the story leaves it.
+ * is completed and closed, but Openshaw, whom Holmes did not save. `w.mire.search` has no
+ * evidence and stays open, as the story leaves it.
  */
 export const STORY_ASSESSMENTS: readonly StoryAssessment[] = [
 	closed('w.hope', 'w.scarlet.intent'),
@@ -983,7 +1347,134 @@ export const STORY_ASSESSMENTS: readonly StoryAssessment[] = [
 	closed('w.night', 'w.step.night'),
 	closed('w.night', 'w.hound.intent'),
 	closed('w.hound.answer', 'w.hound.intent'),
-	closed('w.moran', 'w.moran.intent')
+	closed('w.moran', 'w.moran.intent'),
+	{ factId: 'w.pips', intentionId: 'w.pips.intent', outcome: 'not_completed', open: false }
+];
+
+/**
+ * The chapters Watson divides the notebook into: each starts where the one before it ends, from
+ * his return from Afghanistan to the spring of 1894; only the last is closed, where the notebook
+ * ends, so no chapter runs on to today. A stage too runs until the next one starts.
+ */
+export const STORY_CHAPTERS: readonly StoryChapter[] = [
+	{
+		nameKey: 'demo.chapter.afghan',
+		noteKey: 'demo.chapter.afghan.note',
+		colour: { hue: 30, chroma: 40, depth: 1 },
+		start: '1880-11-01',
+		lineup: ['s.practice'],
+		stages: []
+	},
+	{
+		nameKey: 'demo.chapter.meeting',
+		noteKey: 'demo.chapter.meeting.note',
+		colour: { hue: 265, chroma: 55, depth: 1 },
+		start: '1881-01-01',
+		lineup: ['s.holmes', 's.baker', 's.hudson', 's.scarlet', 's.lestrade'],
+		stages: [
+			{
+				nameKey: 'demo.stage.meeting.rooms',
+				start: '1881-01-01',
+				lineup: ['s.holmes', 's.baker', 's.hudson']
+			},
+			{
+				nameKey: 'demo.stage.meeting.scarlet',
+				start: '1881-03-04',
+				lineup: ['s.scarlet', 's.lestrade', 's.holmes']
+			}
+		]
+	},
+	{
+		nameKey: 'demo.chapter.quiet',
+		noteKey: 'demo.chapter.quiet.note',
+		colour: { hue: 200, chroma: 20, depth: 1 },
+		start: '1881-04-01',
+		lineup: ['s.holmes', 's.baker', 's.cases', 's.practice'],
+		stages: []
+	},
+	{
+		nameKey: 'demo.chapter.fame',
+		noteKey: 'demo.chapter.fame.note',
+		colour: { hue: 10, chroma: 70, depth: 1 },
+		start: '1887-04-14',
+		lineup: ['s.holmes', 's.reigate', 's.pips', 's.scarlet', 's.bohemia', 's.mycroft'],
+		stages: []
+	},
+	{
+		nameKey: 'demo.chapter.mary',
+		noteKey: 'demo.chapter.mary.note',
+		colour: { hue: 320, chroma: 55, depth: 1 },
+		start: '1888-09-18',
+		lineup: ['s.mary', 's.four', 's.holmes', 's.carbuncle', 's.beeches'],
+		stages: []
+	},
+	{
+		nameKey: 'demo.chapter.hound',
+		noteKey: 'demo.chapter.hound.note',
+		colour: { hue: 160, chroma: 80, depth: 1 },
+		start: '1889-05-04',
+		lineup: ['s.hound', 's.holmes', 's.baker', 's.hall', 's.mire'],
+		stages: [
+			{
+				nameKey: 'demo.stage.hound.death',
+				start: '1889-05-04',
+				lineup: ['s.hall', 's.hound']
+			},
+			{
+				nameKey: 'demo.stage.hound.london',
+				start: '1889-09-26',
+				lineup: ['s.hound', 's.holmes', 's.baker']
+			},
+			{
+				nameKey: 'demo.stage.hound.moor',
+				start: '1889-10-01',
+				lineup: ['s.hound', 's.hall', 's.mire']
+			},
+			{ nameKey: 'demo.stage.hound.after', start: '1889-10-21', lineup: null }
+		]
+	},
+	{
+		nameKey: 'demo.chapter.paddington',
+		noteKey: 'demo.chapter.paddington.note',
+		colour: { hue: 120, chroma: 40, depth: 1 },
+		start: '1890-06-14',
+		lineup: ['s.mary', 's.practice', 's.naval', 's.league', 's.holmes'],
+		stages: []
+	},
+	{
+		nameKey: 'demo.chapter.alone',
+		noteKey: 'demo.chapter.alone.note',
+		colour: { hue: 220, chroma: 20, depth: 2 },
+		start: '1891-04-24',
+		lineup: [
+			's.final',
+			's.moriarty',
+			's.holmes',
+			's.reichenbach',
+			's.practice',
+			's.mary',
+			's.cases'
+		],
+		stages: [
+			{
+				nameKey: 'demo.stage.alone.final',
+				start: '1891-04-24',
+				lineup: ['s.final', 's.moriarty', 's.holmes', 's.reichenbach']
+			},
+			{ nameKey: 'demo.stage.alone.grief', start: '1891-05-05', lineup: ['s.practice', 's.mary'] },
+			{ nameKey: 'demo.stage.alone.print', start: '1893-12-01', lineup: ['s.final', 's.practice'] },
+			{ nameKey: 'demo.stage.alone.adair', start: '1894-03-30', lineup: ['s.cases'] }
+		]
+	},
+	{
+		nameKey: 'demo.chapter.return',
+		noteKey: 'demo.chapter.return.note',
+		colour: { hue: 42, chroma: 75, depth: 1 },
+		start: '1894-04-05',
+		closedAt: '1894-06-01',
+		lineup: ['s.holmes', 's.baker', 's.hudson', 's.lestrade', 's.cases'],
+		stages: []
+	}
 ];
 
 export const DEMO_STORY: DemoStory = {
@@ -993,5 +1484,6 @@ export const DEMO_STORY: DemoStory = {
 	periods: STORY_PERIODS,
 	traces: STORY_TRACES,
 	traceLinks: STORY_TRACE_LINKS,
-	assessments: STORY_ASSESSMENTS
+	assessments: STORY_ASSESSMENTS,
+	chapters: STORY_CHAPTERS
 };

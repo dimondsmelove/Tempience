@@ -1,6 +1,7 @@
 import {
 	BAND_TONE,
 	CAPSULE_WIDTH_PX,
+	HAZE_PEAK_TONE,
 	STRIPE_PX,
 	WOVEN_CAPSULE_WIDTH_PX
 } from '$lib/model/MarkStyle/constants';
@@ -45,19 +46,24 @@ export const markPaint = (
 	const unique = [...new Set(colours)];
 	const paint = unique.length ? unique : [ink];
 	const woven = paint.length > 1;
-	const head = shape === 'fuzzy' ? 0 : woven ? WOVEN_CAPSULE_WIDTH_PX : CAPSULE_WIDTH_PX;
-	const banded = shape === 'interval' || shape === 'fuzzy';
+	const vague = shape === 'fuzzy' || shape === 'fuzzySpan';
+	const head = vague ? 0 : woven ? WOVEN_CAPSULE_WIDTH_PX : CAPSULE_WIDTH_PX;
+	const banded = shape === 'interval' || vague;
 	const band = banded ? MARK_WIDTH_PX - head : 0;
 	return {
 		shape,
 		head,
 		headFill: head ? layers(paint) : null,
 		band,
-		bandFill: banded
-			? woven && band >= paint.length * STRIPE_PX
-				? stripes(paint, BAND_TONE)
-				: layers(paint, BAND_TONE)
-			: null,
+		// A vague date is a haze: its layers at the peak tone, faded at the ends by the component.
+		bandFill:
+			shape === 'fuzzy'
+				? layers(paint, HAZE_PEAK_TONE)
+				: banded
+					? woven && band >= paint.length * STRIPE_PX
+						? stripes(paint, BAND_TONE)
+						: layers(paint, BAND_TONE)
+					: null,
 		dotted: shape === 'intent',
 		woven
 	};

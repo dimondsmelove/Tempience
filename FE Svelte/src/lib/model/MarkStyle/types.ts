@@ -7,7 +7,7 @@ import type { Mark } from '$lib/model/Projection/types';
  */
 export type MarkStyleInput = Pick<
 	Mark,
-	'kind' | 'intent' | 'rollup' | 'proposal' | 'closed' | 'open' | 'start' | 'end'
+	'kind' | 'intent' | 'rollup' | 'proposal' | 'closed' | 'open' | 'lasting' | 'start' | 'end'
 >;
 
 /**
@@ -29,6 +29,11 @@ export type MarkStyle = Readonly<{
 	tick: boolean;
 	/** A 1 px contour of the future silhouette instead of any fill: a proposal. */
 	hollow: boolean;
+	/**
+	 * A haze over the window instead of any fill: a fuzzy date — one event somewhere inside it,
+	 * densest in the middle, fading to nothing at the ends (owner, 2026-09-29).
+	 */
+	haze: boolean;
 	/** The selection ring 2 px outside the silhouette. */
 	ring: boolean;
 }>;

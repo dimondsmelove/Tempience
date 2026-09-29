@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
-	import { freeMidnight, msToIso } from '$lib/model/Chapters';
+	import { freeMidnight, msToIso, stageStep } from '$lib/model/Chapters';
+	import type { StagePick } from '$lib/model/Chapters';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import { chapterColour } from '$lib/theme/chapter-colour';
@@ -15,69 +16,116 @@
 	const previous = $derived(index > 0 ? chapters[index - 1] : null);
 	const next = $derived(index >= 0 && index < chapters.length - 1 ? chapters[index + 1] : null);
 	const current = $derived(store.current);
-	const title = $derived(
-		driver ? [driver.chapter.name, driver.stage?.name].filter(Boolean).join(' · ') : ''
-	);
+	/** The stage row walks «Вся глава» and the stages of the driving chapter, never out of it. */
+	const stageBefore = $derived(driver ? stageStep(driver.chapter, driver.stage, -1) : undefined);
+	const stageAfter = $derived(driver ? stageStep(driver.chapter, driver.stage, 1) : undefined);
+	const stageName = $derived(driver?.stage?.name ?? t('chapter.whole'));
+	const nameOf = (pick: StagePick | undefined): string | undefined =>
+		pick === 'whole'
+			? t('chapter.whole')
+			: (driver?.chapter.stages.find((stage) => stage.id === pick)?.name ?? undefined);
 	const go = (chapterId: string): void => workbench.selectChapter(chapterId);
+	const goStage = (pick: StagePick | undefined): void => {
+		if (driver && pick) workbench.selectChapter(driver.chapter.id, pick);
+	};
 </script>
 
-<!-- The band row's own header in the rail: the chapter that drives the rows and the stage in
-     force, ‹ › to its neighbours, «сейчас» back to the current chapter. -->
+<!-- The band row's own header in the rail, two lines (owner 2026-09-29): the chapter that drives
+     the rows with ‹ › to its neighbours and «сейчас» back to the current chapter; under it, when
+     the chapter has stages, the stage in force with ‹ › through «Вся глава» and the stages. -->
 {#if driver}
 	<div
 		class="head"
 		style:--chapter={chapterColour(driver.chapter)}
 		data-testid="chapter-row-header"
 	>
-		<Button
-			size="sm"
-			variant="quiet"
-			icon
-			class="shrink-0"
-			aria-label={t('chapter.previous')}
-			title={previous ? previous.name : undefined}
-			disabled={!previous}
-			data-testid="chapter-prev"
-			onclick={() => previous && go(previous.id)}><ChevronLeftOutline class="h-3.5 w-3.5" /></Button
-		>
-		<button
-			type="button"
-			class="name"
-			{title}
-			aria-label={t('chapter.showOnRibbon', { name: driver.chapter.name })}
-			data-testid="chapter-current"
-			onclick={() => {
-				// The focus: the chapter chosen and the ribbon fitted to it.
-				workbench.selectChapter(driver.chapter.id, null, true);
-				onopen();
-			}}
-		>
-			<span class="chapter" data-testid="chapter-current-name">{driver.chapter.name}</span>
-			{#if driver.stage}<span class="sep" aria-hidden="true"></span><span
-					class="stage"
-					data-testid="chapter-current-stage">{driver.stage.name}</span
-				>{/if}
-		</button>
-		{#if current && current.id !== driver.chapter.id}
+		<div class="line">
+			<Button
+				size="sm"
+				variant="quiet"
+				icon
+				class="shrink-0"
+				aria-label={t('chapter.previous')}
+				title={previous ? previous.name : undefined}
+				disabled={!previous}
+				data-testid="chapter-prev"
+				onclick={() => previous && go(previous.id)}
+				><ChevronLeftOutline class="h-3.5 w-3.5" /></Button
+			>
 			<button
 				type="button"
-				class="now"
-				title={t('chapter.toCurrent', { name: current.name })}
-				data-testid="chapter-now"
-				onclick={() => go(current.id)}>{t('chapter.now')}</button
+				class="name"
+				title={driver.chapter.name}
+				aria-label={t('chapter.showOnRibbon', { name: driver.chapter.name })}
+				data-testid="chapter-current"
+				onclick={() => {
+					// The focus: the chapter chosen and the ribbon fitted to it.
+					workbench.selectChapter(driver.chapter.id, null, true);
+					onopen();
+				}}
 			>
+				<span class="chapter" data-testid="chapter-current-name">{driver.chapter.name}</span>
+			</button>
+			{#if current && current.id !== driver.chapter.id}
+				<button
+					type="button"
+					class="now"
+					title={t('chapter.toCurrent', { name: current.name })}
+					data-testid="chapter-now"
+					onclick={() => go(current.id)}>{t('chapter.now')}</button
+				>
+			{/if}
+			<Button
+				size="sm"
+				variant="quiet"
+				icon
+				class="shrink-0"
+				aria-label={t('chapter.next')}
+				title={next ? next.name : undefined}
+				disabled={!next}
+				data-testid="chapter-next-step"
+				onclick={() => next && go(next.id)}><ChevronRightOutline class="h-3.5 w-3.5" /></Button
+			>
+		</div>
+		{#if driver.chapter.stages.length}
+			<div class="line">
+				<Button
+					size="sm"
+					variant="quiet"
+					icon
+					class="shrink-0"
+					aria-label={t('chapter.previousStage')}
+					title={nameOf(stageBefore)}
+					disabled={!stageBefore}
+					data-testid="stage-prev"
+					onclick={() => goStage(stageBefore)}><ChevronLeftOutline class="h-3.5 w-3.5" /></Button
+				>
+				<button
+					type="button"
+					class="name"
+					title={stageName}
+					aria-label={t('chapter.stageOnRibbon', { name: stageName })}
+					data-testid="chapter-current-stage-button"
+					onclick={() => {
+						workbench.selectChapter(driver.chapter.id, driver.stage?.id ?? 'whole', true);
+						onopen();
+					}}
+				>
+					<span class="stage" data-testid="chapter-current-stage">{stageName}</span>
+				</button>
+				<Button
+					size="sm"
+					variant="quiet"
+					icon
+					class="shrink-0"
+					aria-label={t('chapter.nextStage')}
+					title={nameOf(stageAfter)}
+					disabled={!stageAfter}
+					data-testid="stage-next"
+					onclick={() => goStage(stageAfter)}><ChevronRightOutline class="h-3.5 w-3.5" /></Button
+				>
+			</div>
 		{/if}
-		<Button
-			size="sm"
-			variant="quiet"
-			icon
-			class="shrink-0"
-			aria-label={t('chapter.next')}
-			title={next ? next.name : undefined}
-			disabled={!next}
-			data-testid="chapter-next-step"
-			onclick={() => next && go(next.id)}><ChevronRightOutline class="h-3.5 w-3.5" /></Button
-		>
 	</div>
 {:else if chapters.length}
 	<div class="head empty">
@@ -102,18 +150,27 @@
 	   segment for the chapter in force; the row's height and borders come from the rail. */
 	.head {
 		display: flex;
-		align-items: center;
+		flex-direction: column;
+		justify-content: center;
 		gap: 2px;
 		width: 100%;
 		min-width: 0;
 		height: 100%;
-		padding: 0 4px 0 6px;
+		padding: 2px 4px 2px 6px;
 		background: color-mix(in oklab, var(--chapter) 10%, transparent);
 		box-shadow: inset 3px 0 0 var(--chapter);
 		font-family: var(--cg-font-sans);
 		font-size: 12px;
 	}
+	.line {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		min-width: 0;
+	}
 	.head.empty {
+		flex-direction: row;
+		align-items: center;
 		background: transparent;
 		box-shadow: none;
 	}
@@ -152,15 +209,8 @@
 		text-overflow: ellipsis;
 		font-weight: 600;
 	}
-	.sep {
-		flex: none;
-		width: 1px;
-		height: 12px;
-		background: var(--cg-border-strong);
-	}
 	.stage {
-		flex: none;
-		max-width: 45%;
+		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		color: var(--cg-text-muted);

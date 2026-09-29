@@ -5,10 +5,18 @@
 	import type { AxisBand, PeriodRef } from '$lib/model/Axis/types';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { drawAxis, hitAt } from './draw';
-	import { WHEEL_LINE_PX } from './constants';
+	import { wheelZoomFactor } from '$lib/time/TimelineInput/zoomInput';
 	import type { AxisHit, AxisMetrics, AxisPalette, AxisProps } from './types';
 
-	let { window, now, selected = null, hasNote, onselectperiod, onpan }: AxisProps = $props();
+	let {
+		window,
+		now,
+		selected = null,
+		hasNote,
+		onselectperiod,
+		onpan,
+		onzoom
+	}: AxisProps = $props();
 
 	/** Cell areas of the last draw; the DOM twin below mirrors them for keyboard and readers. */
 	let hits = $state.raw<AxisHit[]>([]);
@@ -103,18 +111,26 @@
 		};
 	};
 
+	/**
+	 * Over the dates the wheel zooms at the pointer (owner, 2026-09-29): up closer, down
+	 * farther, a pinch as over the lanes; a sideways swipe still moves time.
+	 */
 	const wheelInput: Attachment<HTMLDivElement> = (element) => {
 		const onwheel = (event: WheelEvent): void => {
 			const width = element.clientWidth;
-			if (!onpan || !event.deltaY || !width) return;
+			if (!width) return;
+			if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+				if (!onpan) return;
+				event.preventDefault();
+				onpan(event.deltaX / width);
+				return;
+			}
+			if (!onzoom || !event.deltaY) return;
 			event.preventDefault();
-			const unit =
-				event.deltaMode === WheelEvent.DOM_DELTA_LINE
-					? WHEEL_LINE_PX
-					: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-						? width
-						: 1;
-			onpan((-event.deltaY * unit) / width);
+			onzoom(
+				wheelZoomFactor(event),
+				(event.clientX - element.getBoundingClientRect().left) / width
+			);
 		};
 		element.addEventListener('wheel', onwheel, { passive: false });
 		return () => element.removeEventListener('wheel', onwheel);

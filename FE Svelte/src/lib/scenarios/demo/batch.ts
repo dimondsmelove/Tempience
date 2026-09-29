@@ -22,9 +22,11 @@ import type { DemoStoryEntry } from './registry';
 import type {
 	DemoSeed,
 	DemoSeedAssessment,
+	DemoSeedChapter,
 	DemoSeedInput,
 	DemoStory,
 	StoryKind,
+	StoryStart,
 	StoryTime,
 	StoryValue
 } from './types';
@@ -147,7 +149,8 @@ const placement = (time: StoryTime, entry: DemoStoryEntry): Placement => {
 
 /**
  * The seed of a demo space: the Kinds to ensure first, their memberships to set after the
- * Scopes exist, and one scenario-import batch with every Scope, Period, Trace and link. Every
+ * Scopes exist, one scenario-import batch with every Scope, Period, Trace and link, and the
+ * chapters with their stages, to create once the Scopes they name exist. Every
  * date is the notebook's own, in the story's zone; every text is written in `locale` once.
  * A story whose entry asks for it (`startAtInstall`) has its first page dated by the install
  * instant instead — the only date that cannot be written into the story file.
@@ -280,6 +283,33 @@ export const buildDemoSeed = (
 		return { candidateId, values: { outcome: item.outcome, open: item.open } };
 	});
 
+	const scopeIds = new Set(story.scopes.map((scope) => scope.id));
+	const lineup = (ids: readonly string[]) =>
+		ids.map((id) => {
+			if (!scopeIds.has(id)) throw new Error(`Demo story: chapter lineup names no Scope ${id}`);
+			return { scopeId: recordId(id), level: 'focus' as const };
+		});
+	const at = (start: StoryStart): string =>
+		localInstant(start.includes('T') ? start : `${start}T00:00`, entry.timezone);
+	const chapters: DemoSeedChapter[] = story.chapters.map((chapter) => ({
+		draft: {
+			name: text(chapter.nameKey),
+			note: chapter.noteKey ? text(chapter.noteKey) : null,
+			colorHue: chapter.colour?.hue ?? null,
+			colorChroma: chapter.colour?.chroma ?? null,
+			colorDepth: chapter.colour?.depth ?? null,
+			start: at(chapter.start),
+			closedAt: chapter.closedAt ? at(chapter.closedAt) : null,
+			lineup: lineup(chapter.lineup)
+		},
+		stages: chapter.stages.map((stage) => ({
+			name: text(stage.nameKey),
+			note: stage.noteKey ? text(stage.noteKey) : null,
+			start: at(stage.start),
+			lineup: stage.lineup ? lineup(stage.lineup) : null
+		}))
+	}));
+
 	const manifestId = demoManifestId(entry, locale);
 	const batch: ScenarioImportBatch = {
 		schemaVersion: SCENARIO_IMPORT_BATCH_VERSION,
@@ -299,6 +329,7 @@ export const buildDemoSeed = (
 			story.kinds.map((kind) => [kind.id, kind.scopeIds.map(recordId)])
 		),
 		batch,
-		assessments
+		assessments,
+		chapters
 	};
 };

@@ -2,6 +2,8 @@ import type { MarkBox } from '$lib/model/Labels/types';
 import {
 	BAND_RADIUS_PX,
 	CAPSULE_RADIUS_PX,
+	HAZE_PEAK_TONE,
+	HAZE_STOPS,
 	HOLLOW_RADIUS_PX,
 	SELECTION_RING_GAP_PX
 } from '$lib/model/MarkStyle/constants';
@@ -57,6 +59,43 @@ const paintTick = (g: CanvasRenderingContext2D, colours: readonly string[], rect
 	g.restore();
 };
 
+/** One scratch canvas for every haze: resized per mark, never kept on screen. */
+let hazeScratch: HTMLCanvasElement | null = null;
+
+/**
+ * The haze of a fuzzy date: its colours woven in layers on a scratch canvas, masked
+ * by a gradient whose tone rises to `HAZE_PEAK_TONE` in the middle and falls to
+ * nothing at the ends, then copied in one draw — a few calls per mark whatever its
+ * width, so a ribbon of vague dates redraws as fast as one of bands. From afar it
+ * reads as a tick, near as a blur.
+ */
+const paintHaze = (
+	g: CanvasRenderingContext2D,
+	colours: readonly string[],
+	rect: Rect,
+	alpha: number
+): void => {
+	if (typeof document === 'undefined' || rect.w <= 0 || rect.h <= 0) return;
+	const scale = g.getTransform().a || 1;
+	hazeScratch ??= document.createElement('canvas');
+	hazeScratch.width = Math.max(1, Math.ceil(rect.w * scale));
+	hazeScratch.height = Math.max(1, Math.ceil(rect.h * scale));
+	const s = hazeScratch.getContext('2d');
+	if (!s) return;
+	s.setTransform(scale, 0, 0, scale, 0, 0);
+	paintWoven(s, colours, 'layers', { x: 0, y: 0, w: rect.w, h: rect.h }, 0);
+	s.globalCompositeOperation = 'destination-in';
+	const mask = s.createLinearGradient(0, 0, rect.w, 0);
+	for (let i = 0; i <= HAZE_STOPS; i++) {
+		const t = i / HAZE_STOPS;
+		mask.addColorStop(t, `rgba(0, 0, 0, ${HAZE_PEAK_TONE * Math.sin(Math.PI * t) ** 2})`);
+	}
+	s.fillStyle = mask;
+	s.fillRect(0, 0, rect.w, rect.h);
+	g.globalAlpha = alpha;
+	g.drawImage(hazeScratch, rect.x, rect.y, rect.w, rect.h);
+};
+
 /**
  * Renders one mark as `markStyle` decided it, in the colours of its row: the
  * band (stripes when woven), then the solid head or capsule (layers), then the
@@ -82,6 +121,8 @@ export const drawMarkBox = (
 		g.lineWidth = 1;
 		rounded(g, { x: extent.x + 0.5, y: y + 0.5, w: extent.w - 1, h: h - 1 }, HOLLOW_RADIUS_PX);
 		g.stroke();
+	} else if (style.haze) {
+		paintHaze(g, colours, { x: extent.x, y, w: extent.w, h }, style.alpha);
 	} else {
 		if (style.band !== null) {
 			g.globalAlpha = style.alpha * style.band;

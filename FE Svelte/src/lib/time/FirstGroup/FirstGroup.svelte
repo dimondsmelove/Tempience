@@ -36,11 +36,12 @@
 	class="flex h-full min-h-0 overflow-auto bg-canvas p-4 text-ink sm:p-6"
 	aria-label={t('firstGroup.title')}
 >
-	<div class="m-auto w-full max-w-md space-y-5">
+	<!-- Wide enough for two story cards side by side; the form keeps its own narrow width. -->
+	<div class="m-auto w-full max-w-2xl space-y-5">
 		<h1 class="text-2xl font-semibold leading-tight">{t('firstGroup.heading')}</h1>
 		<p class="text-sm leading-relaxed text-muted">{t('firstGroup.what')}</p>
 		<p class="text-sm leading-relaxed text-muted">{t('firstGroup.optional')}</p>
-		<form class="space-y-4" onsubmit={create}>
+		<form class="max-w-md space-y-4" onsubmit={create}>
 			<label class="block space-y-2">
 				<span class="cg-label">{t('firstGroup.name')}</span>
 				<input

@@ -5,6 +5,7 @@ import type {
 	IntentionAssessmentValues,
 	IntentionOutcome
 } from '$lib/state/triplit/IntentionAssessments/types';
+import type { ChapterDraft, ChapterStageDraft } from '$lib/state/triplit/Chapters/types';
 import type {
 	ScenarioImportBatch,
 	ScenarioImportRepository
@@ -128,6 +129,31 @@ export type StoryAssessment = Readonly<{
 	open: boolean;
 }>;
 
+/** A local wall-clock start of the notebook's zone: a day (at midnight) or a minute `YYYY-MM-DDTHH:MM`. */
+export type StoryStart = StoryDate | `${StoryDate}T${string}`;
+
+/** A stage of a chapter: its own lineup of story Scope ids, or null — «как у главы». */
+export type StoryStage = Readonly<{
+	nameKey: MessageKey;
+	noteKey?: MessageKey;
+	start: StoryStart;
+	lineup: readonly string[] | null;
+}>;
+
+/**
+ * A chapter of the notebook: it runs from its start until the next chapter starts; the last one
+ * may close where the story ends. The lineup names story Scope ids and has no order of its own.
+ */
+export type StoryChapter = Readonly<{
+	nameKey: MessageKey;
+	noteKey?: MessageKey;
+	colour?: StoryColour;
+	start: StoryStart;
+	closedAt?: StoryStart;
+	lineup: readonly string[];
+	stages: readonly StoryStage[];
+}>;
+
 export type DemoStory = Readonly<{
 	scopes: readonly StoryScope[];
 	scopeLinks: readonly StoryScopeLink[];
@@ -136,6 +162,7 @@ export type DemoStory = Readonly<{
 	traces: readonly StoryTrace[];
 	traceLinks: readonly StoryTraceLink[];
 	assessments: readonly StoryAssessment[];
+	chapters: readonly StoryChapter[];
 }>;
 
 /** An assessment to create once the batch is applied: the link's candidate id resolves through the mapping. */
@@ -160,6 +187,14 @@ export type DemoSeed = Readonly<{
 	batch: ScenarioImportBatch;
 	/** Evidence assessments to create after the batch, one per assessed `evidence_for` link. */
 	assessments: readonly DemoSeedAssessment[];
+	/** Chapters to create once the Scopes exist, each with its stages. */
+	chapters: readonly DemoSeedChapter[];
+}>;
+
+/** A chapter of the seed, its texts written and its lineup naming record ids. */
+export type DemoSeedChapter = Readonly<{
+	draft: ChapterDraft;
+	stages: readonly ChapterStageDraft[];
 }>;
 
 export type DemoSeedRepository = Pick<
@@ -173,6 +208,9 @@ export type DemoSeedRepository = Pick<
 	| 'listScopes'
 	| 'listPeriods'
 	| 'listIntersections'
+	| 'listChapters'
+	| 'createChapter'
+	| 'createChapterStage'
 >;
 
 export type DemoSeedStorage = Pick<Storage, 'getItem' | 'setItem'>;
@@ -188,7 +226,11 @@ export type DemoSeedBootstrapInput = Readonly<{
 	locale: Locale;
 }>;
 
-export type DemoSeedSkipReason = 'not-target' | 'marker' | 'existing-data';
+/** `refreshing`: the replica held an older notebook and is being rebuilt; the app reloads. */
+export type DemoSeedSkipReason = 'not-target' | 'marker' | 'existing-data' | 'refreshing';
+
+/** Whether a replica holds the story this build ships (`freshness.ts`). */
+export type DemoFreshness = 'fresh' | 'outdated' | 'unseeded';
 
 export type DemoSeedCounts = Readonly<{
 	kinds: number;
@@ -197,6 +239,8 @@ export type DemoSeedCounts = Readonly<{
 	periods: number;
 	intersections: number;
 	assessments: number;
+	chapters: number;
+	stages: number;
 }>;
 
 export type DemoSeedBootstrapResult =

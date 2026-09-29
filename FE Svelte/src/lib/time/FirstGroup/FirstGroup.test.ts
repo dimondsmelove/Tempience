@@ -31,7 +31,7 @@ describe('first Scope setup', () => {
 		const text = textOf(body);
 		expect(text).toContain('Или посмотрите предзаполненную базу');
 		expect(text).toContain('Записная книжка доктора Ватсона');
-		expect(text).toContain('Открыть записную книжку Ватсона');
+		expect(body).toContain('data-testid="demo-story-watson-open"');
 	});
 
 	it('names the Scope in its refusals', () => {

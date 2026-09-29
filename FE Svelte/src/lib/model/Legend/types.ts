@@ -9,6 +9,7 @@ export type LegendKey =
 	| 'interval'
 	| 'open'
 	| 'fuzzy'
+	| 'fuzzySpan'
 	| 'intent'
 	| 'overdue'
 	| 'closed'

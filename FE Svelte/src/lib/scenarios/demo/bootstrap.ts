@@ -1,6 +1,7 @@
 import { demoSeedLocale } from '$lib/state/triplit/demo-actions';
 import { WORKBENCH_OPEN_AT_KEY } from '$lib/state/Workbench/constants';
 import { buildDemoSeed, demoManifestId, demoRecordId } from './batch';
+import { demoContentHash, demoContentKey } from './freshness';
 import type { DemoSeedBootstrapInput, DemoSeedBootstrapResult, DemoSeedSkipReason } from './types';
 
 const skipped = (reason: DemoSeedSkipReason, manifestId: string): DemoSeedBootstrapResult => ({
@@ -17,7 +18,8 @@ const skipped = (reason: DemoSeedSkipReason, manifestId: string): DemoSeedBootst
  * story module is imported only once the replica is really about to be seeded. Verdicts are
  * created through their evidence links once the records exist, so each is ordered by its fact's
  * date (a direct assessment would carry the install day). A seed that was applied asks the
- * workbench, once, to open on the notebook's first page.
+ * workbench, once, to open on the notebook's first page, and keeps the fingerprint of what it
+ * seeded (`freshness.ts`).
  */
 export const bootstrapDemoSeed = async ({
 	dataSpace,
@@ -38,14 +40,15 @@ export const bootstrapDemoSeed = async ({
 	}
 	if (storage.getItem(entry.seedMarkerKey) === manifestId) return skipped('marker', manifestId);
 
-	const [kinds, traces, scopes, periods, intersections] = await Promise.all([
+	const existing = await Promise.all([
 		repository.listTraceKinds(),
 		repository.listTraces(true),
 		repository.listScopes(true),
 		repository.listPeriods(true),
-		repository.listIntersections(true)
+		repository.listIntersections(true),
+		repository.listChapters()
 	]);
-	if (kinds.length + traces.length + scopes.length + periods.length + intersections.length > 0) {
+	if (existing.some((rows) => rows.length > 0)) {
 		if (demoSeedLocale(entry, storage) === null) storage.setItem(entry.seedMarkerKey, manifestId);
 		return skipped('existing-data', manifestId);
 	}
@@ -80,7 +83,18 @@ export const bootstrapDemoSeed = async ({
 			'system'
 		);
 	}
+	// Chapters name Scopes by id, so they come last; each stage goes into its own chapter.
+	let stages = 0;
+	for (const chapter of seed.chapters) {
+		const { id } = await repository.createChapter(chapter.draft, 'system');
+		for (const stage of chapter.stages) {
+			await repository.createChapterStage(id, stage, 'system');
+			stages += 1;
+		}
+	}
 	storage.setItem(entry.seedMarkerKey, manifestId);
+	// What was seeded, so a later build with other content knows to rebuild it.
+	storage.setItem(demoContentKey(entry), demoContentHash(entry, story, locale));
 	storage.setItem(WORKBENCH_OPEN_AT_KEY, demoRecordId(entry, entry.startId));
 	const count = (type: string): number =>
 		seed.batch.entries.filter((item) => item.type === type).length;
@@ -93,7 +107,9 @@ export const bootstrapDemoSeed = async ({
 			traces: count('trace'),
 			periods: count('period'),
 			intersections: count('intersection') + memberships,
-			assessments
+			assessments,
+			chapters: seed.chapters.length,
+			stages
 		}
 	};
 };

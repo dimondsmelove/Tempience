@@ -5,7 +5,7 @@
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { TimeWindow } from '$lib/state/Viewport/types';
 	import { chapterColour } from '$lib/theme/chapter-colour';
-	import { WHEEL_LINE_PX } from '$lib/time/Axis/constants';
+	import { wheelZoomFactor } from '$lib/time/TimelineInput/zoomInput';
 	import ChapterAdd from './ChapterAdd.svelte';
 	import { BAND_HEIGHT_PX, BAND_NAME_HEIGHT_PX } from './constants';
 	import { chapterLabel, labelRoom } from './label';
@@ -22,8 +22,10 @@
 		pickedStageId: string | null;
 		onpick: (chapterId: string, stageId: string | null) => void;
 		oncreate: () => void;
-		/** The wheel pans the ribbon by this ratio of the window, as over the Axis. */
+		/** A sideways swipe pans the ribbon by this ratio of the window, as over the Axis. */
 		onpan?: (ratio: number) => void;
+		/** The wheel zooms, as over the Axis: the span factor and the pointer's share of the width. */
+		onzoom?: (factor: number, atRatio: number) => void;
 	}>;
 	let {
 		chapters,
@@ -35,22 +37,27 @@
 		pickedStageId,
 		onpick,
 		oncreate,
-		onpan
+		onpan,
+		onzoom
 	}: Props = $props();
 
-	/** The Axis's own wheel: the vertical wheel pans time, a line or a page counted as the Axis counts it. */
+	/** The Axis's own wheel: it zooms at the pointer; a sideways swipe moves time. */
 	const wheelInput: Attachment<HTMLElement> = (element) => {
 		const onwheel = (event: WheelEvent): void => {
 			const widthPx = element.clientWidth;
-			if (!onpan || !event.deltaY || !widthPx) return;
+			if (!widthPx) return;
+			if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+				if (!onpan) return;
+				event.preventDefault();
+				onpan(event.deltaX / widthPx);
+				return;
+			}
+			if (!onzoom || !event.deltaY) return;
 			event.preventDefault();
-			const unit =
-				event.deltaMode === WheelEvent.DOM_DELTA_LINE
-					? WHEEL_LINE_PX
-					: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-						? widthPx
-						: 1;
-			onpan((-event.deltaY * unit) / widthPx);
+			onzoom(
+				wheelZoomFactor(event),
+				(event.clientX - element.getBoundingClientRect().left) / widthPx
+			);
 		};
 		element.addEventListener('wheel', onwheel, { passive: false });
 		return () => element.removeEventListener('wheel', onwheel);

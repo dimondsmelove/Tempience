@@ -9,8 +9,8 @@
 
 <!-- A record's mark as the ribbon draws it, at 14 px, in the colours of all its Scopes: one
      colour plainly, several woven (layers; stripes along an interval's band), the head a pixel
-     wider when woven; a fact a capsule, an interval a head and a 30 % band, a vague window the
-     band alone, an intention dotted. -->
+     wider when woven; a fact a capsule, an interval a head and a 30 % band, a vague date a haze
+     over the window, a vague interval the band alone, an intention dotted. -->
 <span class="mark" data-shape={shape} data-woven={paint.woven || undefined} aria-hidden="true">
 	{#if paint.headFill}<span
 			class={['head', paint.dotted && 'dotted']}
@@ -38,8 +38,12 @@
 		height: 100%;
 		border-radius: 0 2px 2px 0;
 	}
-	.mark[data-shape='fuzzy'] .band {
+	.mark[data-shape='fuzzySpan'] .band {
 		border-radius: 2px;
+	}
+	/* The haze: densest in the middle, nothing at the ends, as on the ribbon. */
+	.mark[data-shape='fuzzy'] .band {
+		mask-image: linear-gradient(90deg, transparent, #000 50%, transparent);
 	}
 	/* The intention's tick: 3 px dots, 2 px gaps, whatever colours it weaves. */
 	.dotted {

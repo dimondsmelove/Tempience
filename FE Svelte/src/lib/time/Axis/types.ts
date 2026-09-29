@@ -9,6 +9,8 @@ export type AxisProps = Readonly<{
 	hasNote?: (period: PeriodRef) => boolean;
 	onselectperiod?: (period: PeriodRef) => void;
 	onpan?: (ratio: number) => void;
+	/** The wheel over the dates zooms: the span factor, and the pointer as a share of the width. */
+	onzoom?: (factor: number, atRatio: number) => void;
 }>;
 
 export type AxisRow = 'major' | 'week' | 'minor';

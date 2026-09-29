@@ -5,6 +5,10 @@ export const SELECTED_ALPHA = 1;
 export const ROLLUP_ALPHA = 0.3;
 /** The band of an interval or a fuzzy date, as a share of the tone (п. 3, 14). */
 export const BAND_TONE = 0.3;
+/** The haze of a fuzzy date: its tone in the middle of the window, fading to 0 at the ends. */
+export const HAZE_PEAK_TONE = 0.6;
+/** Stops of the haze's gradient mask: enough for a smooth sin² from end to end. */
+export const HAZE_STOPS = 16;
 /** The capsule under a closed intention's tick, so the tick still reads (п. 12). */
 export const CLOSED_GAP_TONE = 0.45;
 

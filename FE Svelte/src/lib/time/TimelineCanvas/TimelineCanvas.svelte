@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
 	import { cubicOut } from 'svelte/easing';
 	import { prefersReducedMotion, Tween } from 'svelte/motion';
 	import { clusterOf, hitAt } from '$lib/model/HitTest/HitTest';
@@ -54,9 +53,29 @@
 	}: TimelineCanvasProps = $props();
 
 	const readAppearance = createAppearanceReader();
-	let layout = $state.raw<RibbonLayout | null>(null);
-	/** The captions the last draw put on the canvas, row by row: what the twin says about them. */
-	let captions = $state.raw<readonly Caption[][] | null>(null);
+	/**
+	 * The last layout drawn and the captions it drew, row by row: what the pointer hits. Plain
+	 * values, written every frame; nothing on the page re-renders from them.
+	 */
+	let layout: RibbonLayout | null = null;
+	let captions: readonly Caption[][] | null = null;
+	/**
+	 * What the twin says: the same pair, taken only while the ribbon stands still — no glide, no
+	 * camera travel — so a moving ribbon writes nothing to the DOM frame by frame.
+	 */
+	let twin = $state.raw<
+		Readonly<{
+			layout: RibbonLayout | null;
+			captions: readonly Caption[][] | null;
+		}>
+	>({ layout: null, captions: null });
+	/** The canvas element, and its CSS width as the resize observer last reported it: no layout read per frame. */
+	let canvas = $state<HTMLCanvasElement | null>(null);
+	let widthPx = $state(0);
+	/** The root font size, read once per appearance: `getComputedStyle` per frame would flush styles. */
+	let rootFont: Readonly<{ style: string; size: string }> | null = null;
+	/** `measureText` widths by font, kept across frames; cleared when web fonts finish loading. */
+	const widthsByFont = new Map<string, Record<string, number>>();
 	let pointer = $state(false);
 	/** Records an explicit link touches: such facts rank before other facts for the caption budget (Q1-A). */
 	const linked = $derived(linkedTraceIds(linksShown ? links : []));
@@ -123,76 +142,89 @@
 		a.linked === b.linked &&
 		a.signature === b.signature;
 
-	/** Redraws whenever rows, the window, the selection, the hover, the veil, the search, the theme or the element width change. */
-	const render: Attachment<HTMLCanvasElement> = (canvas) => {
-		let glideFrame = 0;
-		const draw = (): void => {
-			const widthPx = canvas.clientWidth;
-			if (widthPx === 0) return;
-			const context = canvas.getContext('2d');
-			if (!context) return;
-			const dpr = globalThis.devicePixelRatio || 1;
-			const signature =
-				appearance.style + '/' + getComputedStyle(document.documentElement).fontSize;
-			const { palette, metrics } = readAppearance(canvas, signature, appearance.scopeBase);
-			/** Cached `measureText` in one font; the regular for captions at rest, the 600 for the strong ones. */
-			const measurer = (font: string): MeasureText => {
-				const widths: Record<string, number> = {};
-				return (text) => {
-					if (widths[text] === undefined) {
-						context.font = font;
-						widths[text] = context.measureText(text).width;
-					}
-					return widths[text];
-				};
+	let glideFrame = 0;
+	/**
+	 * Draws the ribbon once for its current inputs. Run by the effect below, it tracks rows, the
+	 * window, the selection, the hover, the veil, the search, the theme and the width; a glide
+	 * asks for its next frame itself, outside any tracking.
+	 */
+	const draw = (canvas: HTMLCanvasElement): void => {
+		if (widthPx === 0) return;
+		const context = canvas.getContext('2d');
+		if (!context) return;
+		const dpr = globalThis.devicePixelRatio || 1;
+		if (rootFont?.style !== appearance.style)
+			rootFont = {
+				style: appearance.style,
+				size: getComputedStyle(document.documentElement).fontSize
 			};
-			const measure = measurer(`${metrics.captionPx}px ${palette.sans}`);
-			const measureStrong = measurer(`600 ${metrics.captionPx}px ${palette.sans}`);
-			const key: LayoutKey = {
-				rows,
-				window,
-				widthPx,
-				selectedTraceId,
-				fontPx: metrics.captionPx,
-				rowHeightPx,
-				minHeightPx,
-				linked,
-				signature
+		const signature = appearance.style + '/' + rootFont.size;
+		const { palette, metrics } = readAppearance(canvas, signature, appearance.scopeBase);
+		/** Cached `measureText` in one font; the regular for captions at rest, the 600 for the strong ones. */
+		const measurer = (font: string): MeasureText => {
+			let widths = widthsByFont.get(font);
+			if (!widths) widthsByFont.set(font, (widths = {}));
+			return (text) => {
+				if (widths[text] === undefined) {
+					context.font = font;
+					widths[text] = context.measureText(text).width;
+				}
+				return widths[text];
 			};
-			const previous = cached;
-			const next =
-				previous && sameKey(previous.key, key)
-					? previous.layout
-					: layoutRibbon(rows, { ...key, measure });
-			cached = { key, layout: next };
-			// New rows in another order: they glide from where they stood, as the rail's names do.
-			if (previous && previous.key.rows !== rows) {
-				const moves = animateRows && !prefersReducedMotion.current;
-				const before = motionRows(previous.layout);
-				const after = motionRows(next);
-				const plan = moves ? planMotion(before, after) : new Map<string, number>();
-				const ghosts = moves ? planGhosts(before, after) : [];
-				const folding = new Set(ghosts.map((ghost) => ghost.id));
-				glide =
-					plan.size || ghosts.length
-						? {
-								plan,
-								ghosts,
-								ghostRows: previous.layout.rows.filter((row) => folding.has(row.row.id)),
-								startedAt: performance.now()
-							}
-						: null;
-			}
-			const progress = glide ? (performance.now() - glide.startedAt) / ROW_MOVE_MS : 1;
-			if (progress >= 1) glide = null;
-			const drawn = glide
-				? shiftLayout(
-						{ ...next, rows: [...next.rows, ...glide.ghostRows] },
-						new Map([...offsetsAt(glide.plan, progress), ...ghostOffsetsAt(glide.ghosts, progress)])
-					)
-				: next;
-			canvas.width = Math.round(widthPx * dpr);
-			canvas.height = Math.round(next.heightPx * dpr);
+		};
+		const measure = measurer(`${metrics.captionPx}px ${palette.sans}`);
+		const measureStrong = measurer(`600 ${metrics.captionPx}px ${palette.sans}`);
+		const key: LayoutKey = {
+			rows,
+			window,
+			widthPx,
+			selectedTraceId,
+			fontPx: metrics.captionPx,
+			rowHeightPx,
+			minHeightPx,
+			linked,
+			signature
+		};
+		const previous = cached;
+		const next =
+			previous && sameKey(previous.key, key)
+				? previous.layout
+				: layoutRibbon(rows, { ...key, measure });
+		cached = { key, layout: next };
+		// New rows in another order: they glide from where they stood, as the rail's names do.
+		if (previous && previous.key.rows !== rows) {
+			const moves = animateRows && !prefersReducedMotion.current;
+			const before = motionRows(previous.layout);
+			const after = motionRows(next);
+			const plan = moves ? planMotion(before, after) : new Map<string, number>();
+			const ghosts = moves ? planGhosts(before, after) : [];
+			const folding = new Set(ghosts.map((ghost) => ghost.id));
+			glide =
+				plan.size || ghosts.length
+					? {
+							plan,
+							ghosts,
+							ghostRows: previous.layout.rows.filter((row) => folding.has(row.row.id)),
+							startedAt: performance.now()
+						}
+					: null;
+		}
+		const progress = glide ? (performance.now() - glide.startedAt) / ROW_MOVE_MS : 1;
+		if (progress >= 1) glide = null;
+		const drawn = glide
+			? shiftLayout(
+					{ ...next, rows: [...next.rows, ...glide.ghostRows] },
+					new Map([...offsetsAt(glide.plan, progress), ...ghostOffsetsAt(glide.ghosts, progress)])
+				)
+			: next;
+		// Resizing the bitmap reallocates and clears it: only when the size really changed.
+		const bitmapWidth = Math.round(widthPx * dpr);
+		const bitmapHeight = Math.round(next.heightPx * dpr);
+		if (canvas.width !== bitmapWidth) canvas.width = bitmapWidth;
+		if (canvas.height !== bitmapHeight) canvas.height = bitmapHeight;
+		// The bitmap is kept between frames, so is its context: each frame starts from a clean state.
+		context.save();
+		try {
 			captions = drawRibbon({
 				context,
 				dpr,
@@ -214,24 +246,40 @@
 				measure,
 				measureStrong
 			});
-			layout = next;
-			if (glide) {
-				cancelAnimationFrame(glideFrame);
-				glideFrame = requestAnimationFrame(draw);
-			}
+		} finally {
+			context.restore();
+		}
+		layout = next;
+		if (glide) {
+			cancelAnimationFrame(glideFrame);
+			glideFrame = requestAnimationFrame(() => draw(canvas));
+		} else if (!moving) twin = { layout: next, captions };
+	};
+
+	// One draw per change of what the ribbon shows.
+	$effect(() => {
+		if (canvas) draw(canvas);
+	});
+	// The width from the observer, the fonts once they load: set up once per canvas.
+	$effect(() => {
+		const element = canvas;
+		if (!element) return;
+		const observer = new ResizeObserver(([entry]) => {
+			widthPx = entry.contentRect.width;
+		});
+		observer.observe(element);
+		const fontsLoaded = (): void => {
+			widthsByFont.clear();
+			cached = null;
+			untrack(() => draw(element));
 		};
-		draw();
-		const frame = requestAnimationFrame(draw);
-		const observer = new ResizeObserver(draw);
-		observer.observe(canvas);
-		document.fonts.addEventListener('loadingdone', draw);
+		document.fonts.addEventListener('loadingdone', fontsLoaded);
 		return () => {
-			cancelAnimationFrame(frame);
 			cancelAnimationFrame(glideFrame);
 			observer.disconnect();
-			document.fonts.removeEventListener('loadingdone', draw);
+			document.fonts.removeEventListener('loadingdone', fontsLoaded);
 		};
-	};
+	});
 
 	const localPoint = (event: MouseEvent): [number, number] => {
 		const rect = (event.currentTarget as HTMLCanvasElement).getBoundingClientRect();
@@ -330,6 +378,20 @@
 	{onpointerleave}
 	{onpointerdown}
 	{onwheel}
-	{@attach render}
+	{@attach (element) => {
+		canvas = element;
+		return () => {
+			canvas = null;
+		};
+	}}
 ></canvas>
-<Twin {layout} {captions} {selectedTraceId} {lit} {hover} {lens} {veiled} {onselect} />
+<Twin
+	layout={twin.layout}
+	captions={twin.captions}
+	{selectedTraceId}
+	{lit}
+	{hover}
+	{lens}
+	{veiled}
+	{onselect}
+/>

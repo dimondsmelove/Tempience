@@ -3,6 +3,7 @@
 	import TimelineCanvas from '$lib/time/TimelineCanvas/TimelineCanvas.svelte';
 	import { zoomInput } from '$lib/time/TimelineInput/zoomInput';
 	import { followClock } from '$lib/time/TimelineInput/followClock';
+	import { keepScale } from '$lib/time/TimelineInput/keepScale';
 	import type { TimelineSurfaceProps } from './types';
 	let {
 		workbench,
@@ -33,6 +34,12 @@
 	}}
 	{@attach (node) => (interaction ? undefined : zoomInput(viewport, onscrollrows)(node))}
 	{@attach (node) => (interaction ? undefined : followClock(viewport)(node))}
+	{@attach (node) =>
+		interaction || phone
+			? undefined
+			: keepScale(viewport, () => (workbench.selection.traceId ? workbench.selectedRange : null))(
+					node
+				)}
 >
 	<div inert={Boolean(interaction)}>
 		<TimelineCanvas

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { chapters, now, system, tree } from '$lib/model/Chapters/Chapters.fixture';
 import type { Chapter } from '$lib/model/Chapters/types';
+import type { ExplorerTrace } from '$lib/model/Snapshot/types';
 import { SelectionState } from '$lib/state/Selection/Selection.svelte';
 import { ChaptersState } from './Chapters.svelte';
 import type { ChapterWriter } from './types';
@@ -90,6 +91,53 @@ describe('the chapters store', () => {
 		// A chapter with an empty lineup still drives: everything folds into the one row.
 		expect(store.driver?.chapter.id).toBe('move');
 		expect(store.arrangement?.lanes).toHaveLength(1);
+	});
+
+	it('keeps the chapter chosen while a record inside it is selected; a record elsewhere hands the rows to its chapter', () => {
+		const at = (id: string, day: string) =>
+			({
+				id,
+				aboutKind: 'instant',
+				aboutTime: {
+					basis: 'absolute',
+					precision: 'day',
+					certainty: 'exact',
+					start: day,
+					end: null
+				}
+			}) as unknown as ExplorerTrace;
+		const traces = [
+			at('inside', '2026-09-10'),
+			at('earlier', '2026-07-01'),
+			at('none', '2026-01-01')
+		];
+		const selection = new SelectionState();
+		const store = new ChaptersState(() => ({ ...tree, chapters, traces }), selection);
+		store.now = now;
+		// No chapter chosen yet: a record of a past chapter moves no row, the current one leads.
+		selection.select({ kind: 'trace', traceId: 'earlier' }, 'canvas');
+		expect(store.driverKey).toBe('system:push');
+		selection.select({ kind: 'chapter', chapterId: 'system', stage: 'open' }, 'context');
+		expect(store.driverKey).toBe('system:open');
+		// A record inside the chosen chapter: the chapter and its stage keep the rows.
+		selection.select({ kind: 'trace', traceId: 'inside' }, 'canvas');
+		expect(store.driverKey).toBe('system:open');
+		expect(store.pick).toBeNull();
+		// A record of another chapter: that chapter, whole.
+		selection.select({ kind: 'trace', traceId: 'earlier' }, 'canvas');
+		expect(store.driverKey).toBe('move:');
+		// Back in history to the record inside: the chosen chapter again.
+		selection.back();
+		expect(store.driverKey).toBe('system:open');
+		// A record in no chapter, or a Scope: the last chapter chosen stays.
+		selection.select({ kind: 'trace', traceId: 'none' }, 'canvas');
+		expect(store.driverKey).toBe('system:open');
+		selection.select({ kind: 'scope', scopeId: 'work' }, 'rail');
+		expect(store.driverKey).toBe('system:open');
+		// «Снять выбор»: nothing is held, the current chapter leads.
+		selection.rest();
+		expect(store.driver?.chapter.id).toBe('system');
+		expect(store.driverKey).toBe('system:push');
 	});
 
 	it('opens the form over the Context until anything else is chosen', () => {

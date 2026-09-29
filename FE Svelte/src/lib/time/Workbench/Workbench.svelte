@@ -198,6 +198,12 @@
 			: null;
 	const heavyRowIds = $derived(rowsAt('focus'));
 	const quietRowIds = $derived(chapters.shadowRows(projection.rows));
+	/** The wheel over the dates and the chapters zooms at the pointer (owner, 2026-09-29). */
+	const zoomAtRatio = (factor: number, atRatio: number): void => {
+		const target = viewport.target;
+		viewport.zoomAt(factor, target.start + atRatio * spanOf(target), WHEEL_DURATION_MS);
+	};
+
 	const startChapter = (): void => {
 		chapters.edit({
 			mode: 'new',
@@ -603,6 +609,7 @@
 									oncreate={startChapter}
 									onpan={(ratio) =>
 										viewport.pan(ratio * spanOf(viewport.target), WHEEL_DURATION_MS)}
+									onzoom={zoomAtRatio}
 								/>
 							{/if}
 							<Axis
@@ -611,6 +618,7 @@
 								selected={selection.period}
 								{hasNote}
 								onpan={(ratio) => viewport.pan(ratio * spanOf(viewport.target), WHEEL_DURATION_MS)}
+								onzoom={zoomAtRatio}
 								onselectperiod={(period) => {
 									workbench.selectPeriod(period);
 									togglePanel('context', true);

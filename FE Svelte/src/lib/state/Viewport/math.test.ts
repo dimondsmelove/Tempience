@@ -7,6 +7,7 @@ import {
 	panWindow,
 	pxAtTime,
 	pxPerDay,
+	rescaleWindow,
 	spanWindow,
 	timeAtPx,
 	zoomWindow
@@ -77,5 +78,26 @@ describe('pixel conversions', () => {
 		expect(t).toBe(T0 + 25 * DAY_MS);
 		expect(pxAtTime(window, t, 1000)).toBe(250);
 		expect(pxPerDay(window, 1000)).toBe(10);
+	});
+});
+
+describe('rescaleWindow', () => {
+	it('keeps every moment at its screen pixel when the ribbon narrows or widens on its right', () => {
+		// 100 days over 1000 px; the Context takes 300 px on the right.
+		const narrower = rescaleWindow(window, { left: 200, width: 1000 }, { left: 200, width: 700 });
+		expect(narrower).toEqual({ start: T0, end: T0 + 70 * DAY_MS });
+		expect(pxPerDay(narrower, 700)).toBe(pxPerDay(window, 1000));
+		// Closing it again gives the same window back.
+		expect(rescaleWindow(narrower, { left: 200, width: 700 }, { left: 200, width: 1000 })).toEqual(
+			window
+		);
+	});
+
+	it('moves the start with the left edge, so a folding rail moves nothing on the ribbon either', () => {
+		const wider = rescaleWindow(window, { left: 200, width: 1000 }, { left: 0, width: 1200 });
+		expect(wider).toEqual({ start: T0 - 20 * DAY_MS, end: T0 + 100 * DAY_MS });
+		// The moment at screen x = 450 before is at screen x = 450 after.
+		const before = timeAtPx(window, 450 - 200, 1000);
+		expect(timeAtPx(wider, 450 - 0, 1200)).toBe(before);
 	});
 });

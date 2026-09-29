@@ -28,6 +28,8 @@ export type MarkTime = Readonly<{
 	until?: number;
 	/** An interval that has started and has no end yet («длится», п. 8): `end` is «сейчас» of the projection, or the start itself while that lies ahead. */
 	open?: boolean;
+	/** A fuzzy interval: it lasted, only its bounds are loose — the window band, not the haze. */
+	lasting?: boolean;
 	precision: TemporalPrecision;
 	certainty: TemporalCertainty;
 }>;

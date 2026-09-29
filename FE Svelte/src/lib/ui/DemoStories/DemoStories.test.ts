@@ -1,3 +1,4 @@
+import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 import { WATSON_STORY, type DemoStoryEntry } from '$lib/scenarios/demo/registry';
@@ -17,17 +18,19 @@ const ANYA: DemoStoryEntry = {
 	locales: ['ru']
 };
 
+/** The host's own choice, as the tour passes «Начать со своих записей». */
+const ownChoice = createRawSnippet(() => ({ render: () => '<button>своя карточка</button>' }));
+
 describe('the catalog of demo stories', () => {
-	it('shows a card per story — title, body and «Открыть …» — with the ids of that story', () => {
+	it('shows a card per story — its title and body, the whole card the button — with the ids of that story', () => {
 		const { body } = render(DemoStories, {
 			props: { variant: 'cards', entries: [WATSON_STORY, ANYA], onopen: vi.fn() }
 		});
 		const text = textOf(body);
 		expect(text).toContain('Записная книжка доктора Ватсона');
 		expect(text).toContain('Рейхенбах и возвращение');
-		expect(text).toContain('Открыть записную книжку Ватсона');
 		expect(text).toContain('Блокнот Ани');
-		expect(text).toContain('Открыть блокнот Ани');
+		expect(text).not.toContain('Открыть');
 		for (const id of ['watson', 'anya']) {
 			expect(body).toContain(`data-testid="${demoStoryTestId(id)}"`);
 			expect(body).toContain(`data-testid="${demoStoryOpenTestId(id)}"`);
@@ -62,14 +65,28 @@ describe('the catalog of demo stories', () => {
 				activeId: 'watson'
 			}
 		});
-		expect(textOf(open.body)).not.toContain('Открыть записную книжку Ватсона');
-		expect(textOf(open.body)).toContain('Открыть блокнот Ани');
+		expect(textOf(open.body)).not.toContain('Записная книжка доктора Ватсона');
+		expect(textOf(open.body)).toContain('Блокнот Ани');
 
 		const none = render(DemoStories, {
 			props: { variant: 'list', entries: [WATSON_STORY], onopen: vi.fn(), activeId: 'watson' }
 		});
 		expect(none.body).not.toContain(DEMO_STORIES_TEST_ID);
 		expect(textOf(none.body).trim()).toBe('');
+	});
+
+	it("lays the cards out by how many there are, and keeps the host's own choice in the grid", () => {
+		const one = render(DemoStories, {
+			props: { variant: 'cards', entries: [WATSON_STORY], onopen: vi.fn() }
+		});
+		expect(one.body).toContain('grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]');
+		expect(one.body).not.toContain('sm:grid-cols-2');
+
+		const none = render(DemoStories, {
+			props: { variant: 'cards', entries: [], onopen: vi.fn(), after: ownChoice }
+		});
+		expect(none.body).toContain(DEMO_STORIES_TEST_ID);
+		expect(textOf(none.body)).toContain('своя карточка');
 	});
 
 	it('disables every offer while the host is busy opening one', () => {

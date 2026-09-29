@@ -3,6 +3,7 @@
 	import SyncStatus from './SyncStatus.svelte';
 	import DataSpaceNotice from './DataSpaceNotice.svelte';
 	import DemoLanguage from './DemoLanguage/DemoLanguage.svelte';
+	import DemoUpdate from './DemoUpdate/DemoUpdate.svelte';
 	import { activeDataSpace } from '$lib/state/triplit/client';
 	import { isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
 	let { identity = false }: { identity?: boolean } = $props();
@@ -20,4 +21,6 @@
 {#if identity}<div class="grow"></div>{/if}
 <!-- A demo written in another language than the interface offers its rebuild next to the sync status. -->
 <DemoLanguage />
+<!-- A demo older than this build that holds the reader's entries offers its rebuild here too. -->
+<DemoUpdate />
 <SyncStatus quiet={identity} />

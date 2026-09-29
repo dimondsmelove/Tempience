@@ -16,7 +16,8 @@ import type { MarkExtent, MarkStyle, MarkStyleInput } from './types';
 /**
  * The mark language without frames (research 2026-09-18, п. 3, 11–14, 18):
  * a fact is a solid capsule; an interval a 30 % band with a solid head; a
- * fuzzy date the band alone, no head; an open intention a dotted tick; a
+ * fuzzy date a haze over its window, no head (owner, 2026-09-29); a fuzzy
+ * interval — it lasted, its bounds are loose — the band alone; an open intention a dotted tick; a
  * closed one the tick over a 45 % capsule; a fuzzy intention the band with
  * the tick at the window start; a proposal the hollow contour of what it
  * would become; an open interval («длится») the band to «сейчас» with its
@@ -33,7 +34,7 @@ export const markStyle = (
 		options.selected || options.lit ? SELECTED_ALPHA : mark.rollup ? ROLLUP_ALPHA : MARK_ALPHA;
 	// An open interval that has not started yet has nothing to span: the head alone, as a point.
 	const span = mark.kind !== 'moment' && !(mark.open && mark.end <= mark.start);
-	const base = { alpha, span, ring: options.selected };
+	const base = { alpha, span, ring: options.selected, haze: false };
 	if (mark.proposal) return { ...base, band: null, capsule: null, tick: false, hollow: true };
 	const band = span ? BAND_TONE : null;
 	if (mark.intent) {
@@ -46,6 +47,9 @@ export const markStyle = (
 		};
 	}
 	// A fuzzy date has no head: a head would claim a position the record does not have (п. 14).
+	// It is one event somewhere in the window, so a haze, not a band that reads as lasting.
+	if (mark.kind === 'fuzzy' && !mark.lasting)
+		return { ...base, band: null, capsule: null, tick: false, hollow: false, haze: true };
 	return { ...base, band, capsule: mark.kind === 'fuzzy' ? null : 1, tick: false, hollow: false };
 };
 

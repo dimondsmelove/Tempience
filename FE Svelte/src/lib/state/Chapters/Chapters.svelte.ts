@@ -2,6 +2,7 @@ import type { ScopeColour } from '$lib/theme/scope-colour';
 import {
 	browserTimeZone,
 	chapterArrangement,
+	covers,
 	currentChapter,
 	driverOf,
 	foregroundRowIds,
@@ -17,7 +18,15 @@ import {
 	shadowRowIds,
 	withDescendants
 } from '$lib/model/Chapters';
-import type { Chapter, Driver, HistoryTick, Level, Lineup } from '$lib/model/Chapters/types';
+import type {
+	Chapter,
+	Driver,
+	HistoryTick,
+	Level,
+	Lineup,
+	StagePick
+} from '$lib/model/Chapters/types';
+import { traceMarkTime } from '$lib/model/Projection/marks';
 import type { RowArrangement } from '$lib/model/Arrangement/types';
 import type { ProjectedRow } from '$lib/model/Projection/types';
 import type { ExplorerSnapshot } from '$lib/model/Snapshot/types';
@@ -34,6 +43,9 @@ import type {
 } from './types';
 
 type Tree = Pick<ExplorerSnapshot, 'scopes' | 'intersections'>;
+/** What the chapters read of the view: their own list, the Scope tree, and the records' times. */
+type View = Pick<ExplorerSnapshot, 'chapters'> & Tree & Partial<Pick<ExplorerSnapshot, 'traces'>>;
+type ChapterPick = Readonly<{ chapterId: string; stage: StagePick }>;
 
 /**
  * The chapters of the active space (issue #82): they frame the Time workbench wherever they
@@ -66,14 +78,14 @@ export class ChaptersState {
 	/** The space had chapters in this session: rows keep gliding when the last one goes. */
 	private had = $state(false);
 	private writer: ChapterWriter | null = null;
-	private readonly view: () => Pick<ExplorerSnapshot, 'chapters'> & Tree;
+	private readonly view: () => View;
 	private readonly selection: SelectionState;
 	/** How a chapter form takes the Context: the workbench ends every other form first. */
 	private readonly takeContext: (then: () => void) => void;
 	private readonly device: () => RowArrangement | null;
 
 	constructor(
-		view: () => Pick<ExplorerSnapshot, 'chapters'> & Tree,
+		view: () => View,
 		selection: SelectionState,
 		takeContext: (then: () => void) => void = (then) => then(),
 		/** The device's own rows: a chapter keeps their order and only chooses (owner 2026-09-28). */
@@ -139,11 +151,37 @@ export class ChaptersState {
 	readonly current: Chapter | null = $derived(currentChapter(this.list, this.now));
 
 	/**
+	 * The chapter the rows follow (owner 2026-09-29): the one chosen; while something else is
+	 * selected, the last chapter chosen before it in the history, with its stage, so a click on a
+	 * record inside it moves no row. A record dated outside that chapter hands the rows to the
+	 * chapter it lies in, whole. With no chapter chosen before, or nothing selected — none: the
+	 * current chapter leads, as before, and a record's click moves no row either.
+	 */
+	private readonly held: ChapterPick | null = $derived.by(() => {
+		const selection = this.selection;
+		if (selection.current === null) return null;
+		if (selection.chapter) return selection.chapter;
+		let last: ChapterPick | null = null;
+		for (let i = selection.index; i >= 0 && last === null; i--) {
+			const entry = selection.entries[i];
+			if (entry?.kind === 'chapter') last = { chapterId: entry.chapterId, stage: entry.stage };
+		}
+		const traceId = selection.traceId;
+		const trace = traceId ? this.view().traces?.find((item) => item.id === traceId) : undefined;
+		const at = trace ? (traceMarkTime(trace, this.now)?.start ?? null) : null;
+		if (at === null || last === null) return last;
+		const lastChapter = this.chapter(last?.chapterId);
+		if (lastChapter && covers(lastChapter, at)) return last;
+		const own = this.list.find((chapter) => covers(chapter, at));
+		return own ? { chapterId: own.id, stage: 'whole' } : last;
+	});
+
+	/**
 	 * Who orders the rows: the chosen stage's own lineup; with no stage chosen, the driving
 	 * chapter's current stage if it has one; else the chapter's lineup. Null — the rows are the device's.
 	 */
 	readonly driver: Driver | null = $derived.by(() => {
-		const pick = this.selection.chapter;
+		const pick = this.held;
 		const chosen = this.chapter(pick?.chapterId);
 		const chapter = chosen ?? this.current;
 		return chapter ? driverOf(chapter, chosen ? pick!.stage : null, this.now) : null;

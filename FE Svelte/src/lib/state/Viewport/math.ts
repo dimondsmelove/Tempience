@@ -33,6 +33,20 @@ export const zoomWindow = (window: TimeWindow, factor: number, anchor: number): 
 	end: anchor + (window.end - anchor) * factor
 });
 
+/** Where the ribbon sits on screen: its left edge and its width, in CSS px. */
+export type RibbonBox = Readonly<{ left: number; width: number }>;
+
+/**
+ * The window after the ribbon moved or changed width on screen (a panel opened or closed):
+ * the scale stays and every moment stays at its screen pixel — the ribbon shows more or less
+ * time at its edges, nothing on it moves (owner, 2026-09-29).
+ */
+export const rescaleWindow = (window: TimeWindow, from: RibbonBox, to: RibbonBox): TimeWindow => {
+	const msPerPx = spanOf(window) / from.width;
+	const start = window.start + (to.left - from.left) * msPerPx;
+	return { start, end: start + to.width * msPerPx };
+};
+
 export const panWindow = (window: TimeWindow, deltaMs: number): TimeWindow => ({
 	start: window.start + deltaMs,
 	end: window.end + deltaMs

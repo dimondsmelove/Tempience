@@ -6,16 +6,21 @@ import type { Locale } from '$lib/state/Locale/types';
 import { MIN_GROUPED } from './constants';
 import type { GroupUnit, RecordGroup, RecordShape } from './types';
 
-/** The ribbon's mark for a record's time: an intention dotted, an interval a band, a vague window pale. */
+/**
+ * The ribbon's mark for a record's time: an intention dotted, an interval a band, a vague
+ * date a haze, a vague interval the pale band alone.
+ */
 export const recordShape = (
-	time: Pick<MarkTime, 'kind' | 'intent'> | null | undefined
+	time: Pick<MarkTime, 'kind' | 'intent' | 'lasting'> | null | undefined
 ): RecordShape =>
 	time?.intent
 		? 'intent'
 		: time?.kind === 'interval'
 			? 'interval'
 			: time?.kind === 'fuzzy'
-				? 'fuzzy'
+				? time.lasting
+					? 'fuzzySpan'
+					: 'fuzzy'
 				: 'fact';
 
 const DAY_MS = 86_400_000;

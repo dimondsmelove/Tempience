@@ -1,3 +1,4 @@
+import type { Snippet } from 'svelte';
 import type { DemoStoryEntry } from '$lib/scenarios/demo/registry';
 
 /** `cards` for the tour and the first Scope, `list` for the local-data menu. */
@@ -13,4 +14,6 @@ export type DemoStoriesProps = {
 	busy?: boolean;
 	/** The story already open: its notice and its «Удалить демо» live elsewhere, so it is not offered. */
 	activeId?: string;
+	/** A choice of the host's own that ends the card grid, e.g. «Начать со своих записей». */
+	after?: Snippet;
 };

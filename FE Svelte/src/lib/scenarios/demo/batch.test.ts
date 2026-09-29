@@ -61,22 +61,22 @@ const byKind = (kind: string, endpoint?: 'scope' | 'trace') =>
 
 describe('demo seed batch', () => {
 	it('holds the whole notebook: every Scope, Trace, Period, Kind and link of comment-watson.md', () => {
-		expect(scopes).toHaveLength(17);
-		expect(traces).toHaveLength(72);
+		expect(scopes).toHaveLength(27);
+		expect(traces).toHaveLength(101);
 		expect(periods).toHaveLength(6);
 		expect(seed.kinds).toHaveLength(2);
 		// `belongs_to` is the sum of the «scopes» columns of the Trace tables.
-		expect(byKind('belongs_to')).toHaveLength(113);
+		expect(byKind('belongs_to')).toHaveLength(158);
 		expect(byKind('belongs_to')).toHaveLength(
 			DEMO_STORY.traces.reduce((sum, item) => sum + item.scopeIds.length, 0)
 		);
-		expect(byKind('child_of')).toHaveLength(13);
+		expect(byKind('child_of')).toHaveLength(23);
 		expect(byKind('related_to', 'scope')).toHaveLength(3);
-		expect(byKind('related_to', 'trace')).toHaveLength(7);
+		expect(byKind('related_to', 'trace')).toHaveLength(9);
 		expect(byKind('part_of')).toHaveLength(6);
-		expect(byKind('evidence_for')).toHaveLength(11);
+		expect(byKind('evidence_for')).toHaveLength(12);
 		expect(byKind('revisits')).toHaveLength(2);
-		expect(links).toHaveLength(113 + 13 + 3 + 7 + 6 + 11 + 2);
+		expect(links).toHaveLength(158 + 23 + 3 + 9 + 6 + 12 + 2);
 		expect(seed.kindScopes).toEqual({
 			'demo-kind-case': [recordId('s.cases')],
 			'demo-kind-wire': [recordId('s.holmes')]
@@ -105,7 +105,9 @@ describe('demo seed batch', () => {
 			[
 				pair('w.mire.search', 'w.night'),
 				pair('w.published', 'w.final'),
-				pair('w.moran.who', 'w.moran.intent')
+				pair('w.moran.who', 'w.moran.intent'),
+				pair('w.study.print', 'w.scarlet.case'),
+				pair('w.married', 'w.engaged')
 			].toSorted()
 		);
 		expect(
@@ -117,17 +119,19 @@ describe('demo seed batch', () => {
 		]);
 	});
 
-	it('assesses every evidence link as completed and closed, and leaves the mire search open', () => {
-		expect(seed.assessments).toHaveLength(11);
+	it('assesses every evidence link and closes it, Openshaw lost, and leaves the mire search open', () => {
+		expect(seed.assessments).toHaveLength(12);
 		const evidence = new Map<string, Entry<'intersection'>['draft']>(
 			byKind('evidence_for').map((entry) => [`link:${entry.id}`, entry.draft])
 		);
-		expect(new Set(seed.assessments.map((item) => item.candidateId)).size).toBe(11);
+		expect(new Set(seed.assessments.map((item) => item.candidateId)).size).toBe(12);
 		for (const item of seed.assessments) {
 			const link = evidence.get(item.candidateId);
 			expect(link, item.candidateId).toBeDefined();
 			expect(seed.batch.mapping[item.candidateId]).toBe(item.candidateId.slice('link:'.length));
-			expect(item.values).toEqual({ outcome: 'completed', open: false });
+			// Holmes saved every client he was asked to but one: John Openshaw, in 1887.
+			const lost = link!.toId === recordId('w.pips.intent');
+			expect(item.values).toEqual({ outcome: lost ? 'not_completed' : 'completed', open: false });
 			// The fact is dated and actual, the addressee an intention: what the repository accepts.
 			expect(traceById(link!.fromId).draft.relation).toBe('actual');
 			expect(traceById(link!.fromId).draft.aboutTime?.basis).toBe('absolute');
@@ -205,7 +209,7 @@ describe('demo seed batch', () => {
 		expect(new Set(absolutes.map((t) => t.certainty))).toEqual(new Set(['exact', 'approximate']));
 		expect(traces.filter((entry) => entry.draft.aboutTime?.basis === 'unknown')).toHaveLength(1);
 		expect(traces.filter((entry) => entry.draft.aboutTime?.basis === 'relative')).toHaveLength(2);
-		expect(traces.filter((entry) => entry.draft.aboutKind === 'interval')).toHaveLength(3);
+		expect(traces.filter((entry) => entry.draft.aboutKind === 'interval')).toHaveLength(5);
 		expect(absolutes.filter((t) => t.precision === 'minute').length).toBeGreaterThanOrEqual(5);
 		expect(new Set(traces.map((entry) => entry.draft.relation))).toEqual(
 			new Set(['intend', 'actual'])
@@ -258,8 +262,8 @@ describe('demo seed batch', () => {
 			expect(() => assertTraceFormDefinition(kind.initialKindV)).not.toThrow();
 		const kindVById = new Map(seed.kinds.map((kind) => [kind.initialKindV.id, kind.initialKindV]));
 		const typed = traces.filter((entry) => entry.draft.kindId !== null);
-		expect(typed).toHaveLength(6);
-		expect(typed.filter((entry) => entry.draft.kindId === 'demo-kind-case')).toHaveLength(4);
+		expect(typed).toHaveLength(15);
+		expect(typed.filter((entry) => entry.draft.kindId === 'demo-kind-case')).toHaveLength(13);
 		expect(typed.filter((entry) => entry.draft.kindId === 'demo-kind-wire')).toHaveLength(2);
 		for (const entry of typed) {
 			const kindV = kindVById.get(entry.draft.kindVId ?? '');
@@ -321,11 +325,13 @@ describe('demo seed batch', () => {
 		// The legend of 1742 sits on the day Mortimer read it aloud; the year stays in its text.
 		expect(absolute(trace('w.legend'))).toEqual({
 			basis: 'absolute',
-			precision: 'month',
+			precision: 'day',
 			certainty: 'approximate',
-			start: '1889-09',
+			start: '1889-09-26',
 			end: null
 		});
+		// Sir Charles died in early May: the Devon County Chronicle reported it on the 14th.
+		expect(absolute(trace('w.charles'))).toMatchObject({ precision: 'day', start: '1889-05-04' });
 		expect(trace('w.legend').draft.description).toContain('рукопись 1742 года');
 		// Nothing of the notebook is placed before the return from Afghanistan.
 		const yearOf = (start: string) => Number(start.slice(0, 4));
@@ -335,14 +341,14 @@ describe('demo seed batch', () => {
 			expect(yearOf(time.start), entry.id).toBeGreaterThanOrEqual(1880);
 			if (time.end !== null) expect(yearOf(time.end), entry.id).toBeGreaterThanOrEqual(1880);
 		}
-		// The Scope «Собака Баскервилей» spans one year: June to October 1889.
+		// The Scope «Собака Баскервилей» spans one year: May to October 1889.
 		const hound = recordId('s.hound');
 		const houndStarts = byKind('belongs_to')
 			.filter((entry) => entry.draft.toId === hound)
 			.map((entry) => absolute(traceById(entry.draft.fromId)).start)
 			.toSorted();
 		expect(houndStarts.length).toBeGreaterThanOrEqual(20);
-		expect(houndStarts[0]).toBe('1889-06');
+		expect(houndStarts[0]).toBe('1889-05-04');
 		expect(houndStarts.at(-1)).toBe('1889-10-20');
 		expect(new Set(houndStarts.map(yearOf))).toEqual(new Set([1889]));
 		expect(absolute(trace('w.report1'))).toEqual({
@@ -481,7 +487,6 @@ describe('demo seed batch', () => {
 		const RETROSPECTIVE = [
 			'w.start',
 			'w.charles',
-			'w.legend',
 			'w.hiatus.tibet',
 			'w.hiatus.montpellier',
 			'w.adair'
@@ -510,9 +515,9 @@ describe('demo seed batch', () => {
 			else expect(captured <= nextDay(end), entry.id).toBe(true);
 		}
 		// Every record but Persia (unknown) and the list and Mycroft (relative to another record).
-		expect(dated).toBe(72 - 3);
-		expect(traces).toHaveLength(72);
-		expect(seed.assessments).toHaveLength(11);
+		expect(dated).toBe(101 - 3);
+		expect(traces).toHaveLength(101);
+		expect(seed.assessments).toHaveLength(12);
 	});
 
 	it('writes the notebook in the seed language, once, with no empty text', () => {
@@ -566,8 +571,8 @@ describe('demo seed batch', () => {
 		expect(en.kinds.map((kind) => kind.name)).toEqual(['Case', 'Telegram']);
 		expect(draftOf(en, 'p.1880s')).toMatchObject({ name: 'The 1880s' });
 		expect(period('p.1889-10').draft.name).toBe('Октябрь 1889');
-		expect(DEMO_STORY.traces.map((item) => item.id)).toHaveLength(72);
-		expect(new Set(DEMO_STORY.traces.map((item) => item.id)).size).toBe(72);
+		expect(DEMO_STORY.traces.map((item) => item.id)).toHaveLength(101);
+		expect(new Set(DEMO_STORY.traces.map((item) => item.id)).size).toBe(101);
 	});
 });
 
@@ -587,6 +592,103 @@ describe('demo story colours', () => {
 			byParent.set(key, [...(byParent.get(key) ?? []), scope.colour!.hue]);
 		}
 		for (const [parent, hues] of byParent) expect(new Set(hues).size, parent).toBe(hues.length);
+	});
+});
+
+describe('demo story chapters', () => {
+	const ms = (instant: string): number => Date.parse(instant);
+	const chapter = (name: string) => {
+		const found = seed.chapters.find((item) => item.draft.name === name);
+		if (!found) throw new Error(`missing chapter ${name}`);
+		return found;
+	};
+	/** Where a chapter ends: the next one's start, or the close of the last. */
+	const endOf = (index: number): number => {
+		const next = seed.chapters[index + 1];
+		return next ? ms(next.draft.start) : ms(seed.chapters[index].draft.closedAt!);
+	};
+
+	it('writes each chapter in the seed language, at midnight of London', () => {
+		expect(seed.chapters.map((item) => item.draft.name)).toEqual([
+			'Возвращение из Афганистана',
+			'Знакомство',
+			'Тихие годы',
+			'Первая слава',
+			'Мэри Морстен',
+			'Дело Баскервилей',
+			'Женитьба и Паддингтон',
+			'Без Холмса',
+			'Снова на Бейкер-стрит'
+		]);
+		// London kept Greenwich time all year before 1916: a local midnight is a UTC one.
+		expect(chapter('Возвращение из Афганистана').draft).toMatchObject({
+			start: '1880-11-01T00:00:00.000Z',
+			colorHue: 30
+		});
+		expect(chapter('Без Холмса').stages.map((stage) => [stage.name, stage.start])).toEqual([
+			['Последнее дело', '1891-04-24T00:00:00.000Z'],
+			['Один', '1891-05-05T00:00:00.000Z'],
+			['Рассказ в печати', '1893-12-01T00:00:00.000Z'],
+			['Убийство Адэра', '1894-03-30T00:00:00.000Z']
+		]);
+		const english = buildDemoSeed(
+			{ locale: 'en', capturedAt: CAPTURED_AT, entry: WATSON_STORY },
+			DEMO_STORY
+		);
+		expect(english.chapters.map((item) => item.draft.name)).toContain('Mary Morstan');
+	});
+
+	it('puts in front only Scopes of the story, by their record ids; a stage may keep the chapter lineup', () => {
+		for (const item of seed.chapters) {
+			const lineups = [item.draft.lineup ?? [], ...item.stages.map((stage) => stage.lineup ?? [])];
+			for (const entry of lineups.flat())
+				expect(scopeIds.has(entry.scopeId), entry.scopeId).toBe(true);
+		}
+		expect(chapter('Дело Баскервилей').stages.map((stage) => stage.lineup)).toEqual([
+			['s.hall', 's.hound'].map((id) => ({ scopeId: recordId(id), level: 'focus' })),
+			['s.hound', 's.holmes', 's.baker'].map((id) => ({ scopeId: recordId(id), level: 'focus' })),
+			['s.hound', 's.hall', 's.mire'].map((id) => ({ scopeId: recordId(id), level: 'focus' })),
+			null
+		]);
+	});
+
+	it('divides the whole notebook: only starts, the last one closed where the notebook ends', () => {
+		const starts = seed.chapters.map((item) => ms(item.draft.start));
+		expect(starts).toEqual(starts.toSorted((a, b) => a - b));
+		expect(new Set(starts).size).toBe(starts.length);
+		// Only the last chapter closes, so none runs on to today and none leaves a gap.
+		expect(seed.chapters.slice(0, -1).map((item) => item.draft.closedAt)).toEqual(
+			seed.chapters.slice(0, -1).map(() => null)
+		);
+		expect(seed.chapters.at(-1)!.draft.closedAt).toBe('1894-06-01T00:00:00.000Z');
+		// Every dated record of the notebook falls inside a chapter.
+		for (const entry of traces) {
+			const time = entry.draft.aboutTime;
+			if (time?.basis !== 'absolute') continue;
+			const at = Date.parse(time.start);
+			expect(at >= starts[0] && at < endOf(seed.chapters.length - 1), entry.id).toBe(true);
+		}
+		seed.chapters.forEach((item, index) => {
+			// A chapter with stages is covered by them from its own start.
+			if (item.stages.length) expect(item.stages[0].start, item.draft.name).toBe(item.draft.start);
+			for (const stage of item.stages) {
+				expect(ms(stage.start) >= ms(item.draft.start), stage.name).toBe(true);
+				expect(ms(stage.start) < endOf(index), stage.name).toBe(true);
+			}
+		});
+	});
+
+	it('gives every chapter records of its own', () => {
+		// A chapter tells what happened in it: no chapter is an empty stretch of the axis.
+		seed.chapters.forEach((item, index) => {
+			const inside = traces.filter((entry) => {
+				const time = entry.draft.aboutTime;
+				if (time?.basis !== 'absolute') return false;
+				const at = Date.parse(time.start);
+				return at >= ms(item.draft.start) && at < endOf(index);
+			});
+			expect(inside.length, item.draft.name).toBeGreaterThanOrEqual(2);
+		});
 	});
 });
 
@@ -615,7 +717,8 @@ describe('a story whose first page is dated by the install', () => {
 			}
 		],
 		traceLinks: [],
-		assessments: []
+		assessments: [],
+		chapters: []
 	};
 	const FIXTURE: DemoStoryEntry = {
 		...WATSON_STORY,

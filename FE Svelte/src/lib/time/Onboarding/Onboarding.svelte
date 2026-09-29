@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/ui/Button/Button.svelte';
 	import DemoStories from '$lib/ui/DemoStories/DemoStories.svelte';
+	import { CHOICE_CARD_CLASS } from '$lib/ui/DemoStories/constants';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import { ONBOARDING_STEPS } from './constants';
 	import { parseEmphasis } from './emphasis';
@@ -34,7 +35,7 @@
 )}
 	<button
 		type="button"
-		class="cg-panel flex cursor-pointer flex-col items-start border border-outline bg-raised text-left transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-default disabled:opacity-50 disabled:hover:border-outline"
+		class={CHOICE_CARD_CLASS}
 		aria-labelledby={name}
 		aria-disabled={disabled}
 		{disabled}
@@ -62,20 +63,17 @@
 		<h1 class="text-2xl font-semibold leading-tight">{t(STEP_TITLE_KEY[step])}</h1>
 		{#if step === 'try'}
 			<!-- The catalog of demo stories; each card opens its own space. -->
-			<DemoStories
-				variant="cards"
-				busy={ondemo === undefined}
-				onopen={(entry) => ondemo?.(entry)}
-			/>
-			<div class="grid gap-3 sm:grid-cols-2">
-				{@render card(
-					t('onboarding.try.own.title'),
-					t('onboarding.try.own.body'),
-					`${id}-own`,
-					onstart,
-					false
-				)}
-			</div>
+			<DemoStories variant="cards" busy={ondemo === undefined} onopen={(entry) => ondemo?.(entry)}>
+				{#snippet after()}
+					{@render card(
+						t('onboarding.try.own.title'),
+						t('onboarding.try.own.body'),
+						`${id}-own`,
+						onstart,
+						false
+					)}
+				{/snippet}
+			</DemoStories>
 			<p class="text-xs leading-relaxed text-muted">{t('onboarding.storage')}</p>
 		{:else}
 			{#each paragraphs as key, position (key)}

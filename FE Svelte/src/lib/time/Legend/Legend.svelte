@@ -113,6 +113,11 @@
 	}
 	.k-fuzzy {
 		width: 22px;
+		background: var(--legend-ink);
+		mask-image: linear-gradient(90deg, transparent, rgb(0 0 0 / 60%) 50%, transparent);
+	}
+	.k-fuzzySpan {
+		width: 22px;
 		background: var(--legend-ink-30);
 	}
 	.k-intent,
