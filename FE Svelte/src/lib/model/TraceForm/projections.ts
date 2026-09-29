@@ -2,6 +2,7 @@ import { translate } from '$lib/state/Locale/messages';
 import type { Locale } from '$lib/state/Locale/types';
 import type { JsonObject } from '$lib/state/triplit/types';
 import type { TraceDatasetValueType } from '$lib/state/triplit/trace-dataset';
+import { readConditions } from './conditions';
 import type { TraceSchemaProjection, TraceSchemaProjectionColumn } from './types';
 const jsonObject = (value: unknown): JsonObject | null =>
 	value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -31,7 +32,7 @@ const choiceValueLabels = (node: JsonObject): Record<string, string> | undefined
 
 const scalarColumns = (
 	properties: JsonObject,
-	source: 'data' | 'item',
+	source: 'data' | 'item' | 'parent',
 	prefix: string,
 	path: string[] = [],
 	labels: string[] = []
@@ -87,14 +88,54 @@ export const traceSchemaProjections = (
 	const rootColumns = scalarColumns(properties, 'data', 'root');
 	const repeated: TraceSchemaProjection[] = [];
 
-	const visitRepeats = (properties: JsonObject, path: string[] = [], labels: string[] = []) => {
+	/**
+	 * The enclosing item's own columns beside a nested list's (Q9): the exercise of a set. A
+	 * field the item hides whenever the list is shown (time beside sets) would stay empty there.
+	 */
+	const parentColumns = (item: JsonObject | null, listKey: string) => {
+		if (!item || !jsonObject(item.properties)) return [];
+		const conditions = readConditions(item) ?? [];
+		const withList = conditions.filter((condition) => condition.shown.includes(listKey));
+		const properties = Object.fromEntries(
+			Object.entries(item.properties as JsonObject).filter(
+				([key]) => !withList.length || withList.some((condition) => !condition.hidden.includes(key))
+			)
+		);
+		return scalarColumns(properties, 'parent', `parent_${repeated.length}`);
+	};
+
+	/**
+	 * The one variant a field of a row belongs to, by its title: two lists both named «Подходы»
+	 * read as «Отжимания / Подходы» and «Становая тяга / Подходы». None when several show it.
+	 */
+	const onlyVariantOf = (item: JsonObject, key: string): string | null => {
+		const showing = (readConditions(item) ?? []).filter((c) => c.shown.includes(key));
+		if (showing.length !== 1) return null;
+		const [{ controller, value }] = showing;
+		const choice = jsonObject(jsonObject(item.properties)?.[controller]);
+		const options = Array.isArray(choice?.oneOf) ? choice.oneOf : [];
+		const option = options.map(jsonObject).find((entry) => entry?.const === value);
+		return typeof option?.title === 'string' ? option.title : value;
+	};
+
+	const visitRepeats = (
+		properties: JsonObject,
+		path: string[] = [],
+		labels: string[] = [],
+		enclosing: JsonObject | null = null
+	) => {
 		for (const [propertyKey, value] of Object.entries(properties)) {
 			const node = jsonObject(value);
 			if (!node) continue;
 			const fieldPath = [...path, propertyKey];
-			const fieldLabels = [...labels, schemaTitle(node, propertyKey)];
+			const variant = enclosing ? onlyVariantOf(enclosing, propertyKey) : null;
+			const fieldLabels = [
+				...labels,
+				...(variant ? [variant] : []),
+				schemaTitle(node, propertyKey)
+			];
 			if (node.type === 'object' && jsonObject(node.properties))
-				visitRepeats(node.properties as JsonObject, fieldPath, fieldLabels);
+				visitRepeats(node.properties as JsonObject, fieldPath, fieldLabels, enclosing);
 			if (node.type !== 'array') continue;
 			const items = jsonObject(node.items);
 			const itemProperties = items ? jsonObject(items.properties) : null;
@@ -105,20 +146,26 @@ export const traceSchemaProjections = (
 					id: `repeat:${fieldPath.join('/')}`,
 					title: fieldLabels.join(' / '),
 					repeat: { path: fieldPath },
-					columns: [coreColumn, ...rootColumns, ...itemColumns]
+					columns: [
+						coreColumn,
+						...rootColumns,
+						...parentColumns(enclosing, propertyKey),
+						...itemColumns
+					]
 				});
-			visitRepeats(itemProperties, [...fieldPath, '[]'], fieldLabels);
+			visitRepeats(itemProperties, [...fieldPath, '[]'], fieldLabels, items);
 		}
 	};
 	visitRepeats(properties);
 
-	if (repeated.length > 0) return repeated;
-	if (rootColumns.length === 0) return [];
+	// The records themselves first (audit 2026-09-29), each list as a table of its own rows after.
+	if (rootColumns.length === 0 && repeated.length === 0) return [];
 	return [
 		{
 			id: 'trace',
 			title: translate(language, 'kindHistory.recordsProjection'),
 			columns: [coreColumn, ...rootColumns]
-		}
+		},
+		...repeated
 	];
 };

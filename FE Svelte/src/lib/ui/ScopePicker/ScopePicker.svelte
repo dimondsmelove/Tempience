@@ -15,6 +15,7 @@
 		exclude = [],
 		none,
 		placeholder,
+		searchLabel,
 		onpick,
 		oncreate,
 		disabled = false,
@@ -145,8 +146,8 @@
 	<input
 		type="search"
 		class="cg-control cg-control-sm cg-field scope-picker-search"
-		placeholder={t('picker.search')}
-		aria-label={t('picker.search')}
+		placeholder={searchLabel ?? t('picker.search')}
+		aria-label={searchLabel ?? t('picker.search')}
 		aria-controls={listId}
 		aria-activedescendant={choices.length ? optionId(choices[active] ?? null) : undefined}
 		bind:this={search}

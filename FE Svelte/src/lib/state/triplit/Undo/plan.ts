@@ -34,7 +34,8 @@ export type InverseStep =
 			before: AssessmentAddress;
 			after: AssessmentAddress;
 	  }
-	| { kind: 'scope.lifecycle'; scopeId: string };
+	| { kind: 'scope.lifecycle'; scopeId: string }
+	| { kind: 'traceKind.lifecycle'; kindId: string };
 
 export type InversePlan = { operationId: string; occurredAt: string; steps: InverseStep[] };
 
@@ -183,6 +184,10 @@ export const planInverse = (logs: readonly Log[], operationId: string): InverseP
 			case 'scope':
 				if (log.action !== 'deleted') unsupported(log);
 				steps.push({ kind: 'scope.lifecycle', scopeId: log.entityId });
+				break;
+			case 'traceKind':
+				if (log.action !== 'deleted') unsupported(log);
+				steps.push({ kind: 'traceKind.lifecycle', kindId: log.entityId });
 				break;
 			default:
 				unsupported(log);

@@ -5,6 +5,9 @@ import { createTriplitRepository, type TempienceRepository } from './repository'
 import { schema } from './schema';
 import type { TraceDatasetRequest, TraceDatasetSnapshot } from './trace-dataset';
 import type { JsonObject, TraceDraft } from './types';
+import { compileTraceForm } from '$lib/model/TraceForm/schema';
+import { traceSchemaProjections } from '$lib/model/TraceForm/projections';
+import { scalar } from '$lib/model/TraceForm/receipt.fixture';
 
 const numberSchema: JsonObject = {
 	type: 'object',
@@ -437,6 +440,76 @@ describe('live Trace datasets', () => {
 				status: 'ready',
 				rows: [{ values: { value: 72 } }, { values: { value: 71 } }]
 			});
+		} finally {
+			probe?.unsubscribe();
+			await disposeMemoryRepository(client);
+		}
+	});
+
+	it('gives the rows of a nested list the columns of the row they are in (loop 013, Q9)', async () => {
+		const { client, repository } = createMemoryRepository();
+		let probe: SnapshotProbe | undefined;
+		try {
+			const exercise = scalar('ex', 'Упражнение', 'choice', true, ['Подтягивания', 'Бег']);
+			exercise.options[0].shows = ['sets'];
+			exercise.options[1].shows = ['time'];
+			const definition = compileTraceForm({
+				name: 'Утренняя физуха',
+				fields: [
+					{
+						id: 'list',
+						label: 'Упражнения',
+						kind: 'repeating',
+						required: true,
+						fields: [
+							exercise,
+							{
+								id: 'sets',
+								label: 'Подходы',
+								kind: 'repeating',
+								required: true,
+								fields: [scalar('reps', 'Повторы', 'integer')]
+							},
+							scalar('time', 'Время', 'number')
+						]
+					}
+				]
+			});
+			const { kind, kindV } = await repository.createTraceKind({
+				name: 'Утренняя физуха',
+				initialKindV: definition
+			});
+			const trace = await repository.createTrace({
+				...traceDraft('Утро', '2026-09-28T06:00:00.000Z', kind.id, kindV.id, 0),
+				data: {
+					uprazhneniya: [
+						{ uprazhnenie: 'podtyagivaniya', podhody: [{ povtory: 10 }, { povtory: 7 }] },
+						{ uprazhnenie: 'beg', vremya: 18 }
+					]
+				}
+			});
+			const sets = traceSchemaProjections(definition.dataSchema).find(
+				(projection) => projection.id === 'repeat:uprazhneniya/[]/podhody'
+			)!;
+			// The exercise stands left of the set; the time, hidden whenever sets are shown, does not.
+			expect(sets.columns.map(({ label, column }) => [label, column.source])).toEqual([
+				['Дата и время', 'core'],
+				['Упражнение', 'parent'],
+				['Повторы', 'item']
+			]);
+			probe = subscribeProbe(repository, {
+				kindId: kind.id,
+				repeat: sets.repeat,
+				columns: sets.columns.map(({ column }) => column)
+			});
+			const ready = await probe.waitFor(
+				(snapshot) => snapshot.status === 'ready' && snapshot.rows.length === 2
+			);
+			const rows = ready.status === 'ready' ? ready.rows : [];
+			expect(rows.map((row) => [row.traceId, Object.values(row.values).slice(1)])).toEqual([
+				[trace.id, ['podtyagivaniya', 10]],
+				[trace.id, ['podtyagivaniya', 7]]
+			]);
 		} finally {
 			probe?.unsubscribe();
 			await disposeMemoryRepository(client);

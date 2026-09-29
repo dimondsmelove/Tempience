@@ -71,6 +71,9 @@ export type TraceKind = {
 	currentKindVId: string;
 	createdAt: string;
 	updatedAt: string;
+	/** Hidden from every choice of a Kind; its records and versions stay as they are. */
+	isDeleted: boolean;
+	deletionOperationId: string | null;
 };
 
 export type TraceKindV = {

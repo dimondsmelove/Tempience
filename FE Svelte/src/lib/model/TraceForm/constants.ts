@@ -1,7 +1,10 @@
 import type { MessageKey } from '$lib/state/Locale/types';
-import type { TraceFieldDraft } from './types';
-/** The kinds a field can be; each is named by the interface where it is offered. */
-export const FIELD_KINDS: { value: TraceFieldDraft['kind']; label: MessageKey }[] = [
+import type { TraceScalarFieldKind } from './types';
+/**
+ * The kinds a single-value field can be; each is named by the interface where it is offered.
+ * A list is not among them: it is added by its own button and never becomes a value field.
+ */
+export const FIELD_KINDS: { value: TraceScalarFieldKind; label: MessageKey }[] = [
 	{ value: 'text', label: 'fieldKind.text' },
 	{ value: 'textarea', label: 'fieldKind.textarea' },
 	{ value: 'number', label: 'fieldKind.number' },
@@ -12,6 +15,8 @@ export const FIELD_KINDS: { value: TraceFieldDraft['kind']; label: MessageKey }[
 	{ value: 'choice', label: 'fieldKind.choice' },
 	{ value: 'multi-choice', label: 'fieldKind.multi-choice' }
 ];
+/** Lists inside lists stop at two levels: exercises, then their sets (loop 013, Q2). */
+export const MAX_LIST_DEPTH = 2;
 export const UNIT_IDS: Record<string, string> = {
 	кг: 'kg',
 	kg: 'kg',

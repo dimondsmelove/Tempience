@@ -9,7 +9,7 @@
 	const switchable = $derived(draft.entry.mode === 'create' && !draft.entry.versionId);
 	const versionIssue = $derived(draft.issueFor('version'));
 	const scoped = $derived(draft.scopedKinds);
-	const others = $derived(draft.kinds.filter((entry) => !scoped.includes(entry)));
+	const others = $derived(draft.offeredKinds.filter((entry) => !scoped.includes(entry)));
 	const created = $derived(
 		draft.createdKind && draft.createdKind.id !== draft.kindId ? draft.createdKind : null
 	);
@@ -38,7 +38,7 @@
 						<optgroup label={t('draft.kindsOfScopes')}>{@render options(scoped)}</optgroup>
 						<optgroup label={t('draft.kindsOther')}>{@render options(others)}</optgroup>
 					{:else}
-						{@render options(draft.kinds)}
+						{@render options(draft.offeredKinds)}
 					{/if}
 				</select>
 				<Button

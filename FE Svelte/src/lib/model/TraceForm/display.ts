@@ -71,6 +71,68 @@ export function formatFormValue(
 	return value;
 }
 
+/**
+ * A list in one line (loop 013, Q8): a row is its first value, then the others after a space,
+ * separated by commas; the rows of a list inside it are joined by «+», the first two values of
+ * one such row by «×» and the rest named in brackets; rows are separated by « · » — «Подтягивания 10+7 · Бег 18 мин, 3 км». What a
+ * row does not hold is left out; a list with nothing to say is the empty string.
+ */
+function listSummary(
+	value: JsonValue,
+	schema: JsonObject,
+	pointer: string,
+	definition: TraceKindVDraft,
+	language: Locale
+): string {
+	if (!Array.isArray(value) || !isJsonObject(schema.items)) return '';
+	type Part = { text: string; label: string };
+	/** A field's name without its parenthesised note: «Усилие (RPE)» reads «Усилие». */
+	const short = (field: JsonObject, key: string) =>
+		String(field.title ?? key).replace(/\s*\(.*\)\s*$/, '');
+	/** A set reads «100 кг×5»; what it adds past its first two values is named: «(Усилие 8)». */
+	const setText = (parts: Part[]) =>
+		parts.length <= 2
+			? parts.map((part) => part.text).join('×')
+			: `${parts
+					.slice(0, 2)
+					.map((part) => part.text)
+					.join('×')} (${parts
+					.slice(2)
+					.map((part) => `${part.label} ${part.text}`)
+					.join(', ')})`;
+	const values = (row: JsonObject, node: JsonObject, at: string): Part[] =>
+		Object.entries(isJsonObject(node.properties) ? node.properties : {}).flatMap(([key, field]) => {
+			const entry = row[key];
+			if (!isJsonObject(field) || entry === undefined || entry === null || entry === '') return [];
+			const path = `${at}/properties/${pointerKey(key)}`;
+			if (field.type === 'array' && isJsonObject(field.items) && field.items.type === 'object') {
+				const items = field.items;
+				const sets = (Array.isArray(entry) ? entry : [])
+					.filter(isJsonObject)
+					.map((set) => setText(values(set, items, `${path}/items`)))
+					.filter(Boolean);
+				return sets.length ? [{ text: sets.join('+'), label: short(field, key) }] : [];
+			}
+			const text = formatFormValue(
+				entry,
+				field,
+				definition.fieldMeta?.[path]?.unit?.label,
+				language
+			);
+			return [{ text, label: short(field, key) }];
+		});
+	return value
+		.filter(isJsonObject)
+		.map((row) => {
+			const [first, ...rest] = values(row, schema.items as JsonObject, `${pointer}/items`).map(
+				(part) => part.text
+			);
+			return first === undefined ? '' : rest.length ? `${first} ${rest.join(', ')}` : first;
+		})
+		.filter(Boolean)
+		.join(' · ');
+}
+
 const valueAt = (data: JsonObject, path: readonly string[]): JsonValue | undefined => {
 	let current: JsonValue | undefined = data;
 	for (const key of path) {
@@ -147,9 +209,13 @@ export function traceFormDisplay(
 	);
 	const conciseFields = leavesOf(definition).flatMap((leaf) => {
 		const value = valueAt(data, leaf.path);
-		return value === undefined || value === null
-			? []
-			: [{ label: leaf.label, value: formatFormValue(value, leaf.schema, leaf.unit, language) }];
+		if (value === undefined || value === null) return [];
+		if (!leaf.list)
+			return [
+				{ label: leaf.label, value: formatFormValue(value, leaf.schema, leaf.unit, language) }
+			];
+		const line = listSummary(value, leaf.schema, leaf.pointer, definition, language);
+		return line ? [{ label: leaf.label, value: line }] : [];
 	});
 	const displayTitle = [
 		kindLabel,

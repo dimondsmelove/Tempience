@@ -35,6 +35,8 @@ export type ScopePickerProps = Readonly<{
 	none?: string;
 	/** What the closed control says while nothing is chosen. */
 	placeholder?: string;
+	/** The search box's prompt, when the list holds something other than Scopes. */
+	searchLabel?: string;
 	onpick: (scopeId: string | null) => void;
 	/** Offered under the list when given: a Scope by the typed name, made elsewhere. */
 	oncreate?: (name: string) => void;

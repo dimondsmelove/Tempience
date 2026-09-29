@@ -1,7 +1,7 @@
 import { readSelectedTraceField } from '../Traces/json-encoding';
 import { isJsonObject } from '../trace-kind-v-validation';
 import type { JsonObject, JsonPrimitive } from '../types';
-import { pathKey } from './helpers';
+import { parentItemPath, pathKey } from './helpers';
 import { isValueOfType } from './request';
 import type {
 	TraceDatasetCell,
@@ -24,7 +24,8 @@ const projectRow = (
 	request: TraceDatasetRequest,
 	traceId: string,
 	item?: JsonObject,
-	itemIndex?: number
+	itemIndex?: number,
+	parent?: JsonObject
 ): TraceDatasetRow => {
 	const projected: Record<string, TraceDatasetCell> = {};
 	for (const column of request.columns) {
@@ -50,7 +51,12 @@ const projectRow = (
 			continue;
 		}
 
-		const source = column.source === 'item' ? item : readSelectedTraceField(record, 'data');
+		const source =
+			column.source === 'item'
+				? item
+				: column.source === 'parent'
+					? parent
+					: readSelectedTraceField(record, 'data');
 		const dataValue = getNestedValue(source, column.path);
 		if (dataValue === undefined) {
 			projected[column.key] = null;
@@ -60,7 +66,9 @@ const projectRow = (
 			const sourcePath =
 				column.source === 'item' && request.repeat
 					? [...request.repeat.path, '[]', ...column.path]
-					: column.path;
+					: column.source === 'parent' && request.repeat
+						? [...parentItemPath(request.repeat.path), ...column.path]
+						: column.path;
 			throw new Error(
 				`Trace ${traceId} data.${pathKey(sourcePath)} does not match its projected type ${column.expectedType}`
 			);
@@ -76,18 +84,23 @@ const projectRow = (
 	};
 };
 
-const repeatedValues = (value: unknown, path: readonly string[]): unknown[] => {
+/** The repeated items at a path, each with the item it is nested in (none at the top). */
+const repeatedValues = (
+	value: unknown,
+	path: readonly string[],
+	parent?: unknown
+): { item: unknown; parent: unknown }[] => {
 	if (value === undefined || value === null) return [];
 	if (path.length === 0) {
 		if (!Array.isArray(value)) throw new Error('Repeated data must be an array');
-		return value;
+		return value.map((item) => ({ item, parent }));
 	}
 	const [head, ...tail] = path;
 	if (head === '[]') {
 		if (!Array.isArray(value)) throw new Error('Repeated parent data must be an array');
-		return value.flatMap((item) => repeatedValues(item, tail));
+		return value.flatMap((item) => repeatedValues(item, tail, item));
 	}
-	return repeatedValues(getNestedValue(value, [head]), tail);
+	return repeatedValues(getNestedValue(value, [head]), tail, parent);
 };
 
 export const projectRows = (
@@ -111,12 +124,19 @@ export const projectRows = (
 		// the item columns blank — so a history never loses a record for having no items.
 		if (repeatedValue.length === 0) return [projectRow(record, request, traceId)];
 
-		return repeatedValue.map((item, itemIndex) => {
+		return repeatedValue.map(({ item, parent }, itemIndex) => {
 			if (!isJsonObject(item)) {
 				throw new Error(
 					`Trace ${traceId} data.${pathKey(request.repeat?.path ?? [])}[${itemIndex}] must be an object`
 				);
 			}
-			return projectRow(record, request, traceId, item, itemIndex);
+			return projectRow(
+				record,
+				request,
+				traceId,
+				item,
+				itemIndex,
+				isJsonObject(parent) ? parent : undefined
+			);
 		});
 	});

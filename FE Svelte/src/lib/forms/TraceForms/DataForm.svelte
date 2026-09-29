@@ -9,12 +9,12 @@
 		type UiSchemaRoot
 	} from '@sjsf/form';
 	import { createFormIdBuilder } from '@sjsf/form/id-builders/modern';
-	import { createFormMerger } from '@sjsf/form/mergers/modern';
 	import { resolver } from '@sjsf/form/resolvers/compat';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { JsonObject, TraceKindVDraft } from '$lib/state/triplit/types';
-	import { formTheme, formUiSchema, formValidator } from './runtime';
+	import { formSchema, withoutHidden } from '$lib/model/TraceForm/conditions';
+	import { formMerger, formTheme, formUiSchema, formValidator } from './runtime';
 	import { formTranslation } from './validation';
 	import type { DataFormProps } from './types';
 
@@ -44,14 +44,14 @@
 	};
 	const form = createForm<Record<string, unknown>>({
 		theme: formTheme,
-		schema: pinned.dataSchema as Schema,
+		schema: formSchema(pinned.dataSchema) as Schema,
 		uiSchema: uiSchema as UiSchemaRoot,
 		initialValue: untrack(() => $state.snapshot(initialValue as unknown) as JsonObject),
 		get translation() {
 			return formTranslation(locale.current, submitLabel ?? t('form.submitRecord'));
 		},
 		resolver,
-		merger: createFormMerger,
+		merger: formMerger,
 		validator: formValidator,
 		idBuilder: createFormIdBuilder,
 		onSubmit: async (value) => {
@@ -59,7 +59,7 @@
 			busy = true;
 			failure = null;
 			try {
-				await onsubmit(value as JsonObject);
+				await onsubmit(withoutHidden(pinned.dataSchema, value) as JsonObject);
 			} catch (cause) {
 				failure = cause ?? new Error();
 			} finally {
@@ -73,8 +73,8 @@
 	export function getDraft(schema: JsonObject): JsonObject {
 		const data = sanitizeDataForNewSchema(
 			form,
-			schema as Schema,
-			pinned.dataSchema as Schema,
+			formSchema(schema) as Schema,
+			formSchema(pinned.dataSchema) as Schema,
 			getValueSnapshot(form)
 		);
 		// SJSF marks removed properties as undefined; omit those keys before remounting.
@@ -107,6 +107,9 @@
 	.trace-data-form :global(select),
 	.trace-data-form :global(textarea) {
 		width: 100%;
+		/* The value reads at the size of its label, not the browser's control default. */
+		font: inherit;
+		font-size: 0.875rem;
 		min-width: 0;
 		padding: var(--cg-control-padding-y, 6px) var(--cg-control-padding-x, 10px);
 		color: var(--cg-text-primary);

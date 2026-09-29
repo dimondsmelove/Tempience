@@ -2,8 +2,9 @@ import {
 	samePlacement,
 	validateManualIntentionTime
 } from '$lib/state/triplit/Traces/intention-time';
+import { withoutHidden } from '$lib/model/TraceForm/conditions';
 import { assertTraceData } from '$lib/state/triplit/trace-kind-v-validation';
-import type { TraceKindV } from '$lib/state/triplit/types';
+import type { JsonObject, TraceKindV } from '$lib/state/triplit/types';
 import { jsonData, sameData } from './json';
 import { savedPlacement, undatedPlacement } from './placement';
 import { sameScopeSet } from './scopes';
@@ -25,7 +26,8 @@ export const resolvePlacement = (
 
 /**
  * The final values of the open form: a new Kind input is a fact whatever the relation
- * control held before, the kept time is the record's own, plain input has no data.
+ * control held before, the kept time is the record's own, plain input has no data, and typed
+ * data holds nothing its chosen options hide (loop 013, Q6: the form keeps it until the save).
  */
 export const currentValues = (draft: TraceDraftState): DraftValues => ({
 	title: draft.title,
@@ -34,7 +36,11 @@ export const currentValues = (draft: TraceDraftState): DraftValues => ({
 	placement: resolvePlacement(draft.time, savedPlacement(draft.saved)) ?? undatedPlacement(),
 	kindId: draft.kindId || null,
 	versionId: draft.versionId || null,
-	data: draft.typed ? draft.data : null,
+	data: draft.typed
+		? draft.version
+			? (withoutHidden(draft.version.dataSchema, draft.data) as JsonObject)
+			: draft.data
+		: null,
 	scopeIds: draft.selectedScopeIds,
 	targets: draft.results.targets
 });

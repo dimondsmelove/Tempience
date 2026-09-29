@@ -111,7 +111,8 @@ it('projects nested repeated groups without creating additional canonical traces
 			aboutTime: { basis: 'unknown' },
 			data: { entries: [{ sub: [{ count: 1 }, { count: 2 }] }, { sub: [{ count: 3 }] }] }
 		});
-		const projection = traceSchemaProjections(dataSchema)[0];
+		// The records table comes first; this test reads the first list table.
+		const projection = traceSchemaProjections(dataSchema).filter((entry) => entry.repeat)[0];
 		expect(projection.repeat?.path).toEqual(['entries', '[]', 'sub']);
 		let result: TraceDatasetSnapshot | undefined;
 		unsubscribe = repository.subscribeTraceDataset(

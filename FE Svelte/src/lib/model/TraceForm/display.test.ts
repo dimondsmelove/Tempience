@@ -1,6 +1,9 @@
 import { expect, it } from 'vitest';
 import { assertTraceData } from '$lib/state/triplit/trace-kind-v-validation';
+import type { JsonObject } from '$lib/state/triplit/types';
 import { formatFormValue, traceFormDisplay } from './display';
+import { scalar } from './receipt.fixture';
+import { compileTraceForm } from './schema';
 
 it('derives readable titles from the pinned schema, units and option labels without rewriting content', () => {
 	const definition = {
@@ -56,5 +59,104 @@ it('keeps date-only fields on their calendar day regardless of the local timezon
 		new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeZone: 'UTC' }).format(
 			new Date('2026-09-09')
 		)
+	);
+});
+
+it('reads a list of rows in one line: sets joined by «+», a set of several values by «×»', () => {
+	const exercise = scalar('ex', 'Упражнение', 'choice', true, ['Подтягивания', 'Жим', 'Бег']);
+	const [pull, press, run] = exercise.options;
+	pull.shows = ['sets'];
+	press.shows = ['sets'];
+	run.shows = ['time', 'dist'];
+	const weight = { ...scalar('kg', 'Вес', 'number', false), unit: 'кг' };
+	const definition = compileTraceForm({
+		name: 'Утренняя физуха',
+		fields: [
+			{
+				id: 'list',
+				label: 'Упражнения',
+				kind: 'repeating',
+				required: true,
+				fields: [
+					exercise,
+					{
+						id: 'sets',
+						label: 'Подходы',
+						kind: 'repeating',
+						required: true,
+						fields: [weight, scalar('reps', 'Повторы', 'integer', false)]
+					},
+					{ ...scalar('time', 'Время', 'number'), unit: 'мин' },
+					{ ...scalar('dist', 'Дистанция', 'number', false), unit: 'км' }
+				]
+			}
+		]
+	});
+	const display = traceFormDisplay(definition, {
+		uprazhneniya: [
+			{ uprazhnenie: 'podtyagivaniya', podhody: [{ povtory: 10 }, { povtory: 7 }] },
+			{
+				uprazhnenie: 'zhim',
+				podhody: [
+					{ ves: 60, povtory: 8 },
+					{ ves: 60, povtory: 6 }
+				]
+			},
+			{ uprazhnenie: 'beg', vremya: 18, distantsiya: 3 }
+		]
+	});
+	expect(display.conciseFields).toEqual([
+		{
+			label: 'Упражнения',
+			value: 'Подтягивания 10+7 · Жим 60 кг×8+60 кг×6 · Бег 18 мин, 3 км'
+		}
+	]);
+	expect(display.displayTitle).toBe(
+		'Утренняя физуха · Упражнения: Подтягивания 10+7 · Жим 60 кг×8+60 кг×6 · Бег 18 мин, 3 км'
+	);
+	// A record without rows says nothing about the list.
+	expect(traceFormDisplay(definition, { uprazhneniya: [] }).conciseFields).toEqual([]);
+});
+
+it('names what a set adds past its first two values, so «×8» never reads as a third factor', () => {
+	const lift = { ...scalar('w', 'Вес', 'number'), unit: 'кг' };
+	const definition = compileTraceForm({
+		name: 'Зал',
+		fields: [
+			{
+				id: 'list',
+				label: 'Упражнения',
+				kind: 'repeating',
+				required: true,
+				fields: [
+					scalar('x', 'Упражнение', 'text'),
+					{
+						id: 'sets',
+						label: 'Подходы',
+						kind: 'repeating',
+						required: true,
+						fields: [
+							lift,
+							scalar('r', 'Повторы', 'integer'),
+							scalar('e', 'Усилие (RPE)', 'integer')
+						]
+					}
+				]
+			}
+		]
+	});
+	const data: JsonObject = {
+		uprazhneniya: [
+			{
+				uprazhnenie: 'Жим',
+				podhody: [
+					{ ves: 100, povtory: 5, usilie_rpe: 8 },
+					{ ves: 100, povtory: 5 }
+				]
+			}
+		]
+	};
+	expect(traceFormDisplay(definition, data).conciseFields[0]?.value).toBe(
+		'Жим 100 кг×5 (Усилие 8)+100 кг×5'
 	);
 });

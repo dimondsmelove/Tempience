@@ -86,4 +86,16 @@ describe('the data schema of a form', () => {
 			{ reason: 'field', field: undefined }
 		]);
 	});
+
+	it('requires at least one option of a required multi-choice, and none of an optional one', () => {
+		const schema = compileTraceDataSchema('Физуха', [
+			scalar('a', 'Упражнения', 'multi-choice', true, ['Подтягивания', 'Брусья']),
+			scalar('b', 'Где', 'multi-choice', false, ['Дома', 'Парк'])
+		]);
+		const properties = schema.properties as Record<string, { minItems?: number }>;
+		expect(properties.uprazhneniya.minItems).toBe(1);
+		expect(properties.gde.minItems).toBeUndefined();
+		expect(() => assertTraceData({ uprazhneniya: [] }, schema)).toThrow(/fewer than 1/);
+		expect(() => assertTraceData({ uprazhneniya: ['podtyagivaniya'] }, schema)).not.toThrow();
+	});
 });

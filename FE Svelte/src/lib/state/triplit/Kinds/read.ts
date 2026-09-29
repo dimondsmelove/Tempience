@@ -6,7 +6,10 @@ export const normalizeTraceKind = (value: Record<string, unknown>): TraceKind =>
 	name: String(value.name),
 	currentKindVId: String(value.currentKindVId),
 	createdAt: String(value.createdAt),
-	updatedAt: String(value.updatedAt)
+	updatedAt: String(value.updatedAt),
+	isDeleted: value.isDeleted === true,
+	deletionOperationId:
+		typeof value.deletionOperationId === 'string' ? value.deletionOperationId : null
 });
 
 export const normalizeParentKindVIds = (value: unknown): string[] => {

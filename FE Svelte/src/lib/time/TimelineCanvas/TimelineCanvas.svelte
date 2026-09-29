@@ -75,6 +75,7 @@
 	/** The root font size, read once per appearance: `getComputedStyle` per frame would flush styles. */
 	let rootFont: Readonly<{ style: string; size: string }> | null = null;
 	/** `measureText` widths by font, kept across frames; cleared when web fonts finish loading. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- a measurement cache, never read reactively
 	const widthsByFont = new Map<string, Record<string, number>>();
 	let pointer = $state(false);
 	/** Records an explicit link touches: such facts rank before other facts for the caption budget (Q1-A). */

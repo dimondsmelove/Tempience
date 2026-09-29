@@ -28,7 +28,7 @@
 <div class="grid gap-2 text-sm" data-testid="scope-kinds">
 	{#if !busy}
 		<ul class="grid gap-1" aria-label={t('scope.kinds')}>
-			{#each kinds as kind (kind.id)}
+			{#each kinds.filter((entry) => !entry.isDeleted) as kind (kind.id)}
 				<li data-testid="scope-kind" {@attach lensSource(hover, { kind: 'kind', kindId: kind.id })}>
 					{#if onopen}
 						<button

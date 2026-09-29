@@ -12,12 +12,12 @@
 		type UiSchemaRoot
 	} from '@sjsf/form';
 	import { createFormIdBuilder } from '@sjsf/form/id-builders/modern';
-	import { createFormMerger } from '@sjsf/form/mergers/modern';
 	import { resolver } from '@sjsf/form/resolvers/compat';
 	import { locale } from '$lib/state/Locale/Locale.svelte';
 	import type { TraceDraftState } from '$lib/state/TraceDraft/TraceDraft.svelte';
 	import type { JsonObject, TraceKindV } from '$lib/state/triplit/types';
-	import { formTheme, formUiSchema, formValidator } from './runtime';
+	import { formSchema } from '$lib/model/TraceForm/conditions';
+	import { formMerger, formTheme, formUiSchema, formValidator } from './runtime';
 	import { formTranslation } from './validation';
 
 	let {
@@ -30,7 +30,7 @@
 	const pinned = untrack(() => $state.snapshot(version as unknown) as TraceKindV);
 	const form = createForm<Record<string, unknown>>({
 		theme: formTheme,
-		schema: pinned.dataSchema as Schema,
+		schema: formSchema(pinned.dataSchema) as Schema,
 		uiSchema: formUiSchema(pinned) as UiSchemaRoot,
 		// The draft owns the typed values: SJSF edits them in place, so there is no second copy
 		// and internal navigation that keeps this subtree mounted keeps every intermediate input.
@@ -42,7 +42,7 @@
 			return formTranslation(locale.current);
 		},
 		resolver,
-		merger: createFormMerger,
+		merger: formMerger,
 		validator: formValidator,
 		idBuilder: createFormIdBuilder,
 		get disabled() {
@@ -73,7 +73,9 @@
 			onchangecapture: (event) => reportNative(event.currentTarget),
 			onblurcapture: (event) => {
 				reportNative(event.currentTarget);
-				draft.touch('data');
+				// Leaving a value marks the data seen; leaving a «+» does not (owner, 2026-09-29).
+				if (event.target instanceof HTMLElement && event.target.matches('input, select, textarea'))
+					draft.touch('data');
 			}
 		}}
 	>
@@ -97,6 +99,9 @@
 	.trace-data-form :global(select),
 	.trace-data-form :global(textarea) {
 		width: 100%;
+		/* The value reads at the size of its label, not the browser's control default. */
+		font: inherit;
+		font-size: 0.875rem;
 		min-width: 0;
 		padding: var(--cg-control-padding-y, 6px) var(--cg-control-padding-x, 10px);
 		color: var(--cg-text-primary);

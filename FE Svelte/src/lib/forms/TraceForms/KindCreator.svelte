@@ -2,7 +2,6 @@
 	import { errorText } from '$lib/state/Locale/errors';
 	import { untrack } from 'svelte';
 	import { t } from '$lib/state/Locale/Locale.svelte';
-	import { newTraceField } from '$lib/model/TraceForm/TraceForm';
 	import { NestedSave } from '$lib/state/TraceDraft/nested.svelte';
 	import type { TraceDraftState } from '$lib/state/TraceDraft/TraceDraft.svelte';
 	import { tempienceRepository as repository } from '$lib/state/triplit';
@@ -58,7 +57,7 @@
 	{:else}
 		<Builder
 			compact
-			initial={{ name: '', fields: [newTraceField()] }}
+			initial={{ name: '', fields: [] }}
 			scopes={draft.scopeList}
 			{memberships}
 			onsave={save}

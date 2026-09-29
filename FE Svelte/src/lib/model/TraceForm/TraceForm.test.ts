@@ -13,7 +13,7 @@ const configuredField = (kind: TraceFieldDraft['kind']): TraceFieldDraft => {
 	const field = newTraceField(kind);
 	field.label = `Поле ${kind}`;
 	if ('fields' in field) field.fields[0].label = 'Вложенный текст';
-	else if (field.options.length)
+	else if ('options' in field && field.options.length)
 		field.options.forEach((option, index) => (option.label = `Вариант ${index}`));
 	return field;
 };

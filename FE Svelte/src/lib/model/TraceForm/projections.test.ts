@@ -6,7 +6,9 @@ import { compileTraceDataSchema } from './schema';
 describe('the table projections of a schema', () => {
 	it('describes repeated rows as a dataset projection without changing Trace granularity', () => {
 		const schema = compileTraceDataSchema('Поход в магазин', receiptFields);
-		const projections = traceSchemaProjections(schema);
+		// The records' own table first (audit 2026-09-29), the list's rows after.
+		const [records, ...projections] = traceSchemaProjections(schema);
+		expect(records).toMatchObject({ id: 'trace', title: 'Записи' });
 		expect(projections).toHaveLength(1);
 		expect(projections[0]).toMatchObject({
 			id: 'repeat:tovary',

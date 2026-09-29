@@ -11,6 +11,8 @@ export type SummaryLeaf = Readonly<{
 	label: string;
 	schema: JsonObject;
 	unit?: string;
+	/** A list of rows, shown in one line (loop 013, Q8); its path reads the whole list. */
+	list?: boolean;
 }>;
 
 /** How many own values a row summary carries; the Context shows the rest. */
@@ -32,8 +34,9 @@ export const isMultilineLeaf = (ui: JsonObject): boolean =>
 
 /**
  * The leaves a row summary is made of: the first `SUMMARY_LEAVES` scalar fields of the schema
- * in its own order — the form's order where it names one — descending into groups, skipping
- * repeated items, whose values are per item, and multi-line text, which no row shows. The
+ * in its own order — the form's order where it names one — descending into groups, taking a
+ * list as one leaf, read whole and shown in one line, and skipping multi-line text, which no row
+ * shows. The
  * rule is static: the same leaves whatever a record holds, so a thin read of exactly these
  * leaves shows a record the way its full read does.
  */
@@ -58,8 +61,16 @@ export const summaryLeaves = (definition: TraceKindVDraft): SummaryLeaf[] => {
 				visit(field, fieldUi, [...path, key], fieldPointer, label);
 				continue;
 			}
-			if (field.type === 'array' && isJsonObject(field.items) && field.items.type === 'object')
+			if (field.type === 'array' && isJsonObject(field.items) && field.items.type === 'object') {
+				leaves.push({
+					path: [...path, key],
+					pointer: fieldPointer,
+					label: label.join(' / '),
+					schema: field,
+					list: true
+				});
 				continue;
+			}
 			if (isMultilineLeaf(fieldUi)) continue;
 			leaves.push({
 				path: [...path, key],

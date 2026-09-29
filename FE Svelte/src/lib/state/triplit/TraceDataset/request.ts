@@ -98,6 +98,9 @@ export const validateRequest = (request: TraceDatasetRequest): void => {
 		if (column.source === 'item' && !request.repeat) {
 			throw new Error(`Trace dataset item column ${column.key} requires repeat`);
 		}
+		if (column.source === 'parent' && !request.repeat?.path.includes('[]')) {
+			throw new Error(`Trace dataset parent column ${column.key} requires a nested repeat`);
+		}
 	}
 	if (request.repeat && !request.columns.some((column) => column.source === 'item')) {
 		throw new Error('Trace dataset repeat requires at least one item column');

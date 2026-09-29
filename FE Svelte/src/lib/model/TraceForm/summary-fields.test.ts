@@ -39,7 +39,7 @@ describe('the leaves a row summary is made of', () => {
 		]);
 	});
 
-	it('skips repeated items, whose values are per item, and stops at two', () => {
+	it('takes a list as one leaf, read whole (loop 013, Q8), and stops at two', () => {
 		const leaves = summaryLeaves({
 			dataSchema: {
 				type: 'object',
@@ -54,7 +54,10 @@ describe('the leaves a row summary is made of', () => {
 				}
 			} as JsonObject
 		});
-		expect(leaves.map((leaf) => leaf.path.join('.'))).toEqual(['tag', 'mood']);
+		expect(leaves.map((leaf) => [leaf.path.join('.'), leaf.list ?? false])).toEqual([
+			['meals', true],
+			['tag', false]
+		]);
 	});
 
 	it('names the paths a thin read selects per version, each version its own', () => {

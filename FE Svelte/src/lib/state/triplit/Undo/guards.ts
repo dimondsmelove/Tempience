@@ -31,7 +31,7 @@ const stale = (step: InverseStep, reason: string, details: Record<string, unknow
 
 const fetchRow = async (
 	transaction: Transaction,
-	collection: 'traces' | 'intersections' | 'intentionAssessments' | 'scopes',
+	collection: 'traces' | 'intersections' | 'intentionAssessments' | 'scopes' | 'traceKinds',
 	id: string,
 	step: InverseStep
 ): Promise<Entity> => {
@@ -233,6 +233,16 @@ const guardScope = async (
 	}
 };
 
+const guardTraceKind = async (
+	{ transaction, plan }: GuardContext,
+	step: InverseStep & { kind: 'traceKind.lifecycle' }
+): Promise<void> => {
+	const row = await fetchRow(transaction, 'traceKinds', step.kindId, step);
+	if (row.isDeleted !== true || row.deletionOperationId !== plan.operationId) {
+		stale(step, 'lifecycle', { deletionOperationId: row.deletionOperationId ?? null });
+	}
+};
+
 /** Every step is checked against the current rows before the first compensating write. */
 export const assertInvertible = async (context: GuardContext): Promise<void> => {
 	for (const step of context.plan.steps) {
@@ -261,6 +271,9 @@ export const assertInvertible = async (context: GuardContext): Promise<void> => 
 				break;
 			case 'scope.lifecycle':
 				await guardScope(context, step);
+				break;
+			case 'traceKind.lifecycle':
+				await guardTraceKind(context, step);
 				break;
 		}
 	}

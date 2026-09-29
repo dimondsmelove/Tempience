@@ -48,5 +48,11 @@
 	"picker.search": "Search Scopes…",
 	"picker.empty": "Nothing found",
 	"picker.taken": "Already chosen",
-	"picker.create": "Create the Scope “{{name}}”"
+	"picker.create": "Create the Scope “{{name}}”",
+	"kind.delete": "Delete the Kind",
+	"kind.deleteTitle": "Delete “{{name}}”?",
+	"kind.deleteText": "The Kind leaves the catalog and the choice of a Kind when recording. Its records stay on the timeline and in the history. The deletion can be undone.",
+	"kind.deleteConfirm": "Delete",
+	"kind.isDeleted": "This Kind is deleted: it is not in the catalog nor offered when recording.",
+	"kind.restore": "Restore"
 }

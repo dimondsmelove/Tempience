@@ -1,6 +1,9 @@
 import { insertLog } from '../Repository/log';
-import { now, requireEntity } from '../Repository/transaction';
-import type { RepositoryClient, TraceRepository } from '../Repository/types';
+import { newOperation, now, requireEntity, type Operation } from '../Repository/transaction';
+import { RepositoryError } from '../Repository/errors';
+import { logActionForDeleted } from '../operations';
+import type { LogActor, TraceKind } from '../types';
+import type { RepositoryClient, TraceRepository, Transaction } from '../Repository/types';
 import { createId, getDeviceId } from '../ids';
 import { buildFieldPatches } from '../operations';
 import { assertTraceFormDefinition } from '../trace-kind-v-validation';
@@ -15,11 +18,63 @@ import {
 
 const traceKindFields = ['currentKindVId', 'name'] as const;
 
+/** A Kind after its deletion or return, with the operation that wrote it or `null` for none. */
+export type TraceKindLifecycleResult = { kind: TraceKind; operation: Operation | null };
+
+/**
+ * Deletes a Kind softly or brings it back (owner, 2026-09-29), in the Scope's way: the Kind
+ * leaves every choice of a Kind, its versions and records stay; the Log keeps the operation,
+ * so the deletion is undone like any other, and a return is refused once another deletion
+ * has taken its place.
+ */
+export const setTraceKindDeletedInTransaction = async (
+	transaction: Transaction,
+	id: string,
+	isDeleted: boolean,
+	actor: LogActor,
+	operation: Operation = newOperation(),
+	expectedDeletionOperationId: string | null = null
+): Promise<TraceKindLifecycleResult> => {
+	const before = await requireEntity(transaction, 'traceKinds', id);
+	if (
+		expectedDeletionOperationId !== null &&
+		(before.isDeleted !== true || before.deletionOperationId !== expectedDeletionOperationId)
+	) {
+		throw new RepositoryError('undo_stale', 'Trace Kind изменился после отменяемого удаления.', {
+			reason: 'traceKind',
+			kindId: id,
+			deletionOperationId: before.deletionOperationId ?? null
+		});
+	}
+	if (Boolean(before.isDeleted) === isDeleted) {
+		return { kind: normalizeTraceKind(before), operation: null };
+	}
+	const patch = {
+		isDeleted,
+		updatedAt: operation.timestamp,
+		deletionOperationId: isDeleted ? operation.id : null
+	};
+	const after = { ...before, ...patch };
+	await transaction.update('traceKinds', id, patch);
+	await insertLog(transaction, {
+		operationId: operation.id,
+		occurredAt: operation.timestamp,
+		entityType: 'traceKind',
+		entityId: id,
+		action: logActionForDeleted(isDeleted),
+		patch: buildFieldPatches(before, after, ['isDeleted', 'deletionOperationId']),
+		actor,
+		cause: operation.cause ?? (isDeleted ? 'normal' : 'restore')
+	});
+	return { kind: normalizeTraceKind(after), operation };
+};
+
 export const createKindRepository = (
 	client: RepositoryClient
 ): Pick<
 	TraceRepository,
 	| 'editTraceKind'
+	| 'setTraceKindDeleted'
 	| 'ensureTraceKind'
 	| 'createTraceKind'
 	| 'createTraceKindV'
@@ -27,6 +82,10 @@ export const createKindRepository = (
 	| 'listTraceKindVersions'
 	| 'listTraceKindVersionHeads'
 > => ({
+	setTraceKindDeleted: async (id, isDeleted, actor = 'user') =>
+		client.transact((transaction) =>
+			setTraceKindDeletedInTransaction(transaction, id, isDeleted, actor)
+		),
 	// A rename and the memberships the user chose commit together; an untouched selection
 	// is not sent, so a Kind a Scope deletion left unscoped keeps its pending restore.
 	editTraceKind: async (id, patch, actor = 'user') => {

@@ -132,8 +132,10 @@ const messageOf = (error: ErrorObject): string => {
 
 /** AJV's own English replaced by the interface's keys before SJSF reads the messages. */
 export const localizeValidation = (errors: ErrorObject[]): ErrorObject[] => {
-	for (const error of errors) error.message = messageOf(error);
-	return errors;
+	// A failed `if` only repeats the error of its `then`, which names the field itself.
+	const own = errors.filter((error) => error.keyword !== 'if');
+	for (const error of own) error.message = messageOf(error);
+	return own;
 };
 
 /** SJSF's own words (array and object actions, the submit) in the interface language. */

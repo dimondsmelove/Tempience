@@ -39,6 +39,13 @@ export type TraceDatasetColumn =
 			source: 'item';
 			path: readonly string[];
 			expectedType: TraceDatasetValueType;
+	  }
+	| {
+			/** A value of the row's enclosing item: the exercise of a set (loop 013, Q9). */
+			key: string;
+			source: 'parent';
+			path: readonly string[];
+			expectedType: TraceDatasetValueType;
 	  };
 
 export type TraceDatasetRepeat = {
@@ -176,7 +183,7 @@ export type ScopeHierarchyEdge = {
 };
 
 export type DataRequirement = {
-	source: 'data' | 'item';
+	source: 'data' | 'item' | 'parent';
 	path: readonly string[];
 	expectedType: TraceDatasetValueType;
 };

@@ -66,6 +66,9 @@ export function compileScalarField(
 				node.type = 'array';
 				node.uniqueItems = true;
 				node.items = { type: 'string', oneOf };
+				// Required means at least one option: an empty list would pass `required` alone.
+				if (field.required) node.minItems = 1;
+				else delete node.minItems;
 			}
 			break;
 		}

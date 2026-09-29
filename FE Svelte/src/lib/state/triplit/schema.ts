@@ -12,7 +12,10 @@ export const schema = S.Collections({
 			name: S.String(),
 			currentKindVId: S.String(),
 			createdAt: S.String(),
-			updatedAt: S.String()
+			updatedAt: S.String(),
+			// A Kind deleted softly (owner, 2026-09-29): absent on Kinds stored before, read as kept.
+			isDeleted: S.Optional(S.Boolean()),
+			deletionOperationId: S.Optional(S.String())
 		})
 	},
 	traceKindVersions: {

@@ -48,5 +48,11 @@
 	"picker.search": "Поиск Scope…",
 	"picker.empty": "Ничего не найдено",
 	"picker.taken": "Уже выбран",
-	"picker.create": "Создать Scope «{{name}}»"
+	"picker.create": "Создать Scope «{{name}}»",
+	"kind.delete": "Удалить Trace Kind",
+	"kind.deleteTitle": "Удалить «{{name}}»?",
+	"kind.deleteText": "Trace Kind исчезнет из каталога и из выбора при записи. Его записи останутся в ленте и в истории. Удаление можно отменить.",
+	"kind.deleteConfirm": "Удалить",
+	"kind.isDeleted": "Этот Trace Kind удалён: его нет в каталоге и в выборе при записи.",
+	"kind.restore": "Восстановить"
 }

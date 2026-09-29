@@ -3,11 +3,21 @@ import { createId } from '$lib/state/triplit/ids';
 import { isJsonObject } from '$lib/state/triplit/trace-kind-v-validation';
 import type { JsonObject, TraceKindVDraft } from '$lib/state/triplit/types';
 import { pointerKey } from './schema';
-import type { TraceChoiceDraft, TraceFieldDraft, TraceFormDraft } from './types';
+import { readConditions } from './conditions';
+import { collapseVariants } from './variants';
+import type {
+	TraceChoiceDraft,
+	TraceFieldDraft,
+	TraceFormDraft,
+	TraceVariantDraft,
+	TraceWorkoutMeta
+} from './types';
 export * from './types';
 export * from './schema';
 export * from './keys';
 export * from './projections';
+export * from './conditions';
+export * from './variants';
 
 const newKey = (prefix: string) => `${prefix}_${createId().replace(/-/g, '')}`;
 export const newChoice = (label = ''): TraceChoiceDraft => {
@@ -15,10 +25,27 @@ export const newChoice = (label = ''): TraceChoiceDraft => {
 	return { id: key, key, label };
 };
 
+/** A new variant of a row, without fields yet. */
+export const newVariant = (label = ''): TraceVariantDraft => {
+	const key = newKey('option');
+	return { id: key, key, label, fields: [] };
+};
+
 export function newTraceField(kind: TraceFieldDraft['kind'] = 'text'): TraceFieldDraft {
 	const key = newKey('field');
 	const base = { id: key, key, kind, label: '', required: true };
 	if (kind === 'group' || kind === 'repeating') return { ...base, kind, fields: [newTraceField()] };
+	if (kind === 'variants') {
+		const choiceKey = newKey('field');
+		return {
+			...base,
+			kind,
+			choiceLabel: '',
+			choiceId: choiceKey,
+			choiceKey,
+			variants: [newVariant()]
+		};
+	}
 	return {
 		...base,
 		kind,
@@ -37,9 +64,26 @@ const unsupported = (label: string): never => {
 export function decodeTraceForm(name: string, definition: TraceKindVDraft): TraceFormDraft {
 	const decodeFields = (schema: JsonObject, ui: JsonObject, pointer: string): TraceFieldDraft[] => {
 		if (schema.type !== 'object' || !isJsonObject(schema.properties)) unsupported(name);
-		assertSupported(schema, name);
+		// Conditions of the level are the one `allOf` the builder reads; any other is foreign.
+		const conditions = readConditions(schema) ?? unsupported(name);
+		const level = { ...schema };
+		delete level.allOf;
+		assertSupported(level, name);
 		const properties = schema.properties as JsonObject;
-		const required = Array.isArray(schema.required) ? schema.required : [];
+		const required = [
+			...(Array.isArray(schema.required) ? schema.required : []),
+			...conditions.flatMap((condition) => condition.required)
+		];
+		const idOf = (key: string) => `${pointer}/properties/${pointerKey(key)}`;
+		/** An option with the fields it shows, when the choice decides any. */
+		const withShows = (key: string, option: TraceChoiceDraft): TraceChoiceDraft => {
+			const shown = conditions
+				.filter((condition) => condition.controller === key && condition.value === option.key)
+				.flatMap((condition) => condition.shown);
+			return conditions.some((condition) => condition.controller === key)
+				? { ...option, shows: shown.map(idOf) }
+				: option;
+		};
 		const configuredOrder = object(ui['ui:options']).order;
 		const order = Array.isArray(configuredOrder)
 			? configuredOrder.filter(
@@ -96,7 +140,7 @@ export function decodeTraceForm(name: string, definition: TraceKindVDraft): Trac
 				kind,
 				unit: unit?.label ?? '',
 				unitId: unit?.id,
-				options: options ?? [],
+				options: (options ?? []).map((option) => withShows(key, option)),
 				minimum: typeof node.minimum === 'number' ? node.minimum : undefined,
 				maximum: typeof node.maximum === 'number' ? node.maximum : undefined,
 				minLength: typeof node.minLength === 'number' ? node.minLength : undefined,
@@ -107,8 +151,9 @@ export function decodeTraceForm(name: string, definition: TraceKindVDraft): Trac
 	};
 	return {
 		name,
-		fields: decodeFields(definition.dataSchema, definition.uiSchema ?? {}, ''),
-		original: structuredClone(definition)
+		fields: collapseVariants(decodeFields(definition.dataSchema, definition.uiSchema ?? {}, '')),
+		original: structuredClone(definition),
+		...workoutMetaOf(definition)
 	};
 }
 
@@ -167,4 +212,19 @@ function readOptions(node: JsonObject): TraceChoiceDraft[] | null {
 			label: String(item.title ?? item.const)
 		};
 	});
+}
+
+/** The workout template a version was made from, when its layout keeps one. */
+function workoutMetaOf(definition: TraceKindVDraft): { template?: TraceWorkoutMeta } {
+	const template = object(object(definition.uiSchema?.['ui:options']).template);
+	if (template.id !== 'workout' || !isJsonObject(template.exercises)) return {};
+	const exercises: TraceWorkoutMeta['exercises'] = {};
+	for (const [id, entry] of Object.entries(template.exercises)) {
+		if (!isJsonObject(entry) || typeof entry.way !== 'string') continue;
+		const extras = Array.isArray(entry.extras)
+			? entry.extras.filter((extra): extra is string => typeof extra === 'string')
+			: [];
+		exercises[id] = { way: entry.way, extras };
+	}
+	return { template: { id: 'workout', exercises } };
 }

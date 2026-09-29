@@ -1,3 +1,4 @@
+import type { TraceKindLifecycleResult } from '../Kinds/Kinds';
 import type { Chapter } from '$lib/model/Chapters/types';
 import type { ChapterRepository } from '../Chapters/types';
 import type { ScopeCaptureRepository } from '../scope-capture-repository';
@@ -188,6 +189,11 @@ export type TraceRepository = ChapterRepository & {
 		isDeleted: boolean,
 		actor?: LogActor
 	) => Promise<ScopeLifecycleResult>;
+	setTraceKindDeleted: (
+		id: string,
+		isDeleted: boolean,
+		actor?: LogActor
+	) => Promise<TraceKindLifecycleResult>;
 	setScopeParent: (
 		childScopeId: string,
 		parentScopeId: string | null,

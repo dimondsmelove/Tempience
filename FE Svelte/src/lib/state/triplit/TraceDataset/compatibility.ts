@@ -1,6 +1,6 @@
 import { isJsonObject } from '../trace-kind-v-validation';
 import type { JsonObject } from '../types';
-import { pathKey } from './helpers';
+import { parentItemPath, pathKey } from './helpers';
 import { dataRequirements } from './request';
 import type {
 	DataRequirement,
@@ -47,7 +47,9 @@ const repeatedItemSchema = (schema: JsonObject, repeat: TraceDatasetRepeat): Jso
 const requirementPath = (request: TraceDatasetRequest, requirement: DataRequirement): string[] =>
 	requirement.source === 'item' && request.repeat
 		? [...request.repeat.path, '[]', ...requirement.path]
-		: [...requirement.path];
+		: requirement.source === 'parent' && request.repeat
+			? [...parentItemPath(request.repeat.path), ...requirement.path]
+			: [...requirement.path];
 
 const declaredTypes = (node: JsonObject): string[] | null => {
 	if (node.type === 'array' && isJsonObject(node.items) && node.items.type === 'string')
@@ -96,7 +98,9 @@ export const traceDatasetCompatibilityIssues = (
 			const baseSchema =
 				requirement.source === 'item' && request.repeat
 					? repeatedItemSchema(kindV.dataSchema, request.repeat)
-					: kindV.dataSchema;
+					: requirement.source === 'parent' && request.repeat
+						? schemaNodeAtPath(kindV.dataSchema, parentItemPath(request.repeat.path))
+						: kindV.dataSchema;
 			const node = baseSchema ? schemaNodeAtPath(baseSchema, requirement.path) : null;
 			// A field added in a later version has no value in earlier traces.
 			if (!node) continue;

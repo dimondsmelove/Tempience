@@ -106,9 +106,16 @@ export class TraceDraftState {
 	readonly kindVersions = $derived(this.versions.filter((entry) => entry.kindId === this.kindId));
 	readonly selectedScopeIds = $derived(selectedScopes(this.scopes));
 	readonly nestedDirty = $derived(this.nestedInput?.() ?? false);
+	/**
+	 * The Kinds a record may choose: a deleted Kind is offered no more (owner, 2026-09-29),
+	 * except to the record already written by it, which keeps showing its own Kind.
+	 */
+	readonly offeredKinds = $derived(
+		this.kinds.filter((entry) => !entry.isDeleted || entry.id === this.kindId)
+	);
 	/** Kinds directly bound to a selected Scope: the scoped picks; the whole catalog stays offered. */
 	readonly scopedKinds = $derived(
-		kindsInScopes(this.kinds, this.kindScopes, this.selectedScopeIds)
+		kindsInScopes(this.offeredKinds, this.kindScopes, this.selectedScopeIds)
 	);
 	/** The final values the dirty comparison, the issues and the save read. */
 	readonly values: DraftValues = $derived.by(() => currentValues(this));
@@ -212,10 +219,11 @@ export class TraceDraftState {
 	 * The current values, detached from the form's state. The typed data goes through the
 	 * JSON reading: it keeps every own key of the document, which a key-by-key copy would
 	 * not (`__proto__` is a legal JSON name); an unreadable value stays as the form holds it.
+	 * It is the data of the values: without what the chosen options hide (loop 013, Q6).
 	 */
 	private freeze(): DraftValues {
 		const frozen = $state.snapshot(this.values) as DraftValues;
-		const json = this.typed ? jsonData(this.data) : null;
+		const json = this.typed ? jsonData(this.values.data) : null;
 		return json?.ok ? { ...frozen, data: json.value } : frozen;
 	}
 

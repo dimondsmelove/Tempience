@@ -16,6 +16,7 @@ import { traceSchemaProjections } from '$lib/model/TraceForm/projections';
 import { isJsonObject, schemaFieldAtPointer } from '$lib/state/triplit/trace-kind-v-validation';
 import { formatFormValue } from '$lib/model/TraceForm/display';
 import { formatTemporalValue } from '$lib/state/triplit/trace-time';
+import { parentItemPath } from '$lib/state/triplit/TraceDataset/helpers';
 import type { FilterField } from './types';
 
 function fieldPointer(
@@ -26,7 +27,9 @@ function fieldPointer(
 	const path =
 		field.column.source === 'item'
 			? [...(projection.repeat?.path ?? []), '[]', ...field.column.path]
-			: field.column.path;
+			: field.column.source === 'parent'
+				? [...parentItemPath(projection.repeat?.path ?? []), ...field.column.path]
+				: field.column.path;
 	return path.map((key) => (key === '[]' ? '/items' : `/properties/${pointerKey(key)}`)).join('');
 }
 

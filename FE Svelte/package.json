@@ -1,7 +1,7 @@
 {
 	"name": "chronograph-svelte",
 	"private": true,
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -69,9 +69,9 @@
 		"@dayflow/blossom-color-picker": "2.3.0",
 		"@fontsource/commissioner": "^5.3.0",
 		"@fontsource/geist-mono": "^5.3.0",
-		"@sjsf/ajv8-validator": "3.8.1",
-		"@sjsf/basic-theme": "3.8.1",
-		"@sjsf/form": "3.8.1",
+		"@sjsf/ajv8-validator": "3.8.2",
+		"@sjsf/basic-theme": "3.8.2",
+		"@sjsf/form": "3.8.2",
 		"@triplit/client": "^1.0.50",
 		"ajv": "8.20.0",
 		"ajv-formats": "3.0.1",

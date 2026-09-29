@@ -16,6 +16,7 @@ import type {
 	TraceRepository,
 	Transaction
 } from '../Repository/types';
+import { setTraceKindDeletedInTransaction } from '../Kinds/Kinds';
 import { setScopeDeletedInTransaction } from '../Scopes/Scopes';
 import { editTraceInTransaction, setTraceDeletedInTransaction } from '../Traces/edit';
 import { assertSupplementIntegrity } from '../Traces/supplement';
@@ -37,6 +38,7 @@ const rank = (step: InverseStep): number => {
 		case 'trace.lifecycle':
 			return restores ? 0 : 11;
 		case 'scope.lifecycle':
+		case 'traceKind.lifecycle':
 			return 1;
 		case 'link.lifecycle':
 			return restores ? 2 : 7;
@@ -196,6 +198,16 @@ const compensate = async (
 				undone
 			);
 			return;
+		case 'traceKind.lifecycle':
+			await setTraceKindDeletedInTransaction(
+				transaction,
+				step.kindId,
+				false,
+				actor,
+				operation,
+				undone
+			);
+			return;
 		case 'link.lifecycle':
 			await setIntersectionDeletedInTransaction(
 				transaction,
@@ -272,7 +284,9 @@ export const planRows = (plan: InversePlan): { collection: Collection; id: strin
 				? { collection: 'intersections', id: step.linkId }
 				: 'assessmentId' in step
 					? { collection: 'intentionAssessments', id: step.assessmentId }
-					: { collection: 'scopes', id: step.scopeId }
+					: 'kindId' in step
+						? { collection: 'traceKinds', id: step.kindId }
+						: { collection: 'scopes', id: step.scopeId }
 	);
 
 export const createUndoRepository = (

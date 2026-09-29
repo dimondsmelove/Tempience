@@ -1,4 +1,5 @@
 <script lang="ts">
+	import KindDelete from './KindDelete/KindDelete.svelte';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { onMount, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
@@ -10,7 +11,7 @@
 	import type { MessageKey } from '$lib/state/Locale/types';
 	import { tempienceRepository as repository, findTraceKindVersionHeads } from '$lib/state/triplit';
 	import type { Scope, TraceKind, TraceKindV } from '$lib/state/triplit/types';
-	import { decodeTraceForm, newTraceField } from '$lib/model/TraceForm/TraceForm';
+	import { decodeTraceForm } from '$lib/model/TraceForm/TraceForm';
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import KindHistory from '$lib/forms/TraceDataset/KindHistory.svelte';
 	import { KindHistoryState } from '$lib/state/KindHistory/KindHistory.svelte';
@@ -43,8 +44,10 @@
 	let query = $state('');
 	let kinds = $state.raw<TraceKind[]>([]);
 	const filteredKinds = $derived(
-		kinds.filter((entry) =>
-			entry.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+		kinds.filter(
+			(entry) =>
+				!entry.isDeleted &&
+				entry.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
 		)
 	);
 	function chooseKind(id?: string) {
@@ -66,6 +69,15 @@
 	let failure = $state.raw<unknown>(null);
 	/** What the catalog says after a save, as a key of the catalogs. */
 	let message = $state<MessageKey | ''>('');
+	let undoFailure = $state.raw<unknown>(null);
+	const restoreKind = async (id: string): Promise<void> => {
+		undoFailure = null;
+		try {
+			await repository.setTraceKindDeleted(id, false);
+		} catch (cause) {
+			undoFailure = cause ?? new Error();
+		}
+	};
 	// The standalone page opens on the Kind's table; the embedded catalog on its overview.
 	let tab = $state<(typeof FORM_TABS)[number]['id'] | 'overview'>(
 		untrack(() => ondata) ? 'overview' : 'table'
@@ -174,6 +186,17 @@
 			{kind?.name ?? (creating ? t('forms.newKind') : t('forms.catalog'))}
 		</h1>
 		{#if failure !== null}<p role="alert">{errorText(failure)}</p>{/if}
+		{#if kind?.isDeleted}
+			<p
+				class="mb-4 flex flex-wrap items-center gap-2 text-sm"
+				role="status"
+				data-testid="kind-is-deleted"
+			>
+				{t('kind.isDeleted')}
+				<Button size="sm" onclick={() => kind && restoreKind(kind.id)}>{t('kind.restore')}</Button>
+			</p>
+		{/if}
+		{#if undoFailure !== null}<p role="alert">{errorText(undoFailure)}</p>{/if}
 		{#if loading}<p class="text-muted">{t('forms.loading')}</p>
 		{:else if kindId && !kind}<p role="alert">{t('forms.notFound')}</p>
 		{:else if kind}
@@ -215,20 +238,24 @@
 					>
 					<Button
 						variant="primary"
-						disabled={!selected}
+						disabled={!selected || kind.isDeleted}
 						onclick={() => selected && oncapture?.(kind!.id, selected.id)}
 						>{t('forms.record')}</Button
 					>
 					<Button disabled={!selected} onclick={() => (tab = 'builder')}
 						>{t('forms.editForm')}</Button
 					>
+					{#if !kind.isDeleted}<KindDelete {kind} />{/if}
 				{:else}
-					<Button variant="primary" disabled={!selected} onclick={fill}>{t(FILL_KEY)}</Button>
+					<Button variant="primary" disabled={!selected || kind.isDeleted} onclick={fill}
+						>{t(FILL_KEY)}</Button
+					>
 					{#each FORM_TABS as entry (entry.id)}<Button
 							variant={tab === entry.id ? 'primary' : 'default'}
 							aria-pressed={tab === entry.id}
 							onclick={() => (tab = entry.id)}>{t(entry.label)}</Button
 						>{/each}
+					{#if !kind.isDeleted}<KindDelete {kind} />{/if}
 				{/if}
 			</div>
 			{#if selected}
@@ -262,7 +289,7 @@
 				>{/if}
 			{#if creating}<KindAuthoring
 					compact={embedded}
-					initial={{ name: '', fields: [newTraceField()] }}
+					initial={{ name: '', fields: [] }}
 					{scopes}
 					{memberships}
 					newScopes={newKindScopes}
