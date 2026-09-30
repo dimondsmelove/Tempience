@@ -1,4 +1,5 @@
 import { endOf } from './Chapters';
+import { STRIP_OPEN_DAYS } from './constants';
 import { ms } from './time';
 import type { Chapter, Stage, StagePick, StageWindow } from './types';
 
@@ -56,19 +57,13 @@ export const removeStage = (chapter: Chapter, stageId: string): Chapter => {
 };
 
 /**
- * The rail header's ‹ › under the chapter: the pick one step before or after the stage in force
- * (none — the whole chapter), in the order of the Context strip: «Вся глава», then the stages in
- * time. Undefined at either end: the steps do not leave the chapter.
+ * Where a chapter's stage strip ends: the chapter's end, or — while it is open — a few days past
+ * «сейчас» and its last stage, so the open stage has room for «сейчас» inside it.
  */
-export const stageStep = (
-	chapter: Chapter,
-	inForce: Stage | null,
-	delta: -1 | 1
-): Exclude<StagePick, null> | undefined => {
-	const steps = ['whole', ...chapter.stages.toSorted(byStart).map((stage) => stage.id)];
-	const index = steps.indexOf(inForce?.id ?? 'whole');
-	return index < 0 ? undefined : steps[index + delta];
-};
+export const stripEndOf = (chapter: Chapter, now: number): number =>
+	endOf(chapter) ??
+	Math.max(now, ms(chapter.start), ...chapter.stages.map((stage) => ms(stage.start))) +
+		STRIP_OPEN_DAYS * 86_400_000;
 
 /**
  * The stage in force for a pick: none for the whole chapter, the chosen one, or — with nothing

@@ -12,6 +12,3 @@ export const CHAPTER_SECTIONS = [
 export type ChapterSection = (typeof CHAPTER_SECTIONS)[number]['id'];
 
 export const CHAPTER_SECTIONS_STORAGE_KEY = 'tempience.context.chapter-sections.v1';
-
-/** An open chapter's strip runs this many days past «сейчас» and its last stage. */
-export const STRIP_OPEN_DAYS = 7;

@@ -1,6 +1,6 @@
 /** The chapter row above the axis: names on top, stages under them. */
-export const BAND_HEIGHT_PX = 38;
-export const BAND_NAME_HEIGHT_PX = 22;
+export const BAND_HEIGHT_PX = 46;
+export const BAND_NAME_HEIGHT_PX = 25;
 
 /** Label room: 6 px on each side of the text; the «+» keeps the band's right end for itself. */
 export const LABEL_PAD_PX = 12;

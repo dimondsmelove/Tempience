@@ -210,7 +210,10 @@ describe('demo story: Anya — structure', () => {
 		for (const chapter of ANYA_CHAPTERS) {
 			add(chapter.nameKey);
 			add(chapter.noteKey);
-			for (const stage of chapter.stages) add(stage.nameKey);
+			for (const stage of chapter.stages) {
+				add(stage.nameKey);
+				add(stage.noteKey);
+			}
 		}
 		for (const trace_ of ANYA_TRACES) {
 			add(trace_.contentKey);
@@ -272,6 +275,8 @@ describe('demo story: Anya — time policy', () => {
 
 describe('demo story: Anya — chapters and texts', () => {
 	it('chapters follow one another from the first record; only stages divide them, the last stays open', () => {
+		for (const chapter of ANYA_CHAPTERS)
+			for (const stage of chapter.stages) expect(stage.noteKey, stage.nameKey).toBeDefined();
 		const starts = ANYA_CHAPTERS.map((chapter) => chapter.start);
 		expect(starts).toEqual(starts.toSorted());
 		expect(new Set(starts).size).toBe(starts.length);

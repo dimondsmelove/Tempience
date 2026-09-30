@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
-	import { freeMidnight, msToIso, stageStep } from '$lib/model/Chapters';
-	import type { StagePick } from '$lib/model/Chapters';
-	import { t } from '$lib/state/Locale/Locale.svelte';
+	import StageStrip from '$lib/context/StageStrip/StageStrip.svelte';
+	import {
+		formatSpan,
+		freeMidnight,
+		msToIso,
+		stageAt,
+		stageWindows,
+		stripEndOf
+	} from '$lib/model/Chapters';
+	import type { StagePick, StageWindow } from '$lib/model/Chapters';
+	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import { chapterColour } from '$lib/theme/chapter-colour';
 	import Button from '$lib/ui/Button/Button.svelte';
@@ -16,23 +24,21 @@
 	const previous = $derived(index > 0 ? chapters[index - 1] : null);
 	const next = $derived(index >= 0 && index < chapters.length - 1 ? chapters[index + 1] : null);
 	const current = $derived(store.current);
-	/** The stage row walks «Вся глава» and the stages of the driving chapter, never out of it. */
-	const stageBefore = $derived(driver ? stageStep(driver.chapter, driver.stage, -1) : undefined);
-	const stageAfter = $derived(driver ? stageStep(driver.chapter, driver.stage, 1) : undefined);
-	const stageName = $derived(driver?.stage?.name ?? t('chapter.whole'));
-	const nameOf = (pick: StagePick | undefined): string | undefined =>
-		pick === 'whole'
-			? t('chapter.whole')
-			: (driver?.chapter.stages.find((stage) => stage.id === pick)?.name ?? undefined);
+	/** The lower line is the Context's strip, compact: the stages of the driving chapter. */
+	const windows = $derived(driver ? stageWindows(driver.chapter) : []);
+	const nowId = $derived(driver ? (stageAt(driver.chapter, store.now)?.id ?? null) : null);
+	const stripEnd = $derived(driver ? stripEndOf(driver.chapter, store.now) : store.now);
+	const spanOf = (item: StageWindow): string =>
+		formatSpan(item.start, item.end, store.timeZone, locale.current, store.now);
 	const go = (chapterId: string): void => workbench.selectChapter(chapterId);
-	const goStage = (pick: StagePick | undefined): void => {
-		if (driver && pick) workbench.selectChapter(driver.chapter.id, pick);
+	const choose = (pick: StagePick): void => {
+		if (driver) workbench.selectChapter(driver.chapter.id, pick);
 	};
 </script>
 
 <!-- The band row's own header in the rail, two lines (owner 2026-09-29): the chapter that drives
-     the rows with ‹ › to its neighbours and «сейчас» back to the current chapter; under it, when
-     the chapter has stages, the stage in force with ‹ › through «Вся глава» and the stages. -->
+     the rows with ‹ › to its neighbours and «сейчас» back to the current chapter — its name is
+     the whole chapter; under it, when the chapter has stages, the Context's strip of stages. -->
 {#if driver}
 	<div
 		class="head"
@@ -87,44 +93,20 @@
 				onclick={() => next && go(next.id)}><ChevronRightOutline class="h-3.5 w-3.5" /></Button
 			>
 		</div>
-		{#if driver.chapter.stages.length}
-			<div class="line">
-				<Button
-					size="sm"
-					variant="quiet"
-					icon
-					class="shrink-0"
-					aria-label={t('chapter.previousStage')}
-					title={nameOf(stageBefore)}
-					disabled={!stageBefore}
-					data-testid="stage-prev"
-					onclick={() => goStage(stageBefore)}><ChevronLeftOutline class="h-3.5 w-3.5" /></Button
-				>
-				<button
-					type="button"
-					class="name"
-					title={stageName}
-					aria-label={t('chapter.stageOnRibbon', { name: stageName })}
-					data-testid="chapter-current-stage-button"
-					onclick={() => {
-						workbench.selectChapter(driver.chapter.id, driver.stage?.id ?? 'whole', true);
-						onopen();
-					}}
-				>
-					<span class="stage" data-testid="chapter-current-stage">{stageName}</span>
-				</button>
-				<Button
-					size="sm"
-					variant="quiet"
-					icon
-					class="shrink-0"
-					aria-label={t('chapter.nextStage')}
-					title={nameOf(stageAfter)}
-					disabled={!stageAfter}
-					data-testid="stage-next"
-					onclick={() => goStage(stageAfter)}><ChevronRightOutline class="h-3.5 w-3.5" /></Button
-				>
-			</div>
+		{#if windows.length}
+			<StageStrip
+				{windows}
+				inForceId={driver.stage?.id ?? null}
+				{nowId}
+				now={store.now}
+				{stripEnd}
+				colour={chapterColour(driver.chapter)}
+				{spanOf}
+				onchoose={choose}
+				compact
+				testIdPrefix="rail-"
+				whole={false}
+			/>
 		{/if}
 	</div>
 {:else if chapters.length}
@@ -157,6 +139,9 @@
 		min-width: 0;
 		height: 100%;
 		padding: 2px 4px 2px 6px;
+		/* Two lines inside the band's 46 px: the controls here are 22 px tall. */
+		--cg-control-height-sm: 22px;
+		--cg-control-padding-y: 0px;
 		background: color-mix(in oklab, var(--chapter) 10%, transparent);
 		box-shadow: inset 3px 0 0 var(--chapter);
 		font-family: var(--cg-font-sans);
@@ -180,7 +165,7 @@
 		min-width: 0;
 		align-items: center;
 		gap: 6px;
-		height: 26px;
+		height: 22px;
 		padding: 0 6px;
 		border: 0;
 		border-radius: var(--cg-radius-control);
@@ -209,15 +194,10 @@
 		text-overflow: ellipsis;
 		font-weight: 600;
 	}
-	.stage {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		color: var(--cg-text-muted);
-	}
 	.now {
 		flex: none;
-		height: 22px;
+		height: 18px;
+		line-height: 14px;
 		padding: 0 6px;
 		border: 1px solid var(--cg-border-default);
 		border-radius: var(--cg-radius-control);

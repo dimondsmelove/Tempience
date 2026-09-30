@@ -35,10 +35,13 @@ export class ViewportState {
 	follow = $state(false);
 	readonly limits: ViewportLimits;
 	readonly #now: () => number;
+	/** Where «сейчас» stands while following, as a share of the width. */
+	readonly #followRatio: number;
 
 	constructor(initial: TimeWindow, options: ViewportOptions = {}) {
 		this.limits = { ...DEFAULT_LIMITS, ...options.limits };
 		this.#now = options.now ?? (() => Date.now());
+		this.#followRatio = options.followNowRatio ?? FOLLOW_NOW_RATIO;
 		this.#camera = new Tween(clampWindow(initial, this.limits), { easing: cubicOut });
 	}
 
@@ -119,7 +122,7 @@ export class ViewportState {
 	setSpanDays(days: number): void {
 		const spanMs = days * DAY_MS;
 		if (this.follow) {
-			this.move(followWindow(this.now, spanMs, FOLLOW_NOW_RATIO));
+			this.move(followWindow(this.now, spanMs, this.#followRatio));
 			return;
 		}
 		const centre = Math.min((this.target.start + this.target.end) / 2, this.now);
@@ -154,7 +157,7 @@ export class ViewportState {
 
 	startFollow(): void {
 		this.follow = true;
-		this.move(followWindow(this.now, spanOf(this.target), FOLLOW_NOW_RATIO));
+		this.move(followWindow(this.now, spanOf(this.target), this.#followRatio));
 	}
 
 	stopFollow(): void {
@@ -169,7 +172,7 @@ export class ViewportState {
 	/** Moves the window so «сейчас» stays at its ratio; a no-op unless following. */
 	tick(now: number = this.now): void {
 		if (!this.follow || this.moving) return;
-		this.set(followWindow(now, this.spanMs, FOLLOW_NOW_RATIO));
+		this.set(followWindow(now, this.spanMs, this.#followRatio));
 	}
 
 	timeAtPx(px: number, widthPx: number): number {

@@ -2,10 +2,9 @@ import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { StageWindow } from '$lib/model/Chapters/types';
 import StageStrip from './StageStrip.svelte';
-import { growOf, nowIn } from './strip';
+import { nowIn } from './strip';
 import type { StageStripProps } from './types';
 
-const DAY = 86_400_000;
 const at = (day: number): number => Date.UTC(2026, 8, day);
 const window = (id: string, start: number, end: number | null): StageWindow => ({
 	stage: { id, name: id, note: '', start: new Date(start).toISOString(), lineup: null },
@@ -30,9 +29,9 @@ describe('the stage strip', () => {
 		expect(nowIn(windows[1], at(15), at(22))).toBeCloseTo(50);
 		expect(nowIn(windows[0], at(15), at(22))).toBeNull();
 	});
-	it('makes a segment as wide as its days, never nothing', () => {
-		expect(growOf(windows[0], at(22))).toBe(7);
-		expect(growOf(window('x', at(1), at(1) + DAY / 100), at(22))).toBe(0.1);
+	it('gives every segment one width, whatever its time', () => {
+		const { body } = render(StageStrip, { props: props() });
+		expect(body).not.toContain('flex-grow');
 	});
 	it('presses the stage in force and draws «сейчас» in it', () => {
 		const { body } = render(StageStrip, { props: props() });

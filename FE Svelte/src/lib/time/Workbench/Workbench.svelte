@@ -434,7 +434,8 @@
 {/snippet}
 
 {#snippet firstChapter()}
-	<!-- No chapter yet: the band's «+» alone, at the end of the overview, so no row is taken. -->
+	<!-- No chapter yet: the band's «+» alone, in a thin row over the axis (the desktop overview
+	     that held it is gone). -->
 	<ChapterAdd onclick={startChapter} />
 {/snippet}
 
@@ -463,7 +464,7 @@
 			? { off: chapters.rowsOff, ontoggle: () => chapters.toggleRows() }
 			: null}
 		animateMoves={chapters.moving}
-		headerBand={bandPx ? { heightPx: bandPx + OVERVIEW_HEIGHT_PX, content: currentChapter } : null}
+		headerBand={bandPx ? { heightPx: bandPx, content: currentChapter } : null}
 		{veil}
 		pulseRowIds={workbench.pulseSet.rowIds}
 		onhoverrow={(rowId) => (rowId ? workbench.hover.row(rowId) : workbench.hover.clear())}
@@ -496,7 +497,7 @@
 	data-status={workbench.status}
 	style:--time-header-height={interaction
 		? `${axisHeaderHeight}px`
-		: `max(calc(var(--cg-axis-height) + ${phone ? 44 : OVERVIEW_HEIGHT_PX}px + var(--cg-border-width) + ${bandPx}px), ${!compact && railOpen ? railHeaderHeight + 1 : 0}px)`}
+		: `max(calc(var(--cg-axis-height) + ${phone ? 44 : chaptered ? 0 : OVERVIEW_HEIGHT_PX}px + var(--cg-border-width) + ${bandPx}px), ${!compact && railOpen ? railHeaderHeight + 1 : 0}px)`}
 	style:grid-template-columns={!compact && contextOpen
 		? `minmax(0, 1fr) ${widths.context}px`
 		: 'minmax(0, 1fr)'}
@@ -582,17 +583,30 @@
 						bind:clientHeight={axisHeaderHeight}
 					>
 						{#if interaction}{@render interaction.header()}{:else}
-							<Overview
-								{phone}
-								canReveal={Boolean(workbench.selectedRange)}
-								onreveal={() => workbench.goToSelected()}
-								{viewport}
-								extent={projection.extent}
-								rows={projection.rows}
-								dimmed={workbench.dimmed}
-								inWindow={workbench.inWindow}
-								trailing={chaptered ? null : firstChapter}
-							/>
+							{#if phone}
+								<Overview
+									{phone}
+									canReveal={Boolean(workbench.selectedRange)}
+									onreveal={() => workbench.goToSelected()}
+									{viewport}
+									extent={projection.extent}
+									rows={projection.rows}
+									dimmed={workbench.dimmed}
+									inWindow={workbench.inWindow}
+									trailing={chaptered ? null : firstChapter}
+									onlive={() => workbench.toggleLive()}
+								/>
+							{:else if !chaptered}
+								<div
+									class="flex items-center justify-end border-b border-outline px-1"
+									style:height="{OVERVIEW_HEIGHT_PX}px"
+									data-testid="first-chapter"
+								>
+									{@render firstChapter()}
+								</div>
+							{/if}
+							<!-- The desktop overview — the minimap with the window readout and − / + — is off
+							     (owner 2026-09-29); the phone keeps its row of Live and «К выбранному». -->
 							{#if bandPx}
 								<ChapterBand
 									chapters={chapters.list}

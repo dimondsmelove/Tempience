@@ -2482,11 +2482,13 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.before.decision',
+				noteKey: 'demo.anya.stage.before.decision.note',
 				start: '2023-05-01',
 				lineup: ['s.maxim', 's.lena', 's.money', 's.work']
 			},
 			{
 				nameKey: 'demo.anya.stage.before.packing',
+				noteKey: 'demo.anya.stage.before.packing.note',
 				start: '2023-06-01',
 				lineup: ['s.jovana', 's.legal', 's.tisha', 's.mama', 's.maxim']
 			}
@@ -2513,16 +2515,19 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.adaptation.sofa',
+				noteKey: 'demo.anya.stage.adaptation.sofa.note',
 				start: '2023-09-09',
 				lineup: ['s.lena', 's.dorcol', 's.legal', 's.jovana', 's.apr-bank', 's.maxim']
 			},
 			{
 				nameKey: 'demo.anya.stage.adaptation.flat',
+				noteKey: 'demo.anya.stage.adaptation.flat.note',
 				start: '2023-10-01',
 				lineup: ['s.flat', 's.room', 's.milos', 's.money', 's.apr-bank', 's.maxim', 's.legal']
 			},
 			{
 				nameKey: 'demo.anya.stage.adaptation.wait',
+				noteKey: 'demo.anya.stage.adaptation.wait.note',
 				start: '2023-11-10',
 				lineup: ['s.savska', 's.legal', 's.maxim', 's.room', 's.flat']
 			}
@@ -2537,16 +2542,19 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.plateau.hundred',
+				noteKey: 'demo.anya.stage.plateau.hundred.note',
 				start: '2024-01-01',
 				lineup: ['s.maxim', 's.money', 's.jovana', 's.savska']
 			},
 			{
 				nameKey: 'demo.anya.stage.plateau.card',
+				noteKey: 'demo.anya.stage.plateau.card.note',
 				start: '2024-03-02',
 				lineup: ['s.savska', 's.legal', 's.lena', 's.maxim', 's.serbian', 's.ada']
 			},
 			{
 				nameKey: 'demo.anya.stage.plateau.closed',
+				noteKey: 'demo.anya.stage.plateau.closed.note',
 				start: '2024-06-01',
 				lineup: ['s.room', 's.flat', 's.maxim', 's.serbian']
 			}
@@ -2561,21 +2569,25 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.depression.autumn',
+				noteKey: 'demo.anya.stage.depression.autumn.note',
 				start: '2024-09-09',
 				lineup: ['s.maxim', 's.tisha', 's.mama', 's.flat']
 			},
 			{
 				nameKey: 'demo.anya.stage.depression.tooth',
+				noteKey: 'demo.anya.stage.depression.tooth.note',
 				start: '2024-10-09',
 				lineup: ['s.health', 's.marko', 's.money', 's.next', 's.maxim']
 			},
 			{
 				nameKey: 'demo.anya.stage.depression.fight',
+				noteKey: 'demo.anya.stage.depression.fight.note',
 				start: '2024-11-16',
 				lineup: ['s.maxim', 's.lena', 's.money']
 			},
 			{
 				nameKey: 'demo.anya.stage.depression.ticket',
+				noteKey: 'demo.anya.stage.depression.ticket.note',
 				start: '2024-12-03',
 				lineup: ['s.mama-home', 's.tisha', 's.mama', 's.maxim']
 			}
@@ -2590,16 +2602,19 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.catharsis.home',
+				noteKey: 'demo.anya.stage.catharsis.home.note',
 				start: '2024-12-27',
 				lineup: ['s.mama-home', 's.maxim', 's.mama']
 			},
 			{
 				nameKey: 'demo.anya.stage.catharsis.talk',
+				noteKey: 'demo.anya.stage.catharsis.talk.note',
 				start: '2024-12-30',
 				lineup: ['s.maxim', 's.mama', 's.tisha']
 			},
 			{
 				nameKey: 'demo.anya.stage.catharsis.tisha',
+				noteKey: 'demo.anya.stage.catharsis.tisha.note',
 				start: '2025-01-05',
 				lineup: ['s.tisha', 's.room', 's.desk', 's.work']
 			}
@@ -2624,16 +2639,19 @@ export const ANYA_CHAPTERS: readonly StoryChapter[] = [
 		stages: [
 			{
 				nameKey: 'demo.anya.stage.own.run',
+				noteKey: 'demo.anya.stage.own.run.note',
 				start: '2025-02-03',
 				lineup: ['s.work', 's.money', 's.desk', 's.legal', 's.office', 's.milica']
 			},
 			{
 				nameKey: 'demo.anya.stage.own.wide',
+				noteKey: 'demo.anya.stage.own.wide.note',
 				start: '2025-10-01',
 				lineup: ['s.gym', 's.luka', 's.hikes', 's.tbilisi', 's.desk', 's.zemun']
 			},
 			{
 				nameKey: 'demo.anya.stage.own.steady',
+				noteKey: 'demo.anya.stage.own.steady.note',
 				start: '2026-02-12',
 				lineup: ['s.legal', 's.work', 's.mama', 's.luka', 's.zemun', 's.serbian']
 			}

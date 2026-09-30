@@ -10,6 +10,8 @@ export type ViewportLimits = Readonly<{
 }>;
 
 export type ViewportOptions = Readonly<{
+	/** Where «сейчас» stands while following; `FOLLOW_NOW_RATIO` by default. */
+	followNowRatio?: number;
 	limits?: Partial<ViewportLimits>;
 	/** Clock for «сейчас»; injectable for tests. */
 	now?: () => number;

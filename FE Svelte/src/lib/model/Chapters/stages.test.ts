@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { now, system } from './Chapters.fixture';
-import { removeStage, stageAt, stageBounds, stageStep } from './stages';
+import { removeStage, stageAt, stageBounds, stripEndOf } from './stages';
 import { ms } from './time';
 
 describe('stages', () => {
@@ -21,14 +21,9 @@ describe('stages', () => {
 		expect(firstGone.stages[0]).toMatchObject({ id: 'push', start: system.start });
 		expect(removeStage(system, 'push').stages.map((stage) => stage.id)).toEqual(['open']);
 	});
-	it('steps through «Вся глава» and the stages in time, and never out of the chapter', () => {
-		const [open, push] = ['open', 'push'].map((id) => system.stages.find((s) => s.id === id)!);
-		expect(stageStep(system, null, -1)).toBeUndefined();
-		expect(stageStep(system, null, 1)).toBe('open');
-		expect(stageStep(system, open, -1)).toBe('whole');
-		expect(stageStep(system, open, 1)).toBe('push');
-		expect(stageStep(system, push, 1)).toBeUndefined();
-		expect(stageStep({ ...system, stages: [push, open] }, open, 1)).toBe('push');
-		expect(stageStep({ ...system, stages: [] }, null, 1)).toBeUndefined();
+	it('ends the strip with a closed chapter, or a week past «сейчас» while it is open', () => {
+		expect(stripEndOf(system, now)).toBe(ms(system.end!));
+		const open = { ...system, end: null };
+		expect(stripEndOf(open, now)).toBe(now + 7 * 86_400_000);
 	});
 });

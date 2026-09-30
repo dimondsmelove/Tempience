@@ -13,3 +13,6 @@ export const CHAPTER_STATUS_KEYS = {
 	past: 'chapter.statusPast',
 	future: 'chapter.statusFuture'
 } as const satisfies Readonly<Record<ChapterStatus, MessageKey>>;
+
+/** An open chapter's stage strip runs this many days past «сейчас» and its last stage. */
+export const STRIP_OPEN_DAYS = 7;

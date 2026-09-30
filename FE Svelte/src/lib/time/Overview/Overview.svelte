@@ -24,7 +24,8 @@
 		phone = false,
 		canReveal = false,
 		onreveal,
-		trailing = null
+		trailing = null,
+		onlive
 	}: OverviewProps = $props();
 
 	/**
@@ -195,7 +196,7 @@
 			variant="quiet"
 			pressed={viewport.follow}
 			aria-label="Live"
-			onclick={() => viewport.toggleFollow()}
+			onclick={() => (onlive ? onlive() : viewport.toggleFollow())}
 			><span aria-hidden="true">●</span><span class="live-label">Live</span></Button
 		>
 		<Button

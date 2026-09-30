@@ -14,4 +14,10 @@ export type StageStripProps = Readonly<{
 	/** A segment's dates, for its hint. */
 	spanOf: (window: StageWindow) => string;
 	onchoose: (pick: StagePick) => void;
+	/** The rail header's lower strip: shorter, with smaller type. */
+	compact?: boolean;
+	/** Prefixes the test ids, so the rail's strip and the Context's are told apart. */
+	testIdPrefix?: string;
+	/** «Вся глава» as the first segment; the rail header drops it, its chapter name stands for it. */
+	whole?: boolean;
 }>;

@@ -90,7 +90,7 @@ describe('ViewportState', () => {
 		const viewport = make();
 		viewport.startFollow();
 		const followed = viewport.window;
-		viewport.reveal(NOW - 100 * DAY_MS, NOW - 100 * DAY_MS);
+		viewport.reveal(NOW - 20 * DAY_MS, NOW - 20 * DAY_MS);
 		expect(viewport.follow).toBe(true);
 		expect(viewport.window).toEqual(followed);
 		const far = NOW - 400 * DAY_MS;

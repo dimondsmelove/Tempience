@@ -17,6 +17,8 @@ export type OverviewProps = Readonly<{
 	dimmed?: ReadonlySet<string>;
 	/** Rendered at the strip's end, after the zoom: the chapters' «+» while the space has none. */
 	trailing?: Snippet | null;
+	/** The phone row's Live; by default it only toggles following. */
+	onlive?: () => void;
 }>;
 
 /** A record's time with the weight it adds to the density; 1 when unsaid. */

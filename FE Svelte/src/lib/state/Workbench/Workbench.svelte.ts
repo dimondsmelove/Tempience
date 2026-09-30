@@ -58,7 +58,7 @@ import type { ExplorerEntity, ExplorerSnapshot } from '$lib/model/Snapshot/types
 import { EMPTY_SNAPSHOT } from './constants';
 import { ChaptersState } from '$lib/state/Chapters/Chapters.svelte';
 import { OPEN_CHAPTER_FIT_DAYS } from '$lib/state/Chapters/constants';
-import { endOf, ms, stageWindows } from '$lib/model/Chapters';
+import { endOf, ms, stageAt, stageWindows } from '$lib/model/Chapters';
 import type { StagePick } from '$lib/model/Chapters/types';
 import { DAY_MS } from '$lib/state/Viewport/constants';
 
@@ -409,6 +409,17 @@ export class WorkbenchState {
 			const range = fit ? this.chapterRange(chapterId, stage) : null;
 			if (range) this.viewport.fit(range.start, range.end);
 		});
+	}
+
+	/**
+	 * «Live» (owner 2026-09-29): turned on, it also fixes the current chapter at its current
+	 * stage, so the rows and the strip stand where «сейчас» is while the ribbon follows it.
+	 */
+	toggleLive(): void {
+		const current = this.viewport.follow ? null : this.chapters.current;
+		if (current)
+			this.selectChapter(current.id, stageAt(current, this.chapters.now)?.id ?? null, false);
+		this.viewport.toggleFollow();
 	}
 
 	/**

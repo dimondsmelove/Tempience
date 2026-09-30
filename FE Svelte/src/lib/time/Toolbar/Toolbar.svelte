@@ -174,7 +174,7 @@
 				variant="quiet"
 				pressed={viewport.follow}
 				title={t('toolbar.live')}
-				onclick={() => viewport.toggleFollow()}
+				onclick={() => workbench.toggleLive()}
 			>
 				<span
 					aria-hidden="true"
