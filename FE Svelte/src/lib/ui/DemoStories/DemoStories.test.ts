@@ -14,8 +14,7 @@ const ANYA: DemoStoryEntry = {
 	dataSpaceId: 'demo-anya-v1',
 	titleKey: 'demo.story.anya.title',
 	bodyKey: 'demo.story.anya.body',
-	openKey: 'demo.story.anya.open',
-	locales: ['ru']
+	openKey: 'demo.story.anya.open'
 };
 
 /** The host's own choice, as the tour passes «Начать со своих записей». */

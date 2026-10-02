@@ -3,6 +3,7 @@ import { DATA_SPACES, listDataSpaceOptions } from '$lib/state/triplit/data-space
 import type { DemoStoryEntry } from './registry';
 import { demoManifestId, demoRecordId } from './batch';
 import {
+	ANYA_STORY_ENTRY,
 	DEMO_STORIES,
 	WATSON_STORY,
 	demoStoriesFor,
@@ -33,9 +34,9 @@ describe('the registry of demo stories', () => {
 			);
 			for (const entry of demoStoriesFor(locale)) expect(entry.locales, entry.id).toContain(locale);
 		}
-		// Watson's notebook is written in both, so both catalogs offer it.
-		expect(demoStoriesFor('ru')).toContain(WATSON_STORY);
-		expect(demoStoriesFor('en')).toContain(WATSON_STORY);
+		// Both notebooks are written in both languages, so both catalogs offer both.
+		for (const locale of ['ru', 'en'] as const)
+			expect(demoStoriesFor(locale)).toEqual([WATSON_STORY, ANYA_STORY_ENTRY]);
 	});
 
 	it('derives one isolated DataSpace per story, offered right after the personal data', () => {

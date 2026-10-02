@@ -18,8 +18,8 @@ import type {
 } from './types';
 
 /**
- * «Записная книжка Ани»: a second demo notebook, in Russian only for now (English waits until the
- * Russian text is approved — see `en/index.ts`). Anya, born 2 March 1994, a QA engineer, moves
+ * «Записная книжка Ани»: a second demo notebook, in Russian and English (`ru/demo-anya.json`,
+ * `en/demo-anya.json`, the same keys). Anya, born 2 March 1994, a QA engineer, moves
  * from Russia to Belgrade in September 2023; Maxim, her partner, stays behind to hand over his
  * studio and never arrives. The notebook runs May 2023 to September 2026 in Europe/Belgrade time
  * and is divided into six chapters by her state, not by the calendar: before the move,

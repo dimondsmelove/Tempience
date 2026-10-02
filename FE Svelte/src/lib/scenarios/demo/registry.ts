@@ -66,7 +66,7 @@ export const WATSON_STORY = {
 
 /**
  * Anya's notebook: an ordinary person's three years after moving to Belgrade, 2023-05 → 2026-09,
- * written in Russian; its first page is dated by the install day. English is a later loop.
+ * written in Russian and English; its first page is dated by the install day.
  */
 export const ANYA_STORY_ENTRY = {
 	id: 'anya',
@@ -83,7 +83,7 @@ export const ANYA_STORY_ENTRY = {
 	captureTime: '21:00',
 	startId: 't.start',
 	startAtInstall: true,
-	locales: ['ru'],
+	locales: ['ru', 'en'],
 	seedMarkerKey: 'tempience.demo.anya.seed',
 	dismissedKey: 'tempience.demo.anya.dismissed',
 	load: async (): Promise<DemoStory> => (await import('./story-anya')).ANYA_STORY

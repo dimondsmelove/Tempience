@@ -19,9 +19,7 @@ import life from './life.json';
 import onboarding from './onboarding.json';
 import chapters from './chapters.json';
 import demo from './demo.json';
-// Anya's notebook has no English translation yet — that is a separate loop. Until then the
-// English catalog spreads the same Russian text, so the key sets stay equal and typecheck passes.
-import demoAnya from '../ru/demo-anya.json';
+import demoAnya from './demo-anya.json';
 
 /** The English catalog: one JSON per area, one flat key space. */
 export const en = {
