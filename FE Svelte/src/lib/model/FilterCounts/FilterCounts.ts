@@ -43,12 +43,14 @@ export const hiddenScopeCounts = (
 ): ReadonlyMap<string, ScopeCounts> => {
 	const counts = new Map<string, ScopeCounts>();
 	if (state.hiddenScopes.size === 0) return counts;
-	// Every group unfolded: the projection visits a row only under an unfolded parent.
-	const expanded = new Set(snapshot.scopes.map((scope) => scope.id));
 	const tree = scopeTree(snapshot.scopes, snapshot.intersections);
 	for (const scopeId of state.hiddenScopes) {
 		const lifted = new Set([scopeId, ...ancestorsOf(tree, scopeId)]);
 		const hiddenScopes = new Set([...state.hiddenScopes].filter((id) => !lifted.has(id)));
+		// Its ancestors unfolded, so its row stands; the Scope itself folded, so «Σ» rolls its whole
+		// subtree up — an unfolded group counts only its direct records (owner 2026-10-02).
+		const expanded = new Set(lifted);
+		expanded.delete(scopeId);
 		const { rows } = projectSnapshot(snapshot, {
 			...state,
 			expanded,

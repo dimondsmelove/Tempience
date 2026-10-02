@@ -26,9 +26,9 @@ export type RowContext = Readonly<{
 	expanded: boolean;
 	/** The members shown, in lane order. */
 	members: readonly RowMember[];
-	/** `n · Σ m` as the rail counts them. */
+	/** `n · Σ m` as the rail counts them: the lane whole, folded or not. */
 	directCount: number;
 	subtreeCount: number;
-	/** Every record the row draws, once, by start time. */
+	/** Every record the row draws — unfolded, the lane's rows — once, by start time. */
 	records: readonly RowRecord[];
 }>;

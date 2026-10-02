@@ -18,6 +18,7 @@ import {
 	CLOSED_AT_GLYPH
 } from './constants';
 import { parkedReason, traceMarkTime, traceTimeLabel } from './marks';
+import { drawnRecords } from './rollup';
 import { ancestorsOf, scopeMembership, scopeTree, subtreeTraceIds } from './tree';
 import type {
 	Mark,
@@ -29,6 +30,24 @@ import type {
 	TimeRange,
 	TraceLink
 } from './types';
+
+/** A row before its records: where it stands, decided before any row draws (owner 2026-10-02). */
+type Slot =
+	| Readonly<{
+			kind: 'scope';
+			scopeId: string;
+			depth: number;
+			hasChildren: boolean;
+			isExpanded: boolean;
+	  }>
+	| Readonly<{
+			kind: 'merged';
+			lane: RowLane;
+			members: readonly string[];
+			/** Unfolded: the Scopes (and «Без Scope») standing in rows beneath it. */
+			beneath: readonly string[];
+	  }>
+	| Readonly<{ kind: 'unscoped'; depth: number }>;
 
 /** The colour pairs of the Scopes that have one, in the given order — the row's dots. */
 const scopeColoursOf = (
@@ -211,42 +230,20 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 	const arrangement = state.grouping === 'scope' ? (state.arrangement ?? null) : null;
 	/** Scopes a lane holds by name: they stand at their lane, not under their expanded parent. */
 	const claimed = new Set(arrangement?.lanes.flatMap((lane) => lane.members) ?? []);
-	const visit = (scopeId: string, depth: number): void => {
-		const scope = scopeById.get(scopeId);
-		if (!scope || blocked.has(scopeId)) return;
-		const all = subtree.get(scopeId) ?? new Set<string>();
-		const direct = directByScope.get(scopeId) ?? new Set<string>();
-		const children = liveChildren(scopeId);
+
+	// First the rows that stand, then what each draws: a row's roll-up leaves out every record
+	// that stands in a row of its own (owner 2026-10-02), so all the rows must be known first.
+	const slots: Slot[] = [];
+	const place = (scopeId: string, depth: number): void => {
+		if (!scopeById.has(scopeId) || blocked.has(scopeId)) return;
 		// The children this row can unfold: those no lane claimed. With none left, the row has no
-		// chevron and stands folded — the claimed children stay in its roll-up (review 2026-09-19, п. 32).
-		const emitted =
-			state.laneChildren?.get(scopeId) ?? children.filter((childId) => !claimed.has(childId));
+		// chevron and stands folded (review 2026-09-19, п. 32).
+		const emitted = (
+			state.laneChildren?.get(scopeId) ?? liveChildren(scopeId).filter((id) => !claimed.has(id))
+		).filter((id) => !blocked.has(id));
 		const isExpanded = emitted.length > 0 && expanded.has(scopeId);
-		const marks: Mark[] = [];
-		for (const traceId of all) {
-			const isDirect = direct.has(traceId);
-			if (!isDirect && (isExpanded || children.length === 0)) continue;
-			const trace = traceById.get(traceId);
-			const time = timeByTraceId.get(traceId);
-			if (trace && time) marks.push(mark(trace, time, scopeId, !isDirect));
-		}
-		rows.push({
-			id: scopeId,
-			kind: 'scope',
-			scopeId,
-			scopeIds: [scopeId],
-			name: scope.name,
-			colours: scopeColoursOf([scope]),
-			depth,
-			hasChildren: emitted.length > 0,
-			expanded: isExpanded,
-			// Owner 2026-09-15: the numbers say what the ribbon shows, not what the Scope holds.
-			directCount: [...direct].filter((id) => onRibbon(id, scopeId)).length,
-			subtreeCount: [...all].filter((id) => onRibbon(id, scopeId)).length,
-			range: rangeOf(marks),
-			marks: shownMarks(marks)
-		});
-		if (isExpanded) for (const childId of emitted) visit(childId, depth + 1);
+		slots.push({ kind: 'scope', scopeId, depth, hasChildren: emitted.length > 0, isExpanded });
+		if (isExpanded) for (const childId of emitted) place(childId, depth + 1);
 	};
 
 	const unscoped = traces.filter(
@@ -254,6 +251,91 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 	);
 	// «Только эти Scope» is about Scopes: records in none are out of it (owner, 2026-09-18).
 	const unscopedShown = state.grouping === 'scope' && unscoped.length > 0 && !state.onlyScopes;
+
+	if (arrangement) {
+		for (const lane of arrangement.lanes) {
+			// A hidden or unknown member contributes nothing; a lane left with one member is that plain row.
+			const members = lane.members.filter((id) =>
+				id === UNSCOPED_ROW_ID ? unscopedShown : scopeById.has(id) && !blocked.has(id)
+			);
+			if (members.length === 0) continue;
+			if (members.length > 1) {
+				const beneath: string[] = [];
+				slots.push({ kind: 'merged', lane, members, beneath });
+				// Unfolded (C5): the members beneath the merged row, in lane order, each with its own
+				// disclosure and roll-up; «Без Scope» as the unscoped row at depth 1.
+				const from = slots.length;
+				if (lane.expanded)
+					for (const member of members)
+						if (member === UNSCOPED_ROW_ID) slots.push({ kind: 'unscoped', depth: 1 });
+						else place(member, 1);
+				for (const slot of slots.slice(from))
+					beneath.push(slot.kind === 'scope' ? slot.scopeId : UNSCOPED_ROW_ID);
+			} else if (members[0] === UNSCOPED_ROW_ID) slots.push({ kind: 'unscoped', depth: 0 });
+			else place(members[0], 0);
+		}
+	} else if (state.grouping === 'scope') {
+		for (const rootId of tree.roots) place(rootId, 0);
+		if (unscopedShown) slots.push({ kind: 'unscoped', depth: 0 });
+	}
+
+	/** The row each Scope stands in by name: its own row first, else the lane that holds it. */
+	const holders = new Map<string, string>();
+	for (const slot of slots)
+		if (slot.kind === 'scope' && !holders.has(slot.scopeId))
+			holders.set(slot.scopeId, slot.scopeId);
+		else if (slot.kind === 'unscoped') holders.set(UNSCOPED_ROW_ID, UNSCOPED_ROW_ID);
+	for (const slot of slots)
+		if (slot.kind === 'merged')
+			for (const member of slot.members)
+				if (!holders.has(member)) holders.set(member, mergedRowId(slot.members));
+	const drawn = (scopeId: string, rowId: string) =>
+		drawnRecords(scopeId, rowId, holders, liveChildren, directByScope);
+
+	/**
+	 * A Scope's row (DP8): its direct records in full force, and as the 30 % roll-up the records
+	 * of its subtree that stand in no row of their own — so an expanded group keeps its direct
+	 * records alone, and a child claimed elsewhere leaves its parent. A parent left with nothing,
+	 * all its records standing in other rows and nothing to unfold, gets no row (owner 2026-10-02).
+	 */
+	const scopeRow = (slot: Extract<Slot, { kind: 'scope' }>): ProjectedRow | null => {
+		const { scopeId } = slot;
+		const scope = scopeById.get(scopeId)!;
+		const { direct, rolled } = drawn(scopeId, scopeId);
+		if (
+			!slot.hasChildren &&
+			direct.size === 0 &&
+			rolled.size === 0 &&
+			(subtree.get(scopeId)?.size ?? 0) > 0
+		)
+			return null;
+		const all = new Set([...direct, ...rolled]);
+		const ancestorIds = ancestorsOf(tree, scopeId);
+		const marks: Mark[] = [];
+		for (const traceId of all) {
+			const trace = traceById.get(traceId);
+			const time = timeByTraceId.get(traceId);
+			if (trace && time) marks.push(mark(trace, time, scopeId, !direct.has(traceId)));
+		}
+		return {
+			id: scopeId,
+			kind: 'scope',
+			scopeId,
+			scopeIds: [scopeId],
+			name: scope.name,
+			colours: scopeColoursOf([scope]),
+			depth: slot.depth,
+			hasChildren: slot.hasChildren,
+			expanded: slot.isExpanded,
+			...(ancestorIds.length ? { ancestorIds } : {}),
+			// Owner 2026-09-15: the numbers say what the ribbon shows, not what the Scope holds.
+			directCount: [...direct].filter((id) => onRibbon(id, scopeId)).length,
+			subtreeCount: [...all].filter((id) => onRibbon(id, scopeId)).length,
+			range: rangeOf(marks),
+			marks: shownMarks(marks)
+		};
+	};
+
 	const unscopedRow = (depth = 0): ProjectedRow => {
 		const marks: Mark[] = [];
 		for (const trace of unscoped) {
@@ -282,42 +364,57 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 	 * records, each once; a group member brings its direct records and the roll-up of its
 	 * subtree as a collapsed row does, whatever the disclosure says. Each mark carries the
 	 * colours of the members it answers to, so a record in two of them weaves. The chevron
-	 * (loop 008, C5) unfolds the lane: the merged row stays as it is, and its members follow
-	 * beneath it at depth 1, each as its ordinary row.
+	 * (loop 008, C5) unfolds the lane: its members follow beneath it at depth 1, each as its
+	 * ordinary row, and take their records along — the unfolded merged row keeps only what
+	 * stands in no row of its own (owner 2026-10-02), while its `n · Σ m` still counts the lane
+	 * whole, as an expanded group's rail numbers do.
 	 */
-	const mergedRow = (lane: RowLane, members: readonly string[]): ProjectedRow => {
+	const mergedRow = (slot: Extract<Slot, { kind: 'merged' }>): ProjectedRow => {
+		const { lane, members } = slot;
 		const rowId = mergedRowId(members);
-		const parts = new Map<string, { direct: boolean; colours: ScopeColour[] }>();
-		const add = (traceId: string, direct: boolean, colour: ScopeColour | null): void => {
-			const part =
-				parts.get(traceId) ?? parts.set(traceId, { direct: false, colours: [] }).get(traceId)!;
-			if (direct) part.direct = true;
-			if (colour && !part.colours.some((c) => scopeColourKey(c) === scopeColourKey(colour)))
-				part.colours.push(colour);
-		};
-		for (const member of members) {
-			if (member === UNSCOPED_ROW_ID) {
-				for (const trace of unscoped) add(trace.id, true, null);
-				continue;
+		/** The lane's records by id — direct in some member, and the members' colours — as `owners` place them. */
+		const gather = (owners: ReadonlyMap<string, string>) => {
+			const parts = new Map<string, { direct: boolean; colours: ScopeColour[] }>();
+			const add = (traceId: string, direct: boolean, colour: ScopeColour | null): void => {
+				const part =
+					parts.get(traceId) ?? parts.set(traceId, { direct: false, colours: [] }).get(traceId)!;
+				if (direct) part.direct = true;
+				if (colour && !part.colours.some((c) => scopeColourKey(c) === scopeColourKey(colour)))
+					part.colours.push(colour);
+			};
+			for (const member of members) {
+				if (member === UNSCOPED_ROW_ID) {
+					if (owners.get(member) === rowId) for (const trace of unscoped) add(trace.id, true, null);
+					continue;
+				}
+				const scope = scopeById.get(member);
+				const colour = scope ? scopeColourPair(scope) : null;
+				const { direct, rolled } = drawnRecords(member, rowId, owners, liveChildren, directByScope);
+				for (const traceId of direct) add(traceId, true, colour);
+				for (const traceId of rolled) add(traceId, false, colour);
 			}
-			const direct = directByScope.get(member) ?? new Set<string>();
-			const scope = scopeById.get(member);
-			const colour = scope ? scopeColourPair(scope) : null;
-			for (const traceId of subtree.get(member) ?? []) add(traceId, direct.has(traceId), colour);
-		}
+			return parts;
+		};
+		const parts = gather(holders);
 		const marks: Mark[] = [];
-		let directCount = 0;
-		let subtreeCount = 0;
 		for (const [traceId, part] of parts) {
 			const trace = traceById.get(traceId);
 			const time = timeByTraceId.get(traceId);
 			if (!trace || !time) continue;
 			marks.push({ ...mark(trace, time, rowId, !part.direct), colours: part.colours });
+		}
+		// `n · Σ m` reads the lane whole, folded or not (owner 2026-10-02): unfolded, its records
+		// stand in the member rows beneath it, and it counts them as it would folded.
+		const folded = new Map(holders);
+		for (const id of slot.beneath) folded.delete(id);
+		for (const member of members) folded.set(member, rowId);
+		let directCount = 0;
+		let subtreeCount = 0;
+		for (const [traceId, part] of slot.beneath.length ? gather(folded) : parts)
 			if (onRibbon(traceId, rowId)) {
 				subtreeCount += 1;
 				if (part.direct) directCount += 1;
 			}
-		}
 		const scopeIds = members.filter((id) => id !== UNSCOPED_ROW_ID);
 		const names = new Map<string, Readonly<{ name: string }>>(scopeById);
 		names.set(UNSCOPED_ROW_ID, { name: unscopedName });
@@ -338,27 +435,14 @@ export const projectSnapshot = (snapshot: ExplorerSnapshot, state: ProjectionSta
 		};
 	};
 
-	if (arrangement) {
-		for (const lane of arrangement.lanes) {
-			// A hidden or unknown member contributes nothing; a lane left with one member is that plain row.
-			const members = lane.members.filter((id) =>
-				id === UNSCOPED_ROW_ID ? unscopedShown : scopeById.has(id) && !blocked.has(id)
-			);
-			if (members.length === 0) continue;
-			if (members.length > 1) {
-				rows.push(mergedRow(lane, members));
-				// Unfolded (C5): the members beneath the merged row, in lane order, each with its own
-				// disclosure and roll-up; «Без Scope» as the unscoped row at depth 1.
-				if (lane.expanded)
-					for (const member of members)
-						if (member === UNSCOPED_ROW_ID) rows.push(unscopedRow(1));
-						else visit(member, 1);
-			} else if (members[0] === UNSCOPED_ROW_ID) rows.push(unscopedRow());
-			else visit(members[0], 0);
-		}
-	} else if (state.grouping === 'scope') {
-		for (const rootId of tree.roots) visit(rootId, 0);
-		if (unscopedShown) rows.push(unscopedRow());
+	for (const slot of slots) {
+		const row =
+			slot.kind === 'scope'
+				? scopeRow(slot)
+				: slot.kind === 'merged'
+					? mergedRow(slot)
+					: unscopedRow(slot.depth);
+		if (row) rows.push(row);
 	}
 
 	if (state.grouping === 'kind')

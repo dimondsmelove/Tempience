@@ -24,6 +24,7 @@
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
+	import { selectionKey } from '$lib/state/Selection/Selection.svelte';
 	import { untrack } from 'svelte';
 	import type { ContextTab } from './constants';
 	import TraceView from './TraceView.svelte';
@@ -34,13 +35,10 @@
 
 	type Props = Readonly<{
 		workbench: WorkbenchState;
-		/** Desktop: Обзор, Связи and Окрестность stack as foldable sections instead of tabs (C9a-1). */
-		sections?: boolean;
 		onclose: () => void;
 		onexpand?: () => void;
 	}>;
-	let { workbench, sections = false, onclose, onexpand }: Props = $props();
-	let tab = $state<ContextTab>('overview');
+	let { workbench, onclose, onexpand }: Props = $props();
 	let collapsed = $state(readCollapsed());
 	const selection = $derived(workbench.selection);
 	/**
@@ -109,6 +107,19 @@
 		known?.trace?.isDeleted ? (known.trace.lifecycleId ?? 'unstamped') : null
 	);
 	const restore = $derived(restores.for(selection.traceId, deletion));
+	/**
+	 * What the Context shows, without the stage chosen inside a chapter: another one is read
+	 * from its top, wherever the last was scrolled to (owner 2026-10-02).
+	 */
+	const shown = $derived.by(() => {
+		const current = selection.current;
+		if (!current) return '';
+		return current.kind === 'chapter' ? `chapter:${current.chapterId}` : selectionKey(current);
+	});
+	const fromTop = (node: HTMLElement): void => {
+		void shown;
+		node.scrollTop = 0;
+	};
 	const toggle = (id: ContextTab): void => {
 		collapsed[id] = !collapsed[id];
 		writeCollapsed($state.snapshot(collapsed));
@@ -187,6 +198,7 @@
 	]}
 	data-testid="context-body"
 	{@attach overlayScrollbar}
+	{@attach fromTop}
 >
 	{#if restore?.committed && restore.readFailure}
 		<!-- The record is back; what could not be read after that is said until it is read. -->
@@ -238,7 +250,7 @@
 		<ProposalView {workbench} traceId={trace.id} />
 	{:else if trace}
 		{#key trace.id}
-			<TraceView {workbench} {trace} {records} {sections} bind:tab {collapsed} ontoggle={toggle} />
+			<TraceView {workbench} {trace} {records} {collapsed} ontoggle={toggle} />
 		{/key}
 	{:else if selection.traceId && restore}
 		<!-- Chosen, but not an ordinary record now: deleted, here or on another device, or not

@@ -9,7 +9,7 @@ import type {
 import type { TraceAboutTime, TraceRelation } from '$lib/state/triplit/types';
 import { defaultArrangement, laneIds } from '$lib/model/Arrangement/Arrangement';
 import { markColours } from '$lib/model/MarkStyle/MarkStyle';
-import { lensSet } from '$lib/model/Lens/Lens';
+import { lensSet, underVeil } from '$lib/model/Lens/Lens';
 import { EMPTY_PROJECTION_STATE, UNSCOPED_ROW_ID } from './constants';
 import { projectSnapshot } from './Projection';
 import type { ProjectionState } from './types';
@@ -184,7 +184,7 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 		expect(projection.rows.map((row) => row.id)).toEqual(['c+a']);
 	});
 
-	it('an unfolded lane (C5): the merged row as it is, then its members beneath it at depth 1, each its ordinary row', () => {
+	it('an unfolded lane (C5): its members beneath it at depth 1, each its ordinary row, taking their records along', () => {
 		const folded = projectSnapshot(
 			snapshot,
 			state({ arrangement: lanes(['c', 'a'], [UNSCOPED_ROW_ID]) })
@@ -203,10 +203,19 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 			['a', 1],
 			[UNSCOPED_ROW_ID, 0]
 		]);
-		// The merged row is unchanged by the fold: the union of the members, the same counts, the same range.
-		expect(open.rows[0]).toMatchObject({ kind: 'merged', hasChildren: true, expanded: true });
-		expect({ ...open.rows[0], expanded: false }).toEqual(folded.rows[0]);
-		expect(open.rows[0]).toMatchObject({ directCount: 3, subtreeCount: 4 });
+		// Folded, the merged row draws the union of the members; unfolded, every member stands in a
+		// row of its own, so the merged row draws nothing twice: no marks, no band — yet its
+		// `n · Σ m` counts the lane whole, as folded (owner 2026-10-02).
+		expect(folded.rows[0]).toMatchObject({ directCount: 3, subtreeCount: 4 });
+		expect(open.rows[0]).toMatchObject({
+			kind: 'merged',
+			hasChildren: true,
+			expanded: true,
+			marks: [],
+			range: null,
+			directCount: 3,
+			subtreeCount: 4
+		});
 		// A member is the row it would be on its own: A folded rolls B up, with a chevron of its own.
 		expect(open.rows[2]).toMatchObject({
 			kind: 'scope',
@@ -234,9 +243,11 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 			['a', 1],
 			['b', 2]
 		]);
-		expect(deep.rows[0].marks.find((mark) => mark.traceId === 't3')).toMatchObject({
-			rollup: true
-		});
+		// A unfolded keeps its direct records; t3 stands in B's row alone. The lane still counts it.
+		expect(deep.rows[0].marks).toEqual([]);
+		expect(deep.rows[0]).toMatchObject({ directCount: 3, subtreeCount: 4 });
+		expect(deep.rows[2].marks.map((mark) => mark.traceId).sort()).toEqual(['t1', 't2', 't4']);
+		expect(deep.marksByTraceId.get('t3')?.map((mark) => mark.rowId)).toEqual(['b']);
 		// «Без Scope» as a member: the unscoped row at depth 1; a plain lane's flag means nothing.
 		const unscoped = projectSnapshot(
 			snapshot,
@@ -255,8 +266,8 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 			[UNSCOPED_ROW_ID, 'unscoped', 1],
 			['a', 'scope', 0]
 		]);
-		// Every projection of a record is in `marksByTraceId`: the merged row's and the member row's.
-		expect(open.marksByTraceId.get('t1')?.map((mark) => mark.rowId)).toEqual(['c+a', 'a']);
+		// A record of the unfolded lane is drawn once, in its member's row.
+		expect(open.marksByTraceId.get('t1')?.map((mark) => mark.rowId)).toEqual(['a']);
 	});
 
 	it('the owner name replaces the auto-name', () => {
@@ -296,12 +307,13 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 		expect(projection.rows.map((row) => row.id)).toEqual(['c+b', 'a', UNSCOPED_ROW_ID]);
 		expect(projection.rows[0].marks.map((mark) => mark.traceId).sort()).toEqual(['t2', 't3']);
 		// The parent has nothing left to unfold (review 2026-09-19, п. 32): no chevron, and it stands
-		// folded whatever the disclosure says — the claimed child stays in its roll-up (C1, п. 32).
+		// folded whatever the disclosure says. The claimed child's records stand in the child's lane,
+		// so the parent no longer rolls them up (owner 2026-10-02): its own records alone.
 		expect(projection.rows[1]).toMatchObject({ hasChildren: false, expanded: false, depth: 0 });
 		expect(
 			projection.rows[1].marks.map((mark) => `${mark.traceId}${mark.rollup ? '↑' : ''}`).sort()
-		).toEqual(['t1', 't2', 't3↑', 't4']);
-		expect(projection.rows[1]).toMatchObject({ directCount: 3, subtreeCount: 4 });
+		).toEqual(['t1', 't2', 't4']);
+		expect(projection.rows[1]).toMatchObject({ directCount: 3, subtreeCount: 3 });
 		// With another child left, the parent keeps its chevron and unfolds to that child alone.
 		const twoChildren: ExplorerSnapshot = {
 			...snapshot,
@@ -416,21 +428,33 @@ describe('projectSnapshot with a row arrangement (research п. 7, Q1–Q3)', () 
 		]);
 	});
 
-	it('hovering a merged row lights the records of every member, wherever they project (п. 5)', () => {
+	it('hovering a merged row lights the records it draws; B claimed into its own row keeps t3 (п. 5; owner 2026-10-02)', () => {
 		const projection = projectSnapshot(
 			snapshot,
 			state({ arrangement: lanes(['c', 'a'], ['b']), expanded: new Set() })
 		);
 		const lit = lensSet({ kind: 'row', rowId: 'c+a' }, projection.rows, projection.links, snapshot);
-		expect([...lit.traceIds].sort()).toEqual(['t1', 't2', 't3', 't4']);
+		expect([...lit.traceIds].sort()).toEqual(['t1', 't2', 't4']);
 		expect([...lit.rowIds]).toEqual(['c+a']);
-		// A record of the merged row hovered on the ribbon names every row that holds it.
-		const trace = lensSet(
-			{ kind: 'trace', traceId: 't3' },
-			projection.rows,
-			projection.links,
-			snapshot
+		// A record of the merged row hovered on the ribbon names every row that holds it: t2 is A's
+		// and B's own, t3 is B's alone.
+		const hover = (traceId: string) =>
+			lensSet({ kind: 'trace', traceId }, projection.rows, projection.links, snapshot).rowIds;
+		expect([...hover('t2')]).toEqual(['c+a', 'b']);
+		expect([...hover('t3')]).toEqual(['b']);
+	});
+
+	it('an unfolded merged row lights and names its member rows beneath it: the lane whole (owner 2026-10-02)', () => {
+		const projection = projectSnapshot(
+			snapshot,
+			state({ arrangement: { lanes: [{ members: ['c', 'a'], expanded: true }] } })
 		);
-		expect([...trace.rowIds]).toEqual(['c+a', 'b']);
+		const lit = lensSet({ kind: 'row', rowId: 'c+a' }, projection.rows, projection.links, snapshot);
+		expect([...lit.traceIds].sort()).toEqual(['t1', 't2', 't3', 't4']);
+		expect([...lit.rowIds]).toEqual(['c+a', 'c', 'a']);
+		// The member rows' marks stay above the veil; a row outside the lane goes under it.
+		const hover = { kind: 'row', rowId: 'c+a' } as const;
+		expect(underVeil(hover, lit, { traceId: 't3', rowId: 'a' })).toBe(false);
+		expect(underVeil(hover, lit, { traceId: 't6', rowId: UNSCOPED_ROW_ID })).toBe(true);
 	});
 });

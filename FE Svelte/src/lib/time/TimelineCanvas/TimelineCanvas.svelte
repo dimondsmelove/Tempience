@@ -13,6 +13,7 @@
 	import { ROW_MOVE_MS } from '$lib/model/RowMotion/constants';
 	import {
 		ghostOffsetsAt,
+		holdRows,
 		motionRows,
 		offsetsAt,
 		planGhosts,
@@ -83,6 +84,12 @@
 	const heightPx = $derived(
 		Math.max(minHeightPx, rows.length ? rows.length * rowHeightPx : MIN_ROWS_HEIGHT_PX)
 	);
+	/**
+	 * The height the canvas keeps while rows glide: the taller of the old and the new layout, so
+	 * rows folding away are drawn until they reach the row that takes them in; the lanes' own
+	 * height glides over them and clips (owner review of PR #102). 0 at rest.
+	 */
+	let glideHeightPx = $state(0);
 
 	/**
 	 * The veil (loop 008, B): its goal is the device's strength while something is hovered, none
@@ -130,6 +137,10 @@
 		/** Rows folding away into another, drawn as they were until the glide ends. */
 		ghosts: readonly Ghost[];
 		ghostRows: RibbonLayout['rows'];
+		/** The layout before the glide: the rows taking a fold in (`into`) are drawn from it until it ends. */
+		before: RibbonLayout;
+		into: ReadonlySet<string>;
+		heightPx: number;
 		startedAt: number;
 	} | null = null;
 	const sameKey = (a: LayoutKey, b: LayoutKey): boolean =>
@@ -206,21 +217,27 @@
 							plan,
 							ghosts,
 							ghostRows: previous.layout.rows.filter((row) => folding.has(row.row.id)),
+							before: previous.layout,
+							into: new Set(ghosts.map((ghost) => ghost.into)),
+							heightPx: Math.max(previous.layout.heightPx, next.heightPx),
 							startedAt: performance.now()
 						}
 					: null;
 		}
 		const progress = glide ? (performance.now() - glide.startedAt) / ROW_MOVE_MS : 1;
 		if (progress >= 1) glide = null;
+		const held = glide ? holdRows(glide.before, next, glide.into) : next;
 		const drawn = glide
 			? shiftLayout(
-					{ ...next, rows: [...next.rows, ...glide.ghostRows] },
+					{ ...held, heightPx: glide.heightPx, rows: [...held.rows, ...glide.ghostRows] },
 					new Map([...offsetsAt(glide.plan, progress), ...ghostOffsetsAt(glide.ghosts, progress)])
 				)
 			: next;
+		const drawnHeightPx = drawn.heightPx;
+		glideHeightPx = glide ? glide.heightPx : 0;
 		// Resizing the bitmap reallocates and clears it: only when the size really changed.
 		const bitmapWidth = Math.round(widthPx * dpr);
-		const bitmapHeight = Math.round(next.heightPx * dpr);
+		const bitmapHeight = Math.round(drawnHeightPx * dpr);
 		if (canvas.width !== bitmapWidth) canvas.width = bitmapWidth;
 		if (canvas.height !== bitmapHeight) canvas.height = bitmapHeight;
 		// The bitmap is kept between frames, so is its context: each frame starts from a clean state.
@@ -368,7 +385,7 @@
 
 <canvas
 	class={['block w-full', pointer && 'cursor-pointer']}
-	style:height="{heightPx}px"
+	style:height="{Math.max(heightPx, glideHeightPx)}px"
 	data-testid="ribbon-canvas"
 	data-hover={hoverKey(hover)}
 	data-veil={veilText}

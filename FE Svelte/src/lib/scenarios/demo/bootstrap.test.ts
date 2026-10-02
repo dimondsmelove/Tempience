@@ -98,7 +98,7 @@ describe('demo seed bootstrap', () => {
 				scopes: 27,
 				traces: 101,
 				periods: 6,
-				intersections: 213 + 2,
+				intersections: 227 + 2,
 				assessments: 12,
 				chapters: 9,
 				stages: 10
@@ -122,7 +122,7 @@ describe('demo seed bootstrap', () => {
 		expect(scopes).toHaveLength(27);
 		expect(traces).toHaveLength(101);
 		expect(periods).toHaveLength(6);
-		expect(intersections).toHaveLength(215);
+		expect(intersections).toHaveLength(229);
 		expect(
 			intersections.filter((link) => link.fromEntityType === 'traceKind').map((link) => link.id)
 		).toEqual(
@@ -144,7 +144,7 @@ describe('demo seed bootstrap', () => {
 				start: '1881-01'
 			}
 		});
-		expect(start?.description).toMatch(/\n→ дальше: «Вы были в Афганистане, я вижу»$/);
+		expect(start?.description).not.toMatch(/→ дальше/);
 		const hound = traces.find((trace) => trace.id === recordId('w.hound.case'));
 		expect(hound).toMatchObject({
 			kindId: 'demo-kind-case',

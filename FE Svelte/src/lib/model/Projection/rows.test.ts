@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ProjectedRow } from './types';
 import { UNSCOPED_ROW_ID } from './constants';
-import { rowOfScope } from './rows';
+import { rowBlock, rowOfScope } from './rows';
 
 const row = (id: string, kind: ProjectedRow['kind'], scopeIds: string[]): ProjectedRow => ({
 	id,
@@ -37,5 +37,22 @@ describe('rowOfScope: the row the rail scrolls to for a Scope (C3)', () => {
 	it('prefers a member row under an unfolded merged row to the merged row itself (C5)', () => {
 		expect(rowOfScope(unfolded, 'c')?.id).toBe('c');
 		expect(rowOfScope(unfolded, UNSCOPED_ROW_ID)?.id).toBe(`b+c+${UNSCOPED_ROW_ID}`);
+	});
+});
+
+describe('rowBlock: a row with the rows standing under it (owner 2026-10-02)', () => {
+	it('takes an unfolded merged row with its member rows, and any other row alone', () => {
+		const lane = { ...rows[1], expanded: true };
+		const open = [
+			rows[0],
+			lane,
+			{ ...unfolded[2], depth: 1 },
+			{ ...unfolded[3], depth: 2 },
+			rows[2]
+		];
+		expect(rowBlock(open, lane.id).map((item) => item.id)).toEqual([lane.id, 'b', 'c']);
+		expect(rowBlock(rows, rows[1].id).map((item) => item.id)).toEqual([rows[1].id]);
+		expect(rowBlock(open, 'a').map((item) => item.id)).toEqual(['a']);
+		expect(rowBlock(open, 'gone')).toEqual([]);
 	});
 });

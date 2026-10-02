@@ -1,6 +1,6 @@
 import type { LitSet } from '$lib/model/Hover/types';
 import type { Mark, ProjectedRow, TimeRange } from '$lib/model/Projection/types';
-import { rowOfScope } from '$lib/model/Projection/rows';
+import { rowBlock, rowOfScope } from '$lib/model/Projection/rows';
 import { scopeMembership, scopeTree, subtreeTraceIds } from '$lib/model/Projection/tree';
 import type { LensView } from './types';
 
@@ -21,12 +21,16 @@ export const rowsHolding = (
 
 /**
  * A row by its name (the rail's hover, the merged row's focus — C5): every record it draws,
- * direct and rolled up, and its own name alone; `null` when no row has the id.
+ * direct and rolled up, and its own name; an unfolded merged row also its member rows beneath
+ * it, which draw the lane's records now (owner 2026-10-02). `null` when no row has the id.
  */
 export const rowLit = (rowId: string, rows: readonly ProjectedRow[]): LitSet | null => {
-	const row = rows.find((candidate) => candidate.id === rowId);
-	if (!row) return null;
-	return { traceIds: new Set(row.marks.map((mark) => mark.traceId)), rowIds: new Set([row.id]) };
+	const block = rowBlock(rows, rowId);
+	if (!block.length) return null;
+	return {
+		traceIds: new Set(block.flatMap((row) => row.marks.map((mark) => mark.traceId))),
+		rowIds: new Set(block.map((row) => row.id))
+	};
 };
 
 /** Every record the rows draw, by id — a record the legend or a filter took off the ribbon lights nowhere. */

@@ -97,11 +97,14 @@ const state = (patch: Partial<FilterCountsState> = {}): FilterCountsState => ({
 	now: Date.UTC(2026, 8, 6, 12),
 	...patch
 });
-/** The rail's numbers for a Scope row as the ribbon projects them, every group unfolded. */
+/**
+ * The rail's numbers for a Scope row as the ribbon projects them: every other group unfolded, so
+ * the row stands; the row itself folded, so «Σ» rolls its whole subtree up (owner 2026-10-02).
+ */
 const railCounts = (scopeId: string, patch: Partial<FilterCountsState> = {}) => {
 	const row = projectSnapshot(snapshot, {
 		...state(patch),
-		expanded: new Set(['a', 'b', 'c', 'd'])
+		expanded: new Set(['a', 'b', 'c', 'd'].filter((id) => id !== scopeId))
 	}).rows.find((item) => item.id === scopeId)!;
 	return { direct: row.directCount, subtree: row.subtreeCount };
 };

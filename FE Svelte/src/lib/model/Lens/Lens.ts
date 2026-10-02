@@ -41,7 +41,8 @@ export const linkedTo = (
  * row that holds one of them. Over a row's name in the rail: every record the
  * row draws, direct and rolled up, wherever else it is projected; only the
  * hovered row's own name stays above the veil, even a row holding a projection
- * of a lit record goes under it. Over a Scope: its records with the subtree, as
+ * of a lit record goes under it; an unfolded merged row counts its member rows
+ * beneath it as its own (owner 2026-10-02). Over a Scope: its records with the subtree, as
  * its row draws them, and the name of the row that stands for it. Over a period:
  * its column and the records in it. Over an explicit set or a Kind: those
  * records; the rows holding them named. Pure over the projection, so a hover
@@ -88,13 +89,15 @@ export const lensSet = (
 };
 
 /**
- * Whether a mark stays under the veil: for a row hover everything outside the row;
- * for every other kind every mark of a record the lens does not light. Read by the
- * drawing for what it paints again above the veil and by the twin for `data-veiled`.
+ * Whether a mark stays under the veil: for a row hover everything outside the rows the
+ * lens names — the row, and an unfolded merged row's member rows beneath it, which draw
+ * the lane now (owner 2026-10-02); for every other kind every mark of a record the lens
+ * does not light. Read by the drawing for what it paints again above the veil and by the
+ * twin for `data-veiled`.
  */
 export const underVeil = (
 	hover: HoverTarget,
 	lens: LensSet,
 	mark: Pick<Mark, 'traceId' | 'rowId'>
 ): boolean =>
-	hover?.kind === 'row' ? mark.rowId !== hover.rowId : !lens.traceIds.has(mark.traceId);
+	hover?.kind === 'row' ? !lens.rowIds.has(mark.rowId) : !lens.traceIds.has(mark.traceId);

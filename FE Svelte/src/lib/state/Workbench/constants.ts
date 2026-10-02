@@ -18,3 +18,9 @@ export const WORKBENCH_OPEN_AT_KEY = 'tempience.workbench.open-at';
 
 /** A change from another device reads the snapshot again after this quiet spell: many rows of one change, one read. */
 export const INBOUND_REFRESH_DEBOUNCE_MS = 500;
+
+/**
+ * The record a demo notebook was last on, per DataSpace (`<key>:<space>`): a reload opens it
+ * again instead of an empty «сейчас» (owner 2026-10-02).
+ */
+export const WORKBENCH_RESUME_KEY = 'tempience.workbench.resume';

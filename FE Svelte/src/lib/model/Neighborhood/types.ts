@@ -35,6 +35,4 @@ export type Neighborhood = Readonly<{
 	/** Older neighbours, oldest first, so the list reads top to bottom in time. */
 	before: readonly Neighbor[];
 	after: readonly Neighbor[];
-	/** Explicitly linked records that are not among the temporal neighbours. */
-	linked: readonly Neighbor[];
 }>;

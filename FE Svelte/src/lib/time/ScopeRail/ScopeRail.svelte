@@ -5,7 +5,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { ROW_MOVE_EASING, ROW_MOVE_MS } from '$lib/model/RowMotion/constants';
-	import { planGhosts, planMotion } from '$lib/model/RowMotion/RowMotion';
+	import { motionRow, planGhosts, planMotion } from '$lib/model/RowMotion/RowMotion';
 	import type { MotionRow } from '$lib/model/RowMotion/types';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { appearance } from '$lib/theme/appearance.svelte';
@@ -145,16 +145,10 @@
 		[...(list?.children ?? [])].flatMap((item) => {
 			const element = item as HTMLElement;
 			const id = element.dataset.rowId;
-			return id
-				? [
-						{
-							id,
-							scopeIds: known.get(id)?.scopeIds ?? [],
-							y0: element.getBoundingClientRect().top,
-							element
-						}
-					]
-				: [];
+			if (!id) return [];
+			const y0 = element.getBoundingClientRect().top;
+			const row = known.get(id);
+			return [{ ...(row ? motionRow(row, y0) : { id, scopeIds: [], y0 }), element }];
 		});
 	$effect.pre(() => {
 		void rows;
@@ -169,13 +163,20 @@
 		if (!animateMoves || prefersReducedMotion.current || !was.length || !list) return;
 		const now = placed(current);
 		const plan = planMotion(was, now);
+		const stood = new Set(was.map((row) => row.id));
 		for (const row of now) {
 			const dy = plan.get(row.id);
 			if (dy === undefined) continue;
-			row.element.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], {
-				duration: ROW_MOVE_MS,
-				easing: ROW_MOVE_EASING
-			});
+			// A row coming out of another fades in as it leaves it, the mirror of a fold's ghost.
+			const from = stood.has(row.id) ? {} : { opacity: 0 };
+			const to = stood.has(row.id) ? {} : { opacity: 1 };
+			row.element.animate(
+				[
+					{ transform: `translateY(${dy}px)`, ...from },
+					{ transform: 'translateY(0)', ...to }
+				],
+				{ duration: ROW_MOVE_MS, easing: ROW_MOVE_EASING }
+			);
 		}
 		const top = list.getBoundingClientRect().top;
 		// Added to any still sliding: a later change must not cut a fold short.

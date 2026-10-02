@@ -81,4 +81,26 @@ describe('rowContext: the Context of a merged row (loop 008, C5)', () => {
 		expect(context.records[1]).toEqual({ traceId: 'move', label: 'move', start: 10 * DAY });
 		expect(rowContext({ ...merged, marks: [] }, view, 'Без Scope').records).toEqual([]);
 	});
+
+	it('unfolded, lists the lane’s records from its member rows, each once, with the rail’s numbers (owner 2026-10-02)', () => {
+		const lane = { ...row('a+b', [], { kind: 'merged', scopeId: null }), expanded: true };
+		const block = [
+			lane,
+			{ ...row('a', [mark('one', 'a'), mark('two', 'a', { rollup: true })]), depth: 1 },
+			{ ...row('b', [mark('two', 'b'), mark('three', 'b', { rollup: true })]), depth: 1 }
+		];
+		const context = rowContext(
+			{ ...lane, directCount: 2, subtreeCount: 3 },
+			view,
+			'Без Scope',
+			block
+		);
+		expect(context.records.map((record) => record.traceId).sort()).toEqual(['one', 'three', 'two']);
+		expect(context).toMatchObject({ directCount: 2, subtreeCount: 3 });
+		// Folded, the row alone: the rail's own numbers.
+		expect(rowContext(merged, view, 'Без Scope', [merged])).toMatchObject({
+			directCount: 7,
+			subtreeCount: 7
+		});
+	});
 });

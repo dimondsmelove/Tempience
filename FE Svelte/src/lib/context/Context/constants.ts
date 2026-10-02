@@ -1,4 +1,7 @@
-/** Parts of a record's Context: tabs in compact layouts, stacked sections on the desktop (C9a-1). */
+/**
+ * Parts of a record's Context: foldable sections in one scroll at every width (C9a-1; the
+ * compact tabs went on 2026-10-02 — reading and following a link must not need a switch).
+ */
 export const CONTEXT_TABS = [
 	{ id: 'overview', label: 'context.tabOverview' },
 	/** Only records that have one — intentions — offer this part. */

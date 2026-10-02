@@ -12,12 +12,19 @@ export const rowMemberIds = (row: Pick<ProjectedRow, 'id'>): string[] =>
 /**
  * What the Context shows for a merged row (loop 008, C5): its name, its members as chips,
  * `n · Σ m` as the rail counts them, and every record it draws once, by time — the list the
- * period shows, without the Scopes in the row. Pure over the projected row and the snapshot.
+ * period shows, without the Scopes in the row. Unfolded, the lane's records stand in the member
+ * rows beneath it (`block`, owner 2026-10-02): the list reads them there; the numbers are the
+ * rail's, which count the lane whole either way. Pure over the projected rows and the snapshot.
  */
-export const rowContext = (row: ProjectedRow, view: LensView, unscopedName: string): RowContext => {
+export const rowContext = (
+	row: ProjectedRow,
+	view: LensView,
+	unscopedName: string,
+	block: readonly ProjectedRow[] = [row]
+): RowContext => {
 	const seen = new Set<string>();
 	const records: RowRecord[] = [];
-	for (const mark of row.marks) {
+	for (const mark of block.flatMap((item) => item.marks)) {
 		if (seen.has(mark.traceId)) continue;
 		seen.add(mark.traceId);
 		records.push({ traceId: mark.traceId, label: mark.label, start: mark.start });

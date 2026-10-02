@@ -5,13 +5,18 @@
 	import { workbench } from '$lib/state/Workbench/instance.svelte';
 	import { scenarioImportRepository } from '$lib/state/triplit';
 	import { activeDataSpace } from '$lib/state/triplit/client';
-	import { isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
+	import { demoStoryOfDataSpace, isDemoDataSpaceId } from '$lib/scenarios/demo/registry';
+	import { demoRecordId } from '$lib/scenarios/demo/batch';
 	import { inbound } from '$lib/state/Workbench/inbound.svelte';
 	import { loadWorkbenchSnapshot } from '$lib/state/Workbench/load';
 	import { inboundFeed } from '$lib/state/triplit/inbound-sync-instance';
 	import { consumeOpenAt } from '$lib/state/Workbench/open-at';
+	import { readResume, writeResume } from '$lib/state/Workbench/resume';
 	import { draftGuard } from '$lib/state/TraceDraft/guard.svelte';
 	import { MIN_ROWS_HEIGHT_PX } from '$lib/model/Layout/constants';
+	import { ROW_MOVE_MS } from '$lib/model/RowMotion/constants';
+	import { easeRowMove } from '$lib/model/RowMotion/RowMotion';
+	import { prefersReducedMotion, Tween } from 'svelte/motion';
 	import { UNSCOPED_ROW_ID, UNSCOPED_ROW_KEY } from '$lib/model/Projection/constants';
 	import { rowOfScope } from '$lib/model/Projection/rows';
 	import { notedPeriods } from '$lib/model/PeriodContext/PeriodContext';
@@ -56,6 +61,12 @@
 	/** Import and Apply belong to the calibration scenarios; the demo is a scenario without them. */
 	const calibrationSpace =
 		activeDataSpace.kind === 'scenario' && !isDemoDataSpaceId(activeDataSpace.id);
+	/** A demo notebook reopens on its last record, then its start, never on an empty «сейчас». */
+	const demo = demoStoryOfDataSpace(activeDataSpace.id);
+	$effect(() => {
+		const traceId = workbench.selection.traceId;
+		if (demo && !preview && traceId) writeResume(localStorage, activeDataSpace.id, traceId);
+	});
 	const timeInput = provideTimeInputHost();
 	// Every reference under the workbench — in the Context, the filters, the forms — lights the ribbon (loop 008, C3).
 	provideLens(workbench.hover);
@@ -81,7 +92,15 @@
 		workbench.restoreProposals(localStorage);
 		void workbench.load(loadWorkbenchSnapshot).then(() => {
 			// A seed or an import asked, once, to open on a record: the Context and the ribbon go there.
-			if (!preview && workbench.status === 'ready') consumeOpenAt(workbench, localStorage);
+			// Without a request a demo reopens where the reader was, then on its start.
+			if (!preview && workbench.status === 'ready')
+				consumeOpenAt(
+					workbench,
+					localStorage,
+					demo
+						? [readResume(localStorage, activeDataSpace.id), demoRecordId(demo, demo.startId)]
+						: []
+				);
 		});
 		// The chapters of the space, live from Triplit; their commands write through the repository.
 		const stopChapters = preview ? () => {} : workbench.chapters.connect(tempienceRepository);
@@ -299,6 +318,24 @@
 			projection.rows.length ? projection.rows.length * rowHeightPx : MIN_ROWS_HEIGHT_PX
 		)
 	);
+	/**
+	 * The lanes' height as the page lays it out: when rows fold or unfold while they glide
+	 * (chapters), it glides with them over the same 200 ms and curve, so what stands below — «Без
+	 * даты» — moves with the last row instead of jumping, and the folding rows slide up behind
+	 * it (owner review of PR #102). Any other change, and reduced motion, takes it at once.
+	 */
+	const lanesHeight = new Tween(0, { duration: ROW_MOVE_MS, easing: easeRowMove });
+	let laneCount = -1;
+	$effect(() => {
+		const target = canvasHeight;
+		const count = projection.rows.length;
+		const glides = untrack(
+			() =>
+				laneCount >= 0 && count !== laneCount && chapters.moving && !prefersReducedMotion.current
+		);
+		laneCount = count;
+		void lanesHeight.set(target, glides ? undefined : { duration: 0 });
+	});
 	let lanes = $state<HTMLDivElement | null>(null);
 	/**
 	 * Scrolls the selected row to the middle of the lanes. A selection leaves a row already
@@ -562,7 +599,7 @@
 			{:else}
 				<div
 					class="grid"
-					style:grid-template-rows={`${interaction ? 'auto' : 'var(--time-header-height)'} ${canvasHeight}px auto`}
+					style:grid-template-rows={`${interaction ? 'auto' : 'var(--time-header-height)'} ${lanesHeight.current}px auto`}
 					style:grid-template-columns={`${!compact && railOpen ? widths.rail : 0}px minmax(0, 1fr)`}
 				>
 					{#if railOpen && !phone}
@@ -730,7 +767,6 @@
 			<div class="contents" bind:this={contextKeeper}>
 				<Context
 					{workbench}
-					sections={!phone && !compact}
 					onclose={closeContext}
 					onexpand={phone
 						? () =>

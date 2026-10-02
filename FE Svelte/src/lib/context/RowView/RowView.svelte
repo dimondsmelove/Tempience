@@ -4,6 +4,7 @@
 	import { formatDay } from '$lib/context/labels';
 	import { laneIndexOf } from '$lib/model/Arrangement/Arrangement';
 	import { UNSCOPED_ROW_KEY } from '$lib/model/Projection/constants';
+	import { rowBlock } from '$lib/model/Projection/rows';
 	import { rowContext } from '$lib/model/RowContext/RowContext';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
@@ -15,7 +16,17 @@
 	const row = $derived(
 		workbench.projection.rows.find((item) => item.kind === 'merged' && item.id === rowId) ?? null
 	);
-	const context = $derived(row ? rowContext(row, workbench.view, t(UNSCOPED_ROW_KEY)) : null);
+	/** Unfolded, the lane's records stand in its member rows beneath it: the Context reads them there. */
+	const context = $derived(
+		row
+			? rowContext(
+					row,
+					workbench.view,
+					t(UNSCOPED_ROW_KEY),
+					rowBlock(workbench.projection.rows, row.id)
+				)
+			: null
+	);
 	/** The lane behind the row, for «Разделить» and the fold: found by the first member shown. */
 	const laneIndex = $derived(
 		context ? laneIndexOf(workbench.arrangement.lanes, context.members[0].id) : -1

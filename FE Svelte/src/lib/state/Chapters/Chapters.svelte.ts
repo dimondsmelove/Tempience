@@ -151,29 +151,35 @@ export class ChaptersState {
 	readonly current: Chapter | null = $derived(currentChapter(this.list, this.now));
 
 	/**
-	 * The chapter the rows follow (owner 2026-09-29): the one chosen; while something else is
-	 * selected, the last chapter chosen before it in the history, with its stage, so a click on a
-	 * record inside it moves no row. A record dated outside that chapter hands the rows to the
-	 * chapter it lies in, whole. With no chapter chosen before, or nothing selected — none: the
-	 * current chapter leads, as before, and a record's click moves no row either.
+	 * The chapter the rows follow (owner 2026-09-29, revised 2026-10-02), read along the history
+	 * up to the entry it stands on. A chapter chosen holds, with its stage. A record dated inside
+	 * the chapter holding keeps it, so a click inside moves no row; a record dated in another
+	 * chapter hands the rows to that chapter — with the stage chosen there before, else whole —
+	 * also when no chapter was chosen yet. A record without a date or outside every chapter, a
+	 * Scope, a Period keep what holds. At rest («Снять выбор», a closed Context) the history's
+	 * entry still holds, so closing moves no row. With no history — none: the current chapter
+	 * leads.
 	 */
 	private readonly held: ChapterPick | null = $derived.by(() => {
 		const selection = this.selection;
-		if (selection.current === null) return null;
-		if (selection.chapter) return selection.chapter;
-		let last: ChapterPick | null = null;
-		for (let i = selection.index; i >= 0 && last === null; i--) {
-			const entry = selection.entries[i];
-			if (entry?.kind === 'chapter') last = { chapterId: entry.chapterId, stage: entry.stage };
+		const traces = this.view().traces ?? [];
+		let held: ChapterPick | null = null;
+		let chosen: ChapterPick | null = null;
+		for (const entry of selection.entries.slice(0, selection.index + 1)) {
+			if (entry.kind === 'chapter') {
+				held = chosen = { chapterId: entry.chapterId, stage: entry.stage };
+				continue;
+			}
+			if (entry.kind !== 'trace') continue;
+			const trace = traces.find((item) => item.id === entry.traceId);
+			const at = trace ? (traceMarkTime(trace, this.now)?.start ?? null) : null;
+			if (at === null) continue;
+			const holding = this.chapter(held?.chapterId);
+			if (holding && covers(holding, at)) continue;
+			const own = this.list.find((chapter) => covers(chapter, at));
+			if (own) held = chosen?.chapterId === own.id ? chosen : { chapterId: own.id, stage: 'whole' };
 		}
-		const traceId = selection.traceId;
-		const trace = traceId ? this.view().traces?.find((item) => item.id === traceId) : undefined;
-		const at = trace ? (traceMarkTime(trace, this.now)?.start ?? null) : null;
-		if (at === null || last === null) return last;
-		const lastChapter = this.chapter(last?.chapterId);
-		if (lastChapter && covers(lastChapter, at)) return last;
-		const own = this.list.find((chapter) => covers(chapter, at));
-		return own ? { chapterId: own.id, stage: 'whole' } : last;
+		return held;
 	});
 
 	/**

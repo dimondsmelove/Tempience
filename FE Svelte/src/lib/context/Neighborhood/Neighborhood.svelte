@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/state/Locale/Locale.svelte';
-	import { CHIP_CLASS, GROUP_HEADING_CLASS, LIST_BUTTON_CLASS } from '$lib/context/constants';
+	import { CHIP_CLASS, LIST_BUTTON_CLASS } from '$lib/context/constants';
 	import { formatDay, reasonKey, reasonLabel } from '$lib/context/labels';
 	import { neighborhood } from '$lib/model/Neighborhood/Neighborhood';
 	import type { Neighbor } from '$lib/model/Neighborhood/types';
@@ -80,11 +80,5 @@
 			</li>
 			{#each result.after as item (item.traceId)}{@render row(item)}{/each}
 		</ol>
-		{#if result.linked.length}
-			<h3 class={GROUP_HEADING_CLASS}>{t('neighborhood.outside')}</h3>
-			<ul class="flex flex-col gap-1">
-				{#each result.linked as item (item.traceId)}{@render row(item)}{/each}
-			</ul>
-		{/if}
 	{/if}
 </section>

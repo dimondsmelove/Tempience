@@ -36,10 +36,11 @@
 	>
 {/snippet}
 
-<!-- The last row of the ribbon (C9a-2, D3): records with no place on the axis, wrapped, never scrolled sideways. -->
+<!-- The last row of the ribbon (C9a-2, D3): records with no place on the axis, wrapped, never scrolled sideways.
+     Its name sits above the rail's folding rows, which slide up behind it as the lanes close. -->
 {#if railOpen}
 	<div
-		class="col-start-1 row-start-3 flex items-center gap-1 overflow-hidden border-t border-r border-outline bg-canvas pr-2 pl-2 whitespace-nowrap"
+		class="relative z-[1] col-start-1 row-start-3 flex items-center gap-1 overflow-hidden border-t border-r border-outline bg-canvas pr-2 pl-2 whitespace-nowrap"
 		style:min-height="{ROW_HEIGHT_MIN_PX}px"
 		data-testid="parked-name"
 	>

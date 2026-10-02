@@ -50,9 +50,10 @@ Status page: http://127.0.0.1:6544/
 
 Open **http://127.0.0.1:6544/** in a browser *on that same computer*. The page
 shows the **pairing code** in large type, how many minutes it is still valid,
-a **Copy** button and a **New code** button. That page is the only place the
-code is shown — it never appears on the network. Keep the terminal open for
-now; closing it stops the server.
+a **Copy** button and a **New code** button. The same code is also printed in
+the local terminal. A request through Tailscale Serve never reveals the code —
+it only shows that the server is running. Keep the terminal open for now;
+closing it stops the server.
 
 **Keep it running after you close the terminal (and after a reboot).** Install
 the server permanently, then register it as a background service:
@@ -144,6 +145,11 @@ arrive on the device. Repeat on every device.
   server disconnects every device at once — that is how you revoke access.
 
 ## Something went wrong
+
+**`npm` reports `E404` for `tempience-sync`.** Check that `npm config get registry`
+prints `https://registry.npmjs.org`. If it does and the error remains, the package
+has not been published to that registry yet; ask the maintainer to confirm the
+release before trying again.
 
 **On the computer's page the countdown shows `Expired — click “New code”`.**
 Click **New code**; enter the new code on the device.

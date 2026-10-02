@@ -1321,7 +1321,24 @@ export const STORY_TRACE_LINKS: readonly StoryTraceLink[] = [
 	{ kind: 'evidence_for', fromId: 'w.pips', toId: 'w.pips.intent' },
 	{ kind: 'related_to', fromId: 'w.study.print', toId: 'w.scarlet.case' },
 	// The engagement of 1888 and the wedding of 1890.
-	{ kind: 'related_to', fromId: 'w.married', toId: 'w.engaged' }
+	{ kind: 'related_to', fromId: 'w.married', toId: 'w.engaged' },
+	// The walk the notes used to spell out as «→ дальше: …» (owner 2026-10-02): each step is a
+	// link, so it stands in «Связи» right under the note it leads on from.
+	{ kind: 'related_to', fromId: 'w.meet', toId: 'w.rooms' },
+	{ kind: 'related_to', fromId: 'w.hope', toId: 'w.stoner' },
+	{ kind: 'related_to', fromId: 'w.whistle', toId: 'w.report1' },
+	{ kind: 'related_to', fromId: 'w.report1', toId: 'w.light' },
+	{ kind: 'related_to', fromId: 'w.report2', toId: 'w.hut' },
+	{ kind: 'related_to', fromId: 'w.hut', toId: 'w.selden' },
+	{ kind: 'related_to', fromId: 'w.hound.answer', toId: 'w.revisit.barrymore' },
+	{ kind: 'related_to', fromId: 'w.night', toId: 'w.final' },
+	{ kind: 'related_to', fromId: 'w.return', toId: 'w.moran' },
+	// The bridges between those steps, so the walk runs on from the preface to «Пустой дом».
+	{ kind: 'related_to', fromId: 'w.rooms', toId: 'w.hope' },
+	{ kind: 'related_to', fromId: 'w.stoner', toId: 'w.whistle' },
+	{ kind: 'related_to', fromId: 'w.light', toId: 'w.report2' },
+	{ kind: 'related_to', fromId: 'w.selden', toId: 'w.hound.answer' },
+	{ kind: 'related_to', fromId: 'w.revisit.barrymore', toId: 'w.night' }
 ];
 
 const closed = (factId: string, intentionId: string): StoryAssessment => ({

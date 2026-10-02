@@ -321,7 +321,8 @@ describe('projectSnapshot', () => {
 		const saved = new Set<string>();
 		const result = projectSnapshot(snapshot, state({ scopeQuery: ' b ', expanded: saved }));
 		expect(result.rows.map((row) => row.id)).toEqual(['a', 'b']);
-		expect(result.rows[0]).toMatchObject({ expanded: true, directCount: 0, subtreeCount: 3 });
+		// The path parent stands unfolded: B's records stand in B's row, not in its count (owner 2026-10-02).
+		expect(result.rows[0]).toMatchObject({ expanded: true, directCount: 0, subtreeCount: 0 });
 		expect(result.rows[1].marks.map((mark) => mark.traceId)).toEqual(['t2', 't3', 't7']);
 		expect(result.parked.map((trace) => trace.traceId)).toEqual(['t5']);
 		expect(saved.size).toBe(0);
@@ -333,7 +334,7 @@ describe('projectSnapshot', () => {
 	it('includes descendants of a matching name and combines search with hidden and only filters', () => {
 		const branch = projectSnapshot(snapshot, state({ scopeQuery: 'A' }));
 		expect(branch.rows.map((row) => row.id)).toEqual(['a', 'b']);
-		expect(branch.rows[0]).toMatchObject({ expanded: true, directCount: 3, subtreeCount: 5 });
+		expect(branch.rows[0]).toMatchObject({ expanded: true, directCount: 3, subtreeCount: 3 });
 		const hidden = projectSnapshot(
 			snapshot,
 			state({ scopeQuery: 'b', hiddenScopes: new Set(['a']) })

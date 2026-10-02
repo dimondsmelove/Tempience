@@ -86,6 +86,11 @@ export type ProjectedRow = Readonly<{
 	/** A group row with children to unfold, or a merged row — its members unfold beneath it (C5). */
 	hasChildren: boolean;
 	expanded: boolean;
+	/**
+	 * A Scope row's ancestors, nearest first, when it has any: the rows it folds into and
+	 * unfolds out of glide by them (`model/RowMotion`).
+	 */
+	ancestorIds?: readonly string[];
 	/** `n · Σ m`: direct records and the whole subtree, deduplicated by traceId. */
 	directCount: number;
 	subtreeCount: number;

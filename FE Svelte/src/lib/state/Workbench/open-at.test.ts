@@ -47,9 +47,22 @@ const storage = (values: Record<string, string> = {}) => {
 	return { target, dump: () => Object.fromEntries(map) };
 };
 
-const loaded = async (): Promise<WorkbenchState> => {
+const LATER: ExplorerTrace = {
+	...START,
+	id: 'demo-w-later',
+	content: 'Пустой дом',
+	aboutTime: {
+		basis: 'absolute',
+		precision: 'month',
+		certainty: 'approximate',
+		start: '1894-04',
+		end: null
+	}
+};
+
+const loaded = async (content: ExplorerSnapshot = snapshot): Promise<WorkbenchState> => {
 	const workbench = new WorkbenchState(new ViewportState(window));
-	await workbench.load(async () => snapshot);
+	await workbench.load(async () => content);
 	return workbench;
 };
 
@@ -104,6 +117,30 @@ describe('the one-shot opening request', () => {
 			removeItem: () => {}
 		});
 		expect(select).not.toHaveBeenCalled();
+		expect(workbench.selection.current).toBeNull();
+	});
+});
+
+describe('a demo opened without a request (reload, owner 2026-10-02)', () => {
+	const both: ExplorerSnapshot = { ...snapshot, traces: [START, LATER] };
+
+	it('opens the first known fallback and reveals it', async () => {
+		const workbench = await loaded(both);
+		consumeOpenAt(workbench, storage().target, [null, 'gone', 'demo-w-later']);
+		expect(workbench.selection.traceId).toBe('demo-w-later');
+		expect(workbench.viewport.target.start).toBeLessThanOrEqual(Date.UTC(1894, 3, 1));
+	});
+
+	it('lets a waiting request win over the fallback', async () => {
+		const workbench = await loaded(both);
+		const { target } = storage({ [WORKBENCH_OPEN_AT_KEY]: 'demo-w-start' });
+		consumeOpenAt(workbench, target, ['demo-w-later']);
+		expect(workbench.selection.traceId).toBe('demo-w-start');
+	});
+
+	it('opens nothing when no fallback is known', async () => {
+		const workbench = await loaded(both);
+		consumeOpenAt(workbench, storage().target, [null, 'gone']);
 		expect(workbench.selection.current).toBeNull();
 	});
 });

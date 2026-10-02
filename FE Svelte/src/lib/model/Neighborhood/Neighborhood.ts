@@ -48,7 +48,8 @@ const dayKey = (t: number): number => {
 /**
  * A one-off, explainable neighbourhood around a record: up to `radius` records
  * on each side by time across every Scope, every one with its reasons and its
- * Scopes, plus explicit links that fall outside that window. Nothing is stored;
+ * Scopes. Links beyond that window are the Context's «Связи», not repeated here
+ * (owner 2026-10-02). Nothing is stored;
  * the caller re-anchors by asking again (DESIGN.md §8, DP14; the «В этих Scope /
  * Во всех» filter went on 2026-09-20 — each neighbour names its Scopes instead).
  */
@@ -128,11 +129,5 @@ export const neighborhood = (
 			.slice(0, options.radius)
 			.map((candidate) => neighbor(candidate.trace, candidate.time));
 	}
-	const shown = new Set([...before, ...after].map((item) => item.traceId));
-	const linked = [...linkReasons.keys()]
-		.filter((traceId) => !shown.has(traceId))
-		.map((traceId) => tracesById.get(traceId)!)
-		.map((trace) => neighbor(trace, traceMarkTime(trace)));
-
-	return { anchorId, anchorTime, anchorScopeIds, before, after, linked };
+	return { anchorId, anchorTime, anchorScopeIds, before, after };
 };

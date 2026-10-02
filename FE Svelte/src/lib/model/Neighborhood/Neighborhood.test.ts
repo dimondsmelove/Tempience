@@ -124,22 +124,18 @@ describe('neighborhood', () => {
 		]);
 	});
 
-	it('keeps linked records outside the temporal window, including ones without time', () => {
+	it('lists only the records next in time: links beyond the window are left to «Связи»', () => {
 		const result = neighborhood(snapshot, 't5', { radius: 1 })!;
 		expect(result.before.map((n) => n.traceId)).toEqual(['t4']);
-		expect(result.linked.map((n) => n.traceId).toSorted()).toEqual(['t11', 't3', 't9']);
-		expect(result.linked.find((n) => n.traceId === 't11')?.reasons).toEqual([
-			{ kind: 'link', link: 'temporal_anchor', direction: 'incoming' },
-			{ kind: 'sharedSource', sourceId: 'src-1' }
-		]);
+		expect(result.after.map((n) => n.traceId)).toEqual(['t6']);
+		expect(result).not.toHaveProperty('linked');
 	});
 
-	it('gives an anchor without time only its links', () => {
+	it('gives an anchor without time no neighbours', () => {
 		const result = neighborhood(snapshot, 't11')!;
 		expect(result.anchorTime).toBeNull();
 		expect(result.before).toEqual([]);
 		expect(result.after).toEqual([]);
-		expect(result.linked.map((n) => n.traceId)).toEqual(['t5']);
 	});
 
 	it('returns null for an unknown anchor and lists record links once', () => {

@@ -72,11 +72,11 @@ describe('demo seed batch', () => {
 		);
 		expect(byKind('child_of')).toHaveLength(23);
 		expect(byKind('related_to', 'scope')).toHaveLength(3);
-		expect(byKind('related_to', 'trace')).toHaveLength(9);
+		expect(byKind('related_to', 'trace')).toHaveLength(23);
 		expect(byKind('part_of')).toHaveLength(6);
 		expect(byKind('evidence_for')).toHaveLength(12);
 		expect(byKind('revisits')).toHaveLength(2);
-		expect(links).toHaveLength(158 + 23 + 3 + 9 + 6 + 12 + 2);
+		expect(links).toHaveLength(158 + 23 + 3 + 23 + 6 + 12 + 2);
 		expect(seed.kindScopes).toEqual({
 			'demo-kind-case': [recordId('s.cases')],
 			'demo-kind-wire': [recordId('s.holmes')]
@@ -107,7 +107,22 @@ describe('demo seed batch', () => {
 				pair('w.published', 'w.final'),
 				pair('w.moran.who', 'w.moran.intent'),
 				pair('w.study.print', 'w.scarlet.case'),
-				pair('w.married', 'w.engaged')
+				pair('w.married', 'w.engaged'),
+				// The walk the notes used to spell out as «→ дальше: …» (owner 2026-10-02).
+				pair('w.meet', 'w.rooms'),
+				pair('w.hope', 'w.stoner'),
+				pair('w.whistle', 'w.report1'),
+				pair('w.report1', 'w.light'),
+				pair('w.report2', 'w.hut'),
+				pair('w.hut', 'w.selden'),
+				pair('w.hound.answer', 'w.revisit.barrymore'),
+				pair('w.night', 'w.final'),
+				pair('w.return', 'w.moran'),
+				pair('w.rooms', 'w.hope'),
+				pair('w.stoner', 'w.whistle'),
+				pair('w.light', 'w.report2'),
+				pair('w.selden', 'w.hound.answer'),
+				pair('w.revisit.barrymore', 'w.night')
 			].toSorted()
 		);
 		expect(
@@ -117,6 +132,35 @@ describe('demo seed batch', () => {
 			[recordId('w.revisit.barrymore'), recordId('w.hyp.barrymore')],
 			[recordId('w.return'), recordId('w.final')]
 		]);
+	});
+
+	it('walks unbroken from the preface to «Пустой дом», one link from each step to the next', () => {
+		const walk = [
+			'w.start',
+			'w.meet',
+			'w.rooms',
+			'w.hope',
+			'w.stoner',
+			'w.whistle',
+			'w.report1',
+			'w.light',
+			'w.report2',
+			'w.hut',
+			'w.selden',
+			'w.hound.answer',
+			'w.revisit.barrymore',
+			'w.night',
+			'w.final',
+			'w.return',
+			'w.moran'
+		].map(recordId);
+		const linked = (a: string, b: string): boolean =>
+			links.some(
+				(entry) =>
+					[entry.draft.fromId, entry.draft.toId].toSorted().join() === [a, b].toSorted().join()
+			);
+		const breaks = walk.slice(1).filter((step, index) => !linked(walk[index], step));
+		expect(breaks).toEqual([]);
 	});
 
 	it('assesses every evidence link and closes it, Openshaw lost, and leaves the mire search open', () => {
@@ -308,12 +352,14 @@ describe('demo seed batch', () => {
 			aboutTime: { precision: 'month', certainty: 'approximate', start: '1881-01', end: null }
 		});
 		expect(trace('w.start').draft.description).toMatch(
-			/^Это моя книжка о годах с Шерлоком Холмсом — с зимы 1881-го/
+			/^Это записная книжка доктора Ватсона о годах с Шерлоком Холмсом: с зимы 1881-го/
 		);
 		expect(trace('w.start').draft.description).toContain('отставного военного врача');
-		expect(trace('w.start').draft.description).toMatch(
-			/\n→ дальше: «Вы были в Афганистане, я вижу»$/
-		);
+		// The walk is links now, not words: no note points on in its text (owner 2026-10-02).
+		for (const entry of seed.batch.entries) {
+			if (entry.type !== 'trace') continue;
+			expect(entry.draft.description ?? '').not.toMatch(/→ дальше/);
+		}
 		// London kept Greenwich time from 1847: noon is 12:00Z, no summer time before 1916; a day that
 		// holds several records gives each its hour in the reading order.
 		expect(trace('w.start').draft.capturedAt).toBe('1894-05-01T12:00:00.000Z');

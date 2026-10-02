@@ -11,7 +11,6 @@
 	import Overview from '$lib/context/Overview/Overview.svelte';
 	import SlotView from '$lib/context/SlotView/SlotView.svelte';
 	import TechData from '$lib/context/TechData/TechData.svelte';
-	import { DEFAULT_NEIGHBORHOOD_OPTIONS } from '$lib/model/Neighborhood/constants';
 	import type { ExplorerTrace } from '$lib/model/Snapshot/types';
 	import type { RecordsReader } from '$lib/state/Records/Records.svelte';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
@@ -22,8 +21,6 @@
 		workbench,
 		trace,
 		records,
-		sections,
-		tab = $bindable(),
 		collapsed,
 		ontoggle
 	}: {
@@ -31,8 +28,6 @@
 		trace: ExplorerTrace;
 		/** The Context's reader of this record, shared by every part that shows it. */
 		records: RecordsReader;
-		sections: boolean;
-		tab: ContextTab;
 		collapsed: Record<ContextTab, boolean>;
 		ontoggle: (id: ContextTab) => void;
 	} = $props();
@@ -46,28 +41,16 @@
 	 */
 	const hasResult = $derived(trace.relation === 'intend');
 	const result = $derived(records.result?.traceId === trace.id ? records.result.result : null);
-	const parts = $derived(CONTEXT_TABS.filter((item) => item.id !== 'result' || hasResult));
-	// A part that the shown record does not have never stays selected.
-	$effect(() => {
-		if (!parts.some((item) => item.id === tab)) tab = 'overview';
-	});
-	const { radius } = DEFAULT_NEIGHBORHOOD_OPTIONS;
 	const sectionTitle = (id: ContextTab, label: string): string =>
 		id === 'links'
 			? `${label} · ${linkCount}`
 			: id === 'result'
 				? `${label} · ${result?.sources.length ?? 0}`
-				: id === 'neighborhood'
-					? `${label} · ${radius} + ${radius}`
-					: label;
+				: label;
 	/** The Overview's «Связанная запись…»: the links part opens with its search ready (ANSWERS Q6). */
 	let linkSearch = $state(false);
 	const showLinks = (): void => {
 		linkSearch = true;
-		if (!sections) {
-			tab = 'links';
-			return;
-		}
 		if (collapsed.links) ontoggle('links');
 		document.getElementById('context-section-links')?.scrollIntoView({ block: 'start' });
 	};
@@ -131,47 +114,11 @@
 		{#snippet techBody()}
 			<TechData {trace} />
 		{/snippet}
-		{#if sections}
-			{@render section('overview', t(CONTEXT_TABS[0].label), overviewBody)}
-			{#if hasResult}{@render section('result', t(CONTEXT_TABS[1].label), resultBody)}{/if}
-			{@render section('links', t(CONTEXT_TABS[2].label), linksBody)}
-			{@render section('neighborhood', t(CONTEXT_TABS[3].label), neighborhoodBody)}
-			{@render section('history', t(CONTEXT_TABS[4].label), historyBody)}
-			{@render section('tech', t(CONTEXT_TABS[5].label), techBody)}
-		{:else}
-			<div
-				role="tablist"
-				aria-label={t('context.sections')}
-				class="flex gap-1 border-b border-outline"
-			>
-				{#each parts as item (item.id)}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={tab === item.id}
-						class={[
-							'-mb-px cursor-pointer border-b-2 px-2 py-1 text-sm',
-							tab === item.id
-								? 'border-accent text-ink'
-								: 'border-transparent text-muted hover:text-ink'
-						]}
-						onclick={() => (tab = item.id)}>{t(item.label)}</button
-					>
-				{/each}
-			</div>
-			{#if tab === 'overview'}
-				{@render overviewBody()}
-			{:else if tab === 'result'}
-				{@render resultBody()}
-			{:else if tab === 'links'}
-				{@render linksBody()}
-			{:else if tab === 'history'}
-				{@render historyBody()}
-			{:else if tab === 'tech'}
-				{@render techBody()}
-			{:else}
-				{@render neighborhoodBody()}
-			{/if}
-		{/if}
+		{@render section('overview', t(CONTEXT_TABS[0].label), overviewBody)}
+		{#if hasResult}{@render section('result', t(CONTEXT_TABS[1].label), resultBody)}{/if}
+		{@render section('links', t(CONTEXT_TABS[2].label), linksBody)}
+		{@render section('neighborhood', t(CONTEXT_TABS[3].label), neighborhoodBody)}
+		{@render section('history', t(CONTEXT_TABS[4].label), historyBody)}
+		{@render section('tech', t(CONTEXT_TABS[5].label), techBody)}
 	{/if}
 </div>
