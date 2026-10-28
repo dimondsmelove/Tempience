@@ -1,3 +1,4 @@
+import practice from './practice.json';
 import common from './common.json';
 import draft from './draft.json';
 import result from './result.json';
@@ -39,5 +40,6 @@ export const ru = {
 	...onboarding,
 	...chapters,
 	...demo,
-	...demoAnya
+	...demoAnya,
+	...practice
 };

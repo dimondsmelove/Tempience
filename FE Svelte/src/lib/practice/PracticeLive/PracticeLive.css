@@ -1,0 +1,144 @@
+.practice-panel {
+	padding: 1.1rem;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 0.85rem;
+	background: var(--cg-bg-surface);
+}
+.practice-panel h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+.practice-panel > p {
+	color: var(--cg-text-muted);
+	font-size: 0.8rem;
+}
+.practice-source-form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.8rem;
+	align-items: end;
+}
+.practice-source-form > label {
+	display: grid;
+	gap: 0.35rem;
+	font-size: 0.8rem;
+}
+.practice-source-form select {
+	min-width: 0;
+}
+.practice-source-form fieldset {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.55rem 1rem;
+	padding: 0.55rem;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 0.55rem;
+}
+.practice-source-form fieldset label {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.78rem;
+}
+.practice-editor {
+	margin-block: 1rem;
+	padding: 1rem;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 0.85rem;
+	background: var(--cg-bg-surface);
+}
+.practice-norms-status {
+	color: var(--cg-text-muted);
+	font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+	.practice-source-form {
+		grid-template-columns: 1fr;
+	}
+	.practice-source-form fieldset {
+		grid-column: auto;
+	}
+}
+.practice-budget-list {
+	display: grid;
+	gap: 0.55rem;
+	margin: 0.6rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+.practice-budget {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 7rem auto auto;
+	gap: 0.5rem;
+	align-items: center;
+	font-size: 0.8rem;
+}
+.practice-budget-name {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	min-width: 0;
+}
+.practice-budget input {
+	min-width: 0;
+}
+.practice-direction-field {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 1rem;
+	margin: 0 0 0.8rem;
+	padding: 0.55rem;
+	border: 1px solid var(--cg-border-default);
+	border-radius: 0.55rem;
+	font-size: 0.8rem;
+}
+.practice-direction-field legend {
+	font-weight: 600;
+}
+.practice-direction-field label {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+.practice-required {
+	color: var(--cg-danger);
+}
+.practice-record-live {
+	grid-template-columns: 4.5rem minmax(0, 1fr) auto auto;
+}
+.practice-record-issue {
+	grid-template-columns: minmax(0, 1fr) auto;
+	margin-inline: 1.5rem;
+}
+.practice-record-issue > span {
+	min-width: 0;
+	font-family: inherit;
+	white-space: normal;
+}
+.practice-record-actions {
+	display: flex;
+	gap: 0.4rem;
+	justify-content: end;
+}
+.practice-record-actions button,
+.practice-budget button {
+	white-space: nowrap;
+}
+@media (max-width: 600px) {
+	.practice-record-live {
+		grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+	}
+	.practice-record-issue {
+		margin-inline: 1rem;
+	}
+	.practice-record-live .practice-record-actions {
+		grid-column: 2 / -1;
+	}
+	.practice-budget {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+	.practice-budget button:only-of-type {
+		grid-column: 1 / -1;
+	}
+}

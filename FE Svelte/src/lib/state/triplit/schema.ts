@@ -1,6 +1,21 @@
 import { Schema as S } from '@triplit/client';
 
 export const schema = S.Collections({
+	practiceSettings: {
+		schema: S.Schema({ id: S.Id(), kindId: S.String(), path: S.Json(), scopeIds: S.Json() })
+	},
+	/** Append-only weekly budgets of practice activities (PracticeTargets/targets.ts). */
+	practiceTargets: {
+		schema: S.Schema({
+			id: S.Id(),
+			sourceId: S.String(),
+			scopeId: S.String(),
+			minutesPerWeek: S.Optional(S.Number()),
+			effectiveFromWeek: S.String(),
+			createdAt: S.String(),
+			isDeleted: S.Boolean()
+		})
+	},
 	scopeCaptureSettings: {
 		schema: S.Schema({ id: S.Id(), suggestedKindIds: S.Json() })
 	},

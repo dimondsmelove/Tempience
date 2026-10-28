@@ -1,3 +1,5 @@
+import { createPracticeTargetsRepository } from './PracticeTargets/PracticeTargets';
+import { createPracticeSettingsRepository } from './PracticeSettings/PracticeSettings';
 import { activeDataSpace, triplit } from './client';
 import { createBackupRepository } from './Backup/Backup';
 import { asRepositoryClient, createTriplitRepository } from './repository';
@@ -45,3 +47,6 @@ export const scenarioImportRepository = createScenarioImportRepository(
 	asRepositoryClient(triplit),
 	activeDataSpace
 );
+
+export const practiceSettingsRepository = createPracticeSettingsRepository(triplit);
+export const practiceTargetsRepository = createPracticeTargetsRepository(triplit);

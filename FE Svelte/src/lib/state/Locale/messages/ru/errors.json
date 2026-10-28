@@ -142,5 +142,9 @@
 	"error.stage_before_chapter": "Этап не может начаться раньше своей главы.",
 	"error.chapter_invalid_stages": "Этап «{{name}}» начинается раньше нового начала главы: сначала передвиньте или удалите его.",
 	"error.chapter_invalid_close": "Конец главы должен быть позже её начала.",
-	"error.chapter_invalid_closeAfterNext": "Глава не может закончиться позже начала следующей — «{{name}}»."
+	"error.chapter_invalid_closeAfterNext": "Глава не может закончиться позже начала следующей — «{{name}}».",
+	"error.practice_source_format": "Настройка учёта времени повреждена или ссылается на отсутствующие данные.",
+	"error.practice_source_field": "Выберите существующий Kind и его числовое поле с минутами.",
+	"error.practice_target_format": "Недельный бюджет практики повреждён или ссылается на отсутствующие данные.",
+	"error.practice_target_value": "Введите целое число минут в неделю, от 1 до 10080."
 }

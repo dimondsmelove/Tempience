@@ -26,6 +26,9 @@
 		label,
 		onsubmit
 	}: DataFormProps = $props();
+	// Each mounted form needs its own id space: two editors on one page would otherwise
+	// share `root_*` ids, so labels attach to the first input and the second has no name.
+	const idPrefix = $props.id();
 	let busy = $state(false);
 	/** The failure of the last submit, read in the language of the moment; 'invalid' for refused fields. */
 	let failure = $state.raw<unknown>(null);
@@ -54,6 +57,7 @@
 		merger: formMerger,
 		validator: formValidator,
 		idBuilder: createFormIdBuilder,
+		idPrefix,
 		onSubmit: async (value) => {
 			if (busy || submitDisabled) return;
 			busy = true;

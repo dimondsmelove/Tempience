@@ -40,7 +40,10 @@ export const isMultilineLeaf = (ui: JsonObject): boolean =>
  * rule is static: the same leaves whatever a record holds, so a thin read of exactly these
  * leaves shows a record the way its full read does.
  */
-export const summaryLeaves = (definition: TraceKindVDraft): SummaryLeaf[] => {
+export const summaryLeaves = (
+	definition: TraceKindVDraft,
+	limit = SUMMARY_LEAVES
+): SummaryLeaf[] => {
 	const leaves: SummaryLeaf[] = [];
 	const visit = (
 		node: JsonObject,
@@ -51,7 +54,7 @@ export const summaryLeaves = (definition: TraceKindVDraft): SummaryLeaf[] => {
 	) => {
 		if (!isJsonObject(node.properties)) return;
 		for (const key of orderedKeys(node, ui)) {
-			if (leaves.length >= SUMMARY_LEAVES) return;
+			if (leaves.length >= limit) return;
 			const field = node.properties[key];
 			if (!isJsonObject(field)) continue;
 			const fieldUi = isJsonObject(ui[key]) ? ui[key] : {};

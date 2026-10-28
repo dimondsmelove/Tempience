@@ -142,5 +142,9 @@
 	"error.stage_before_chapter": "A stage can’t start before its chapter.",
 	"error.chapter_invalid_stages": "Stage “{{name}}” starts before the chapter’s new start: move or delete it first.",
 	"error.chapter_invalid_close": "A chapter has to end after it starts.",
-	"error.chapter_invalid_closeAfterNext": "The chapter can’t end after the next one, “{{name}}”, starts."
+	"error.chapter_invalid_closeAfterNext": "The chapter can’t end after the next one, “{{name}}”, starts.",
+	"error.practice_source_format": "The time-tracking source is invalid or references missing data.",
+	"error.practice_source_field": "Choose an active Kind and its numeric minutes field.",
+	"error.practice_target_format": "A weekly practice budget is invalid or references missing data.",
+	"error.practice_target_value": "Enter whole minutes per week, from 1 to 10080."
 }

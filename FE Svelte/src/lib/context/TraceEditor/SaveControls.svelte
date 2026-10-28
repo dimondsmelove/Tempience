@@ -6,9 +6,15 @@
 
 	let {
 		draft,
+		saveBlock = null,
 		onsave,
 		oncancel
-	}: { draft: TraceDraftState; onsave: () => void; oncancel: () => void } = $props();
+	}: {
+		draft: TraceDraftState;
+		saveBlock?: string | null;
+		onsave: () => void;
+		oncancel: () => void;
+	} = $props();
 	const saveTestId = $derived(draft.entry.mode === 'edit' ? 'edit-save' : 'capture-save');
 </script>
 
@@ -31,7 +37,7 @@
 		<div class="flex flex-wrap gap-2">
 			<Button
 				variant="primary"
-				disabled={!draft.canSave}
+				disabled={!draft.canSave || !!saveBlock}
 				aria-busy={draft.phase === 'saving' ? 'true' : undefined}
 				data-testid={saveTestId}
 				onclick={onsave}>{draft.phase === 'saving' ? t('draft.saving') : t('draft.save')}</Button
@@ -40,6 +46,7 @@
 				>{t('draft.cancel')}</Button
 			>
 		</div>
+		{#if saveBlock}<p class="text-sm text-muted" data-testid="save-block">{saveBlock}</p>{/if}
 		{#if draft.failure && draft.diagnostic === null}
 			<p role="alert" class="text-sm text-[color:var(--cg-danger)]" data-testid="save-error">
 				{t('draft.saveFailed', { message: errorText(draft.failure.cause) })}

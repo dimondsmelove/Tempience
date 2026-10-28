@@ -95,6 +95,8 @@ describe('backup of chapters', () => {
 		const older = structuredClone(file) as { collections: Partial<DataSpaceBackup['collections']> };
 		delete older.collections.chapters;
 		delete older.collections.chapterStages;
+		delete older.collections.practiceSettings;
+		delete older.collections.practiceTargets;
 		const parsed = parseDataSpaceBackup(older);
 		expect(parsed.collections.chapters).toEqual([]);
 		expect(parsed.collections.chapterStages).toEqual([]);

@@ -1,0 +1,86 @@
+.practice-tooltip {
+	width: min(23rem, calc(100vw - 1.5rem));
+	max-width: none !important;
+	padding: 1rem !important;
+	border: 1px solid var(--cg-border-default);
+	border-radius: var(--cg-radius-surface) !important;
+	background: var(--cg-bg-raised) !important;
+	color: var(--cg-text-primary) !important;
+	box-shadow: 0 8px 32px color-mix(in srgb, var(--cg-bg-canvas) 65%, transparent);
+	font-weight: 400 !important;
+}
+.practice-tooltip-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	font-size: 0.75rem;
+}
+.practice-tooltip-heading strong {
+	font-weight: 500;
+}
+.practice-tooltip-heading > span {
+	color: var(--cg-text-muted);
+	font-size: 0.65rem;
+}
+.practice-tooltip-total {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 0.6rem;
+}
+.practice-tooltip-total > strong {
+	font-size: 1.25rem;
+	font-weight: 500;
+}
+.practice-tooltip-total > span {
+	color: var(--cg-text-muted);
+	font-size: 0.7rem;
+}
+.practice-tooltip-activities {
+	display: grid;
+	gap: 0.65rem;
+	margin-top: 0.8rem;
+	padding-top: 0.8rem;
+	border-top: 1px solid var(--cg-border-default);
+}
+.practice-tooltip-activities li {
+	display: grid;
+	grid-template-columns: 0.55rem minmax(0, 1fr) auto 2rem;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.7rem;
+}
+.practice-tooltip-activities strong {
+	font-family: var(--cg-font-mono);
+	font-size: 0.65rem;
+	font-weight: 400;
+	white-space: nowrap;
+}
+.practice-tooltip-share {
+	text-align: right;
+	color: var(--cg-text-muted);
+	font-family: var(--cg-font-mono);
+	font-size: 0.6rem;
+}
+.practice-tooltip-caption {
+	margin-top: 0.6rem;
+	color: var(--cg-text-muted);
+	font-size: 0.65rem;
+}
+.practice-tooltip-goal {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.5rem;
+	border-top: 1px solid var(--cg-border-default);
+	margin-top: 0.8rem;
+	padding-top: 0.8rem;
+	font-size: 0.65rem;
+}
+.practice-tooltip-goal > span {
+	color: var(--cg-text-muted);
+}
+.practice-tooltip-goal > strong {
+	font-weight: 500;
+}

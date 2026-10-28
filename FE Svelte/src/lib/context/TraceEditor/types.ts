@@ -10,6 +10,11 @@ export type TraceEditorProps = {
 	onopen: OpenSaved;
 	/** The exit the entry point wants; it passes the discard question when the form changed. */
 	oncancel: () => void;
+	/**
+	 * A requirement of the entry point that is not part of the record's own checks (for example
+	 * a surface that needs exactly one of its activities); while set, saving is blocked with it.
+	 */
+	saveBlock?: string | null;
 };
 /**
  * Where a new record stands: an event that happened, an intention, or an event stated as an

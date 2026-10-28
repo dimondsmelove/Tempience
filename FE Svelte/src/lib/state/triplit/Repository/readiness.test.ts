@@ -134,5 +134,5 @@ it('describes type and optionality drift of the stored schema', () => {
 	expect(describeStorageSchemaMismatch(stricter)).toBe(
 		'intentionAssessments.values: required in storage'
 	);
-	expect(describeStorageSchemaMismatch(undefined)).toBe('scopeCaptureSettings: missing');
+	expect(describeStorageSchemaMismatch(undefined)).toBe('practiceSettings: missing');
 });

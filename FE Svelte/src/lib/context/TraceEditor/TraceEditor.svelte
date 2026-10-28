@@ -15,7 +15,7 @@
 	import KindFields from './KindFields.svelte';
 	import ModeTabs from './ModeTabs.svelte';
 
-	let { draft, onopen, oncancel }: TraceEditorProps = $props();
+	let { draft, onopen, oncancel, saveBlock = null }: TraceEditorProps = $props();
 	const id = $props.id();
 	const locked = $derived(draft.phase !== 'editing' || draft.diagnostic !== null);
 	const existing = $derived(savedPlacement(draft.saved) ?? undefined);
@@ -200,7 +200,10 @@
 	</fieldset>
 	<SaveControls
 		{draft}
-		onsave={() => void draft.save(onopen)}
+		{saveBlock}
+		onsave={() => {
+			if (!saveBlock) void draft.save(onopen);
+		}}
 		oncancel={() => draftGuard.exit(oncancel)}
 	/>
 </div>

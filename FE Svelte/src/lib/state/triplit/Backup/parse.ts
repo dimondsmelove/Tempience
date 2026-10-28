@@ -1,3 +1,5 @@
+import { parsePracticeSource } from '../PracticeSettings/source';
+import { parsePracticeTarget } from '../PracticeTargets/targets';
 import { CodedError } from '$lib/model/Errors/CodedError';
 import { Type } from '@triplit/client';
 import { schema } from '../schema';
@@ -89,6 +91,25 @@ export const parseDataSpaceBackup = (value: unknown): DataSpaceBackup => {
 		collections[name] = rows as BackupEntity[];
 	}
 	assertBackupReferences(collections);
+	for (const row of collections.practiceSettings) {
+		const source = parsePracticeSource(row);
+		if (
+			!collections.traceKinds.some((kind) => kind.id === source.kindId) ||
+			source.scopeIds.some((id) => !collections.scopes.some((scope) => scope.id === id))
+		)
+			throw new CodedError(
+				'practice_source_format',
+				'The practice source references a missing Kind or Scope'
+			);
+	}
+	for (const row of collections.practiceTargets) {
+		const target = parsePracticeTarget(row);
+		if (!collections.scopes.some((scope) => scope.id === target.scopeId))
+			throw new CodedError(
+				'practice_target_format',
+				'A weekly practice budget references a missing Scope'
+			);
+	}
 	return {
 		format: BACKUP_FORMAT,
 		exportedAt: value.exportedAt,

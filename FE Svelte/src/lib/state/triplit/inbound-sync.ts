@@ -17,7 +17,9 @@ export const INBOUND_COLLECTIONS = [
 	'intentionAssessments',
 	'traceKinds',
 	'traceKindVersions',
-	'scopeSegments'
+	'scopeSegments',
+	'practiceSettings',
+	'practiceTargets'
 ] as const;
 
 export type InboundCollection = (typeof INBOUND_COLLECTIONS)[number];

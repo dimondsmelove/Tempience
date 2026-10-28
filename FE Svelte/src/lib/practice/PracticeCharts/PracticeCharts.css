@@ -1,0 +1,265 @@
+.practice-charts {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.5rem;
+}
+.practice-chart-panel {
+	min-width: 0;
+	border: 1px solid var(--cg-border-default);
+	border-radius: var(--cg-radius-surface);
+	background: var(--cg-bg-surface);
+	padding: 1.5rem;
+}
+.practice-chart-unit,
+.practice-goal-key {
+	color: var(--cg-text-muted);
+	font-family: var(--cg-font-mono);
+	font-size: 0.7rem;
+	white-space: nowrap;
+}
+.practice-goal-key {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+.practice-goal-key > span {
+	width: 1rem;
+	border-top: 1px dashed var(--cg-text-muted);
+}
+.practice-bars {
+	display: grid;
+	grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
+	gap: 0.65rem;
+	margin-top: 2rem;
+}
+.practice-bar-button {
+	min-width: 0;
+	color: var(--cg-text-muted);
+	cursor: pointer;
+}
+.practice-bar-button:disabled {
+	cursor: default;
+}
+.practice-bar-track {
+	position: relative;
+	display: flex;
+	height: 9rem;
+	align-items: end;
+	justify-content: center;
+	border-bottom: 1px solid var(--cg-border-default);
+	background: repeating-linear-gradient(
+		to top,
+		transparent 0,
+		transparent calc(25% - 1px),
+		color-mix(in srgb, var(--cg-border-default) 45%, transparent) calc(25% - 1px),
+		color-mix(in srgb, var(--cg-border-default) 45%, transparent) 25%
+	);
+}
+.practice-bar-fill {
+	display: flex;
+	flex-direction: column-reverse;
+	width: min(70%, 3rem);
+	border-radius: 4px 4px 0 0;
+	overflow: hidden;
+	opacity: 0.85;
+	transition:
+		height 180ms ease,
+		opacity 180ms ease;
+}
+.practice-bar-button:hover .practice-bar-fill,
+.practice-today .practice-bar-fill {
+	opacity: 1;
+}
+.practice-bar-button:focus-visible,
+.practice-history-labels button:focus-visible {
+	outline: 2px solid var(--cg-focus);
+	outline-offset: 3px;
+}
+.practice-bar-label {
+	display: block;
+	margin-top: 0.65rem;
+	font-size: 0.75rem;
+}
+.practice-today .practice-bar-label {
+	color: var(--cg-text-primary);
+	font-weight: 600;
+}
+.practice-future .practice-bar-track {
+	background: repeating-linear-gradient(
+		-45deg,
+		transparent,
+		transparent 5px,
+		color-mix(in srgb, var(--cg-border-default) 25%, transparent) 5px,
+		color-mix(in srgb, var(--cg-border-default) 25%, transparent) 6px
+	);
+}
+.practice-future .practice-bar-label {
+	opacity: 0.5;
+}
+.practice-bar-value {
+	position: absolute;
+	top: -1.3rem;
+	font-family: var(--cg-font-mono);
+	font-size: 0.65rem;
+	white-space: nowrap;
+}
+.practice-bars-dense {
+	gap: 0.2rem;
+}
+.practice-bars-dense .practice-bar-fill {
+	width: 80%;
+}
+.practice-chart-note {
+	margin-top: 1.2rem;
+	color: var(--cg-text-muted);
+	font-size: 0.75rem;
+	line-height: 1.5;
+}
+.practice-history-plot {
+	display: block;
+	width: 100%;
+	height: 10.7rem;
+	margin-top: 0;
+	overflow: visible;
+}
+.practice-baseline {
+	stroke: var(--cg-border-default);
+}
+.practice-goal-line {
+	stroke: var(--cg-text-muted);
+	stroke-dasharray: 5 5;
+	opacity: 0.6;
+}
+.practice-history-line {
+	fill: none;
+	stroke: var(--cg-accent);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.practice-history-partial {
+	stroke-dasharray: 4 5;
+}
+.practice-history-plot circle {
+	fill: var(--cg-accent);
+	stroke: var(--cg-bg-surface);
+	stroke-width: 2;
+}
+.practice-history-plot .practice-current-point {
+	fill: var(--cg-bg-surface);
+	stroke: var(--cg-accent);
+	stroke-width: 2.5;
+}
+@media (max-width: 1000px) {
+	.practice-charts {
+		grid-template-columns: 1fr;
+	}
+}
+@media (max-width: 600px) {
+	.practice-chart-panel {
+		padding: 1rem;
+	}
+	.practice-bars {
+		gap: 0.3rem;
+	}
+	.practice-bar-value {
+		font-size: 0.55rem;
+	}
+	.practice-history-value {
+		display: none;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.practice-bar-fill {
+		transition: none;
+	}
+}
+
+.practice-segment {
+	display: block;
+	flex-shrink: 0;
+	background: var(--activity-color);
+	border-top: 1px solid var(--cg-bg-surface);
+}
+.practice-segment-uncoloured {
+	background: color-mix(in srgb, var(--cg-text-primary) 12%, var(--cg-bg-surface));
+	border-color: var(--cg-text-muted);
+	border-bottom: 1px solid var(--cg-text-muted);
+}
+.practice-history-stage {
+	position: relative;
+	margin-top: 0.5rem;
+	height: 12.6rem;
+}
+.practice-history-area {
+	fill: var(--activity-color);
+	fill-opacity: 0.48;
+	stroke: var(--cg-bg-surface);
+	stroke-width: 1;
+	stroke-linejoin: round;
+}
+.practice-history-area-uncoloured {
+	fill: var(--cg-text-primary);
+	fill-opacity: 0.08;
+	stroke: var(--cg-text-muted);
+}
+.practice-history-triggers {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.practice-history-triggers > button {
+	position: relative;
+	cursor: pointer;
+	min-width: 0;
+	border-radius: 3px;
+}
+.practice-history-triggers > button:hover {
+	background: color-mix(in srgb, var(--cg-accent) 6%, transparent);
+}
+.practice-history-triggers > button:focus-visible {
+	outline: 2px solid var(--cg-focus);
+	outline-offset: 2px;
+}
+.practice-history-label {
+	position: absolute;
+	top: 10.7rem;
+	inset-inline: 0;
+	display: grid;
+	gap: 0.4rem;
+	color: var(--cg-text-muted);
+	font-family: var(--cg-font-mono);
+	font-size: 0.6rem;
+}
+.practice-history-value {
+	color: var(--cg-text-primary);
+	font-size: 0.58rem;
+}
+.practice-chart-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.8rem 1.5rem;
+	margin-top: 1rem;
+	color: var(--cg-text-muted);
+	font-size: 0.7rem;
+}
+.practice-chart-legend li {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+@media (max-width: 600px) {
+	.practice-history-value {
+		display: none;
+	}
+	.practice-history-stage {
+		height: 12rem;
+	}
+}
+@media (max-width: 600px) {
+	/* Twelve two-hour labels do not fit a phone: every other one stays. */
+	.practice-bar-label-minor {
+		visibility: hidden;
+	}
+}
