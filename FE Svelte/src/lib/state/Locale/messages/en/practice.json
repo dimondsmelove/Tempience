@@ -94,5 +94,10 @@
 	"practice.direction": "Activity",
 	"practice.directionRequired": "Choose one activity to save the record.",
 	"practice.budgetSaveShort": "Save",
-	"practice.budgetClearShort": "Clear"
+	"practice.budgetClearShort": "Clear",
+	"practice.settings": "Settings",
+	"practice.settingsDone": "Done",
+	"practice.setup": "Set up",
+	"practice.setupEmpty": "To see statistics, choose a form with a minutes field and the directions to track.",
+	"practice.setupRepair": "The time source no longer works: its form, field or directions were removed. Set it up again."
 }

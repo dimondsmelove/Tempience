@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { onDestroy } from 'svelte';
+	import { CogOutline } from 'flowbite-svelte-icons';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import { appearance } from '$lib/theme/appearance.svelte';
 	import { scopeColourOf } from '$lib/theme/scope-colour';
@@ -25,11 +26,10 @@
 	import type { PracticePeriod } from '$lib/practice/PracticeDemo/types';
 	import type { PracticeDashboardData } from '$lib/state/Practice/types';
 	import { PracticeState } from '$lib/state/Practice/Practice.svelte';
-	import PracticeBudgets from './PracticeBudgets.svelte';
 	import PracticeEditor from './PracticeEditor.svelte';
 	import PracticeRecords from './PracticeRecords.svelte';
 	import { liveDirections, liveHistory, selectionGoal, selectionRemaining } from './live';
-	import PracticeSourceSettings from './PracticeSourceSettings.svelte';
+	import PracticeSettings from './PracticeSettings.svelte';
 	import '$lib/practice/PracticeDemo/PracticeDemo.css';
 	import '$lib/practice/PracticeDemo/PracticeRecords.css';
 	import './PracticeLive.css';
@@ -47,6 +47,8 @@
 	let recordError = $state<unknown>(null);
 	let editor = $state<{ key: number; entry: DraftEntry } | null>(null);
 	let editorKey = 0;
+	const settingsId = $props.id();
+	let settingsOpen = $state(false);
 
 	const sourceValid = $derived(
 		practice.validSource &&
@@ -141,8 +143,20 @@
 				<h1>{t('practice.title')}</h1>
 				<p class="practice-subtitle">{t('practice.subtitle')}</p>
 			</div>
-			<a class="practice-back cg-control" href={resolve('/practice/demo')}>{t('practice.demo')} ↗</a
-			>
+			<div class="practice-heading-actions">
+				{#if sourceValid}<button
+						type="button"
+						class="practice-back cg-control"
+						aria-expanded={settingsOpen}
+						aria-controls={settingsId}
+						data-testid="practice-settings-toggle"
+						onclick={() => (settingsOpen = !settingsOpen)}
+						><CogOutline class="h-4 w-4" aria-hidden="true" />{t('practice.settings')}</button
+					>{/if}
+				<a class="practice-back cg-control" href={resolve('/practice/demo')}
+					>{t('practice.demo')} ↗</a
+				>
+			</div>
 		</header>
 		{#if editor}
 			{#key editor.key}<PracticeEditor
@@ -156,13 +170,30 @@
 				{t('practice.readError', { message: errorText(practice.failure) })}
 			</p>
 		{:else}
-			<PracticeSourceSettings {practice} />
-			{#if sourceValid}
-				<PracticeBudgets
+			{#if settingsOpen}
+				<PracticeSettings
+					id={settingsId}
+					{practice}
+					{sourceValid}
 					{activities}
 					week={periodRange('week', data.today).start}
 					onsave={async (id, minutes) => void (await saveTarget(id, minutes))}
+					onclose={() => (settingsOpen = false)}
 				/>
+			{:else if !sourceValid}
+				<section class="practice-empty" data-testid="practice-empty">
+					<p>{t(practice.source ? 'practice.setupRepair' : 'practice.setupEmpty')}</p>
+					<button
+						type="button"
+						class="cg-control"
+						aria-controls={settingsId}
+						aria-expanded="false"
+						data-testid="practice-setup"
+						onclick={() => (settingsOpen = true)}>{t('practice.setup')}</button
+					>
+				</section>
+			{/if}
+			{#if sourceValid}
 				<div class="practice-controls">
 					<div class="practice-periods" role="group" aria-label={t('practice.period')}>
 						{#each ['day', 'week', 'month'] as option (option)}<button

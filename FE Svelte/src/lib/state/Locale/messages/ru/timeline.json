@@ -61,6 +61,8 @@
 	"toolbar.filtersCount": "Фильтры {{count}}",
 	"toolbar.filtersEmpty": "Скрытых Scope нет. Виды записей — в легенде на ленте.",
 	"filters.kindCount": "Записей этого Trace Kind в пространстве: {{count}}. Независимо от окна и фильтров.",
+	"toolbar.practice": "Практика",
+	"toolbar.practiceHint": "Практика: минуты и недельные бюджеты",
 	"toolbar.parked": "Без даты",
 	"toolbar.record": "Записать",
 	"toolbar.resetAll": "Сбросить всё",

@@ -94,5 +94,10 @@
 	"practice.direction": "Направление",
 	"practice.directionRequired": "Выберите одно направление, чтобы сохранить запись.",
 	"practice.budgetSaveShort": "Сохранить",
-	"practice.budgetClearShort": "Убрать"
+	"practice.budgetClearShort": "Убрать",
+	"practice.settings": "Настройки",
+	"practice.settingsDone": "Готово",
+	"practice.setup": "Настроить",
+	"practice.setupEmpty": "Чтобы увидеть статистику, выберите форму с полем минут и направления.",
+	"practice.setupRepair": "Источник времени больше не подходит: форма, поле или направления удалены. Настройте его заново."
 }

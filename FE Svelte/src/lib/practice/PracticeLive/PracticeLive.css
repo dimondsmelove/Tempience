@@ -142,3 +142,43 @@
 		grid-column: 1 / -1;
 	}
 }
+
+.practice-heading-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+.practice-heading-actions button.practice-back {
+	gap: 0.4rem;
+	cursor: pointer;
+	background: transparent;
+}
+.practice-heading-actions button.practice-back[aria-expanded='true'] {
+	color: var(--cg-text-primary);
+	border-color: var(--cg-accent);
+}
+.practice-settings,
+.practice-empty {
+	display: grid;
+	gap: 1rem;
+	margin-block: 1rem;
+	padding: 1rem;
+	border: 1px solid var(--cg-border-default);
+	border-radius: var(--cg-radius-control);
+	background: var(--cg-bg-surface);
+}
+.practice-empty {
+	justify-items: start;
+	color: var(--cg-text-muted);
+}
+.practice-settings-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+}
+.practice-settings-head h2 {
+	font-size: var(--cg-text-size-control);
+	font-weight: 600;
+}

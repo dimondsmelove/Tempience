@@ -8,6 +8,7 @@
 		MapPinAltOutline,
 		PlusOutline
 	} from 'flowbite-svelte-icons';
+	import PracticeLink from '$lib/time/PracticeLink/PracticeLink.svelte';
 	import FilterList from '$lib/time/FilterList/FilterList.svelte';
 	import Popover from '$lib/ui/Popover/Popover.svelte';
 	import { TOOLBAR_HEIGHT_PX } from '$lib/time/Workbench/constants';
@@ -54,6 +55,7 @@
 				><ClipboardListOutline class="h-5 w-5" /><span>{t(CATALOG_KEY)}</span></button
 			>
 		{:else}
+			<PracticeLink phone />
 			<button class="mobile-action" data-testid="kinds-open" onclick={openKinds}
 				><ClipboardListOutline class="h-5 w-5" /><span>{t(CATALOG_KEY)}</span></button
 			>
@@ -214,6 +216,7 @@
 				>
 			{/if}
 			<!-- The catalog sits next to «Записать»: both are entries into the Context (owner, 2026-09-17). -->
+			<PracticeLink />
 			<Button size="sm" data-testid="kinds-open" onclick={openKinds}>{t(CATALOG_KEY)}</Button>
 		{/if}
 		<Button size="sm" variant="primary" data-testid="capture" onclick={oncapture}>

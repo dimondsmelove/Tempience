@@ -61,6 +61,8 @@
 	"toolbar.filtersCount": "Filters {{count}}",
 	"toolbar.filtersEmpty": "No hidden Scopes. Record kinds are filtered in the legend on the ribbon.",
 	"filters.kindCount": "Records of this Trace Kind in the space: {{count}}. Whatever the window and the filters.",
+	"toolbar.practice": "Practice",
+	"toolbar.practiceHint": "Practice: minutes and weekly budgets",
 	"toolbar.parked": "No date",
 	"toolbar.record": "Record",
 	"toolbar.resetAll": "Reset all",
