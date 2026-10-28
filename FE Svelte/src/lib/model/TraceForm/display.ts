@@ -5,6 +5,7 @@ import type { JsonObject, JsonValue, TraceKindVDraft } from '$lib/state/triplit/
 import { createTraceAjv, isJsonObject } from '$lib/state/triplit/trace-kind-v-validation';
 import { pointerKey } from './schema';
 import { summaryLeaves, type SummaryLeaf } from './summary-fields';
+import { isScale, quadrant } from '$lib/model/StateCheckin/state';
 
 const ajv = createTraceAjv();
 const temporalFormats = {
@@ -179,12 +180,13 @@ export function traceFormDisplay(
 				: [];
 		for (const key of new Set([...order, ...Object.keys(node.properties)])) {
 			const field = node.properties[key];
-			if (!isJsonObject(field) || value[key] === undefined) continue;
+			if (!isJsonObject(field)) continue;
 			const path = `${pointer}/properties/${pointerKey(key)}`;
 			const label = [...labels, String(field.title ?? key)];
 			const item = value[key];
 			const fieldUi = isJsonObject(ui[key]) ? ui[key] : {};
-			if (isJsonObject(item) && field.type === 'object') visit(field, item, path, label, fieldUi);
+			if (item !== undefined && isJsonObject(item) && field.type === 'object')
+				visit(field, item, path, label, fieldUi);
 			else if (Array.isArray(item) && isJsonObject(field.items) && field.items.type === 'object') {
 				item.forEach((entry, index) => {
 					if (isJsonObject(entry))
@@ -196,11 +198,29 @@ export function traceFormDisplay(
 							isJsonObject(fieldUi.items) ? fieldUi.items : {}
 						);
 				});
-			} else
+			} else if (item !== undefined)
 				fields.push({
 					label: label.join(' / '),
 					value: formatFormValue(item, field, definition.fieldMeta?.[path]?.unit?.label, language)
 				});
+			const components = fieldUi['ui:components'];
+			const options = fieldUi['ui:options'];
+			const refs = isJsonObject(options) ? options.stateFields : undefined;
+			if (
+				isJsonObject(components) &&
+				components.textWidget === 'stateWordWidget' &&
+				isJsonObject(refs) &&
+				typeof refs.energy === 'string' &&
+				typeof refs.tension === 'string'
+			) {
+				const energy = value[refs.energy];
+				const tension = value[refs.tension];
+				if (isScale(energy) && isScale(tension))
+					fields.push({
+						label: translate(language, 'stateCheckin.quadrant'),
+						value: quadrant(energy, tension)
+					});
+			}
 		}
 	}
 	visit(definition.dataSchema, data, '', [], definition.uiSchema ?? {});

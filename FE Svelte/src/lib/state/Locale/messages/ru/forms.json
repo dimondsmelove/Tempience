@@ -191,5 +191,15 @@
 	"template.save": "Сохранить",
 	"template.toBuilder": "Открыть в конструкторе",
 	"template.toTemplate": "Настроить как тренировку",
-	"list.addVariant": "Добавить {{name}}…"
+	"list.addVariant": "Добавить {{name}}…",
+	"stateCheckin.energy": "Энергия",
+	"stateCheckin.tension": "Напряжение",
+	"stateCheckin.mood": "Настроение",
+	"stateCheckin.waitingHint": "Сначала выбери энергию, напряжение и настроение.",
+	"stateCheckin.wordsHint": "Все слова этого квадранта. Подходящие по настроению — первыми. Выбери слово или напиши своё.",
+	"stateCheckin.words": "Слова квадранта",
+	"stateCheckin.word": "Выбранное или своё слово",
+	"stateCheckin.quadrant": "Квадрант",
+	"template.state": "Состояние",
+	"template.stateHint": "Три оценки, квадрант и слова состояния"
 }

@@ -191,5 +191,15 @@
 	"template.save": "Save",
 	"template.toBuilder": "Open in the builder",
 	"template.toTemplate": "Set up as a workout",
-	"list.addVariant": "Add {{name}}…"
+	"list.addVariant": "Add {{name}}…",
+	"stateCheckin.energy": "Energy",
+	"stateCheckin.tension": "Tension",
+	"stateCheckin.mood": "Mood",
+	"stateCheckin.waitingHint": "First choose energy, tension and mood.",
+	"stateCheckin.wordsHint": "Every word in this quadrant, with mood matches first. Choose a word or write your own.",
+	"stateCheckin.words": "Quadrant words",
+	"stateCheckin.word": "Selected word or your own",
+	"stateCheckin.quadrant": "Quadrant",
+	"template.state": "State",
+	"template.stateHint": "Three ratings, a quadrant and words for your state"
 }

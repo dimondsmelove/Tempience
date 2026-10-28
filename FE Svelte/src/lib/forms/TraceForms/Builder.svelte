@@ -88,7 +88,12 @@
 			stage = 'workout';
 			return;
 		}
-		if (id !== 'scratch') draft.fields = templateDraft(id, locale.current).fields;
+		if (id !== 'scratch') {
+			const made = templateDraft(id, locale.current);
+			draft.fields = made.fields;
+			draft.original = made.original;
+			if (!draft.name && made.name) draft.name = made.name;
+		}
 		open = draft.fields[0]?.id ?? null;
 		stage = 'build';
 	};

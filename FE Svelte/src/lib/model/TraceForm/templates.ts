@@ -14,6 +14,7 @@ export const TEMPLATE_IDS = [
 	'measure',
 	'counter',
 	'scale',
+	'state',
 	'yesno',
 	'note',
 	'workout',
@@ -212,6 +213,46 @@ export function templateDraft(id: TemplateId, language: Locale = 'ru'): TraceFor
 					})
 				]
 			};
+		case 'state': {
+			const energy = scalar('integer', w('stateCheckin.energy'), {
+				required: true,
+				minimum: 1,
+				maximum: 5
+			});
+			const tension = scalar('integer', w('stateCheckin.tension'), {
+				required: true,
+				minimum: 1,
+				maximum: 5
+			});
+			const mood = scalar('integer', w('stateCheckin.mood'), {
+				required: true,
+				minimum: 1,
+				maximum: 5
+			});
+			const word = scalar('text', w('stateCheckin.word'));
+			const refs = { energy: energy.key!, tension: tension.key!, mood: mood.key! };
+			return {
+				name: w('template.state'),
+				fields: [energy, tension, mood, word],
+				original: {
+					dataSchema: {},
+					uiSchema: {
+						...Object.fromEntries(
+							[energy, tension, mood].map((field) => [
+								field.key!,
+								{
+									'ui:components': { numberWidget: 'stateScaleWidget' }
+								}
+							])
+						),
+						[word.key!]: {
+							'ui:components': { textWidget: 'stateWordWidget' },
+							'ui:options': { stateFields: refs }
+						}
+					}
+				}
+			};
+		}
 		case 'yesno':
 			return { name: '', fields: [scalar('boolean', w('template.done'))] };
 		case 'note':

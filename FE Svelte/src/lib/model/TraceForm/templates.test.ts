@@ -16,6 +16,30 @@ describe('templates: what to track, not how to build it', () => {
 		}
 	});
 
+	it('keeps state widget bindings through rename, round-trip and an extra field', () => {
+		const draft = templateDraft('state');
+		const keys = draft.fields.map((field) => field.key!);
+		const definition = compileTraceForm(draft);
+		const values = { [keys[0]]: 3, [keys[1]]: 3, [keys[2]]: 3, [keys[3]]: 'настороженность' };
+		expect(() => assertTraceData(values, definition.dataSchema)).not.toThrow();
+		expect(() => assertTraceData({ ...values, [keys[0]]: 6 }, definition.dataSchema)).toThrow();
+		expect(() => assertTraceData({ [keys[0]]: 3, [keys[1]]: 3 }, definition.dataSchema)).toThrow();
+		const edited = decodeTraceForm('Переименовано', definition);
+		edited.fields[0].label = 'Мои силы';
+		const extra = templateDraft('note').fields[0];
+		extra.label = 'Заметка';
+		edited.fields.push(extra);
+		const next = compileTraceForm(edited);
+		expect(next.uiSchema[keys[3]]).toEqual(definition.uiSchema[keys[3]]);
+		expect(next.uiSchema[keys[0]]).toEqual(definition.uiSchema[keys[0]]);
+		expect((next.dataSchema.properties as JsonObject)[keys[0]]).toMatchObject({
+			title: 'Мои силы',
+			minimum: 1,
+			maximum: 5
+		});
+		expect(Object.keys(next.dataSchema.properties as JsonObject)).toHaveLength(5);
+	});
+
 	it('makes a workout from exercises and how each is counted, and records a morning', () => {
 		const definition = compileTraceForm(
 			workoutDraft('Утренняя физуха', [

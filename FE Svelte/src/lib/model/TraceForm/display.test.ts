@@ -54,6 +54,37 @@ it.each([
 	expect(formatFormValue(value, { type: 'string', format })).toBe(value);
 });
 
+it('shows a computed State quadrant after its word without persisting it, even when the word is empty', () => {
+	const definition = {
+		dataSchema: {
+			type: 'object',
+			properties: {
+				energy: { type: 'integer', title: 'Энергия' },
+				tension: { type: 'integer', title: 'Напряжение' },
+				mood: { type: 'integer', title: 'Настроение' },
+				word: { type: 'string', title: 'Выбранное или своё слово' }
+			}
+		},
+		uiSchema: {
+			word: {
+				'ui:components': { textWidget: 'stateWordWidget' },
+				'ui:options': { stateFields: { energy: 'energy', tension: 'tension', mood: 'mood' } }
+			}
+		}
+	};
+	const data = { energy: 4, tension: 3, mood: 1, word: 'настороженность' };
+	const result = traceFormDisplay(definition, data);
+	expect(result.displayFields.slice(-2)).toEqual([
+		{ label: 'Выбранное или своё слово', value: 'настороженность' },
+		{ label: 'Квадрант', value: 'Напряжённая энергия' }
+	]);
+	expect(result.displayFields.at(-1)).toEqual({ label: 'Квадрант', value: 'Напряжённая энергия' });
+	expect(
+		traceFormDisplay(definition, { energy: 4, tension: 3, mood: 1 }).displayFields.at(-1)
+	).toEqual({ label: 'Квадрант', value: 'Напряжённая энергия' });
+	expect(data).not.toHaveProperty('quadrant');
+});
+
 it('keeps date-only fields on their calendar day regardless of the local timezone', () => {
 	expect(formatFormValue('2026-09-09', { format: 'date' })).toBe(
 		new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeZone: 'UTC' }).format(

@@ -12,6 +12,8 @@ import { CodedError } from '$lib/model/Errors/CodedError';
 import { formSchema, variantKey } from '$lib/model/TraceForm/conditions';
 import ChoicesWidget from './ChoicesWidget/ChoicesWidget.svelte';
 import DateTimeInput from './DateTimeInput.svelte';
+import StateScale from './StateCheckin/StateScale.svelte';
+import StateWord from './StateCheckin/StateWord.svelte';
 import ListItemTemplate from './List/ListItemTemplate.svelte';
 import ListTemplate from './List/ListTemplate.svelte';
 import ValidationErrors from './ValidationErrors.svelte';
@@ -43,7 +45,9 @@ export const formTheme = overrideByRecord(
 		multiEnumField: MultiEnumField,
 		checkboxesWidget: ChoicesWidget,
 		textareaWidget: Textarea,
-		dateTimeWidget: DateTimeInput
+		dateTimeWidget: DateTimeInput,
+		stateScaleWidget: StateScale,
+		stateWordWidget: StateWord
 	}),
 	{
 		textWidget: DateTimeInput,
@@ -110,6 +114,16 @@ function untitleRows(schema: JsonObject, ui: JsonObject): void {
 export function formUiSchema(definition: TraceKindVDraft): JsonObject {
 	const ui = structuredClone(definition.uiSchema ?? {});
 	ui['ui:options'] = { ...((ui['ui:options'] as JsonObject) ?? {}), hideTitle: true };
+	// Older State Kinds predate the custom widget's inline label. Identify it by widget
+	// metadata so saved versions get the same layout as newly created templates.
+	for (const fieldUi of Object.values(ui)) {
+		if (!isJsonObject(fieldUi) || !isJsonObject(fieldUi['ui:components'])) continue;
+		if (fieldUi['ui:components'].textWidget !== 'stateWordWidget') continue;
+		fieldUi['ui:options'] = {
+			...((fieldUi['ui:options'] as JsonObject) ?? {}),
+			hideTitle: true
+		};
+	}
 	untitleRows(definition.dataSchema, ui);
 	for (const [pointer, meta] of Object.entries(definition.fieldMeta ?? {})) {
 		if (!meta.unit) continue;
