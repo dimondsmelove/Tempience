@@ -1,4 +1,3 @@
-import { DEMO_ACTIVITIES, DEMO_KIND_ID } from './constants';
 import type {
 	PracticeBucket,
 	PracticeEntry,
@@ -39,7 +38,7 @@ export const entriesIn = (
 	entries: readonly PracticeEntry[],
 	range: PracticeRange,
 	activityId: string | null = null,
-	kindId: string = DEMO_KIND_ID
+	kindId: string
 ): readonly PracticeEntry[] =>
 	entries.filter(
 		(entry) =>
@@ -89,7 +88,7 @@ export const activityBuckets = (
 	entries: readonly PracticeEntry[],
 	period: PracticePeriod,
 	range: PracticeRange,
-	activityIds: readonly string[] = DEMO_ACTIVITIES.map((activity) => activity.id)
+	activityIds: readonly string[]
 ): readonly PracticeBucket[] => {
 	if (period === 'day') {
 		const placed = entries.filter((entry) => entry.hour !== null);
@@ -133,14 +132,11 @@ export const weekHistory = (
 	entries: readonly PracticeEntry[],
 	anchor: string,
 	activityId: string | null,
-	source = {
-		kindId: DEMO_KIND_ID,
-		activityIds: DEMO_ACTIVITIES.map((activity) => activity.id) as readonly string[]
-	}
+	source: { kindId: string; activityIds: readonly string[] }
 ): readonly PracticeBucket[] => {
 	const current = periodRange('week', anchor).start;
-	return Array.from({ length: 8 }, (_, index) => {
-		const date = addDays(current, (index - 7) * 7);
+	return Array.from({ length: 9 }, (_, index) => {
+		const date = addDays(current, (index - 4) * 7);
 		return {
 			id: date,
 			date,

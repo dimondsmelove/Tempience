@@ -207,7 +207,7 @@
 	position: absolute;
 	inset: 0;
 	display: grid;
-	grid-template-columns: repeat(8, minmax(0, 1fr));
+	grid-template-columns: repeat(9, minmax(0, 1fr));
 }
 .practice-history-triggers > button {
 	position: relative;
@@ -262,4 +262,9 @@
 	.practice-bar-label-minor {
 		visibility: hidden;
 	}
+}
+
+.practice-history-triggers > button[aria-current='date'] .practice-history-label {
+	color: var(--cg-accent);
+	font-weight: 700;
 }

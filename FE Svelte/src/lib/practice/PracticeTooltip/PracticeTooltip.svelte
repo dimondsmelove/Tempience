@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Tooltip } from 'flowbite-svelte';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
-	import { minutesLabel } from '../PracticeDemo/format';
+	import { minutesLabel } from '../../model/Practice/format';
 	import type { PracticeTooltipProps } from './types';
 	import './PracticeTooltip.css';
 

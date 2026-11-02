@@ -61,11 +61,6 @@ export const createPracticeSettingsRepository = (client: TempienceTriplitClient)
 					'practice_source_field',
 					'Select an active Kind and its numeric minutes field'
 				);
-			for (const id of source.scopeIds) {
-				const scope = await tx.fetchById('scopes', id);
-				if (!scope || scope.isDeleted)
-					throw new CodedError('scope_missing', 'Select an existing Scope');
-			}
 			const values = {
 				kindId: source.kindId,
 				path: [...source.path],

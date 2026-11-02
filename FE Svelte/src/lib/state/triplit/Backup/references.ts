@@ -3,6 +3,7 @@ import { assessmentIdFor, parseStoredAssessment } from '../IntentionAssessments/
 import { readStoredTraceData, readStoredTraceTime } from '../Traces/stored-time';
 import { activeRevisitsFrom, isSupplementMarker, supplementState } from '../Traces/supplement';
 import { parseStatedDuration } from '../trace-duration';
+import { parsePracticeWeekPlan } from '../PracticeWeeks/plans';
 import { assertTraceData, isJsonObject } from '../trace-kind-v-validation';
 import { assertTraceTemporalPlacement } from '../trace-time';
 import type { TraceAboutKind } from '../types';
@@ -243,4 +244,14 @@ export const assertBackupReferences = (collections: BackupCollections): void => 
 	assertTraceReferences(collections);
 	assertAssessmentReferences(collections);
 	assertChapterReferences(collections);
+	const scopeIds = new Set(collections.scopes.map((row) => row.id));
+	for (const row of collections.practiceWeekPlans) {
+		const plan = parsePracticeWeekPlan(row);
+		if (plan.scopeIds.some((id) => !scopeIds.has(id)))
+			throw new CodedError(
+				'backup_practice_plan_scope',
+				`Practice week plan ${plan.week} references a missing Scope.`,
+				{ week: plan.week }
+			);
+	}
 };

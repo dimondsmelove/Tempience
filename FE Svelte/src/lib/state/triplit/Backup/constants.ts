@@ -56,5 +56,15 @@ export const BACKUP_COLLECTION_PROFILES: readonly (readonly BackupCollection[])[
 		'chapterStages',
 		'practiceSettings',
 		'practiceTargets'
+	],
+	[
+		...ORIGINAL_BACKUP_COLLECTIONS,
+		'scopeCaptureSettings',
+		'intentionAssessments',
+		'chapters',
+		'chapterStages',
+		'practiceSettings',
+		'practiceTargets',
+		'practiceWeekPlans'
 	]
 ];

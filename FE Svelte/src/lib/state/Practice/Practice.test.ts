@@ -105,6 +105,32 @@ describe('practice projection', () => {
 		]);
 	});
 
+	it('counts a single active Scope outside the available set and keeps deleted or ambiguous memberships excluded', () => {
+		const result = projectPractice(
+			source,
+			[trace('outside'), trace('active-and-deleted'), trace('deleted-only'), trace('ambiguous')],
+			[version],
+			[
+				link('outside', 'music'),
+				link('active-and-deleted', 'music'),
+				link('active-and-deleted', 'archived'),
+				link('deleted-only', 'archived'),
+				link('ambiguous', 'walk'),
+				link('ambiguous', 'music')
+			],
+			['walk', 'read', 'music'],
+			'UTC'
+		);
+		expect(result.entries.map((entry) => [entry.id, entry.scopeIds])).toEqual([
+			['outside', ['music']],
+			['active-and-deleted', ['music']]
+		]);
+		expect(result.issues).toEqual([
+			{ id: 'deleted-only', reason: 'scope' },
+			{ id: 'ambiguous', reason: 'scope' }
+		]);
+	});
+
 	it('uses selected field through each immutable version and reports unsupported time', () => {
 		const result = projectPractice(
 			source,

@@ -6,11 +6,10 @@
 	import type { PracticeSource } from '$lib/state/triplit/PracticeSettings/types';
 	import { practiceFields } from '$lib/state/triplit/PracticeSettings/source';
 
-	let { practice }: { practice: PracticeState } = $props();
+	let { practice, ondirty }: { practice: PracticeState; ondirty: (dirty: boolean) => void } =
+		$props();
 	let selectedKindId = $state('');
 	let selectedPath = $state('');
-	let selectedScopes = $state<string[]>([]);
-	let scopeEdited = $state(false);
 	let saving = $state(false);
 	let failure = $state<unknown>(null);
 
@@ -21,17 +20,9 @@
 	const path = $derived(
 		selectedPath || (practice.source?.kindId === kindId ? JSON.stringify(practice.source.path) : '')
 	);
-	const scopeIds = $derived(scopeEdited ? selectedScopes : (practice.source?.scopeIds ?? []));
-	const sourceNeedsRepair = $derived(
-		!!practice.source &&
-			(!practice.validSource ||
-				!practice.source.scopeIds.length ||
-				practice.source.scopeIds.some(
-					(id) => !practice.scopes.some((scope) => scope.id === id && !scope.isDeleted)
-				))
-	);
+	const sourceNeedsRepair = $derived(!!practice.source && !practice.validSource);
 	const saveSource = async (): Promise<void> => {
-		if (!kindId || !path || !scopeIds.length) return;
+		if (!kindId || !path) return;
 		saving = true;
 		failure = null;
 		try {
@@ -39,13 +30,12 @@
 				id: 'source',
 				kindId,
 				path: JSON.parse(path) as string[],
-				scopeIds
+				scopeIds: practice.source?.scopeIds ?? []
 			};
 			await practiceSettingsRepository.setPracticeSource(source);
+			ondirty(false);
 			selectedKindId = '';
 			selectedPath = '';
-			selectedScopes = [];
-			scopeEdited = false;
 		} catch (cause) {
 			failure = cause;
 		} finally {
@@ -54,8 +44,8 @@
 	};
 </script>
 
-<section class="practice-panel" aria-labelledby="practice-source-title">
-	<h2 id="practice-source-title">{t('practice.sourceSettings')}</h2>
+<details class="practice-panel practice-source-details" open={!practice.validSource}>
+	<summary>{t('practice.sourceSettings')}</summary>
 	<p>{t('practice.sourceHelp')}</p>
 	<div class="practice-source-form">
 		<label>
@@ -64,6 +54,7 @@
 				class="cg-control cg-field"
 				value={kindId}
 				onchange={(event) => {
+					ondirty(true);
 					selectedKindId = event.currentTarget.value;
 					selectedPath = '';
 				}}
@@ -79,7 +70,10 @@
 			<select
 				class="cg-control cg-field"
 				value={path}
-				onchange={(event) => (selectedPath = event.currentTarget.value)}
+				onchange={(event) => {
+					ondirty(true);
+					selectedPath = event.currentTarget.value;
+				}}
 			>
 				<option value="">{t('practice.chooseField')}</option>
 				{#each fields as field (JSON.stringify(field.path))}
@@ -87,27 +81,11 @@
 				{/each}
 			</select>
 		</label>
-		<fieldset>
-			<legend>{t('practice.trackedScopes')}</legend>
-			{#each practice.scopes.filter((scope) => !scope.isDeleted || scopeIds.includes(scope.id)) as scope (scope.id)}
-				<label>
-					<input
-						type="checkbox"
-						checked={scopeIds.includes(scope.id)}
-						onchange={(event) => {
-							scopeEdited = true;
-							selectedScopes = event.currentTarget.checked
-								? [...scopeIds, scope.id]
-								: scopeIds.filter((id) => id !== scope.id);
-						}}
-					/>{scope.name}{scope.isDeleted ? ` (${t('practice.deletedScope')})` : ''}
-				</label>
-			{/each}
-		</fieldset>
+
 		<button
 			type="button"
 			class="cg-control"
-			disabled={saving || !kindId || !path || !scopeIds.length}
+			disabled={saving || !kindId || !path}
 			onclick={saveSource}>{saving ? t('practice.saving') : t('practice.saveSource')}</button
 		>
 	</div>
@@ -115,4 +93,4 @@
 	{#if sourceNeedsRepair}
 		<p role="alert">{t('practice.sourceNeedsRepair')}</p>
 	{/if}
-</section>
+</details>

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 
-	import { dateLabel, minutesLabel } from '../PracticeDemo/format';
-	import { addDays, periodRange } from '../PracticeDemo/model';
+	import { dateLabel, minutesLabel, weekDateLabel } from '../../model/Practice/format';
+	import { addDays, periodRange } from '../../model/Practice/model';
 	import PracticeTooltip from '../PracticeTooltip/PracticeTooltip.svelte';
-	import type { PracticeBucket } from '../PracticeDemo/types';
+	import type { PracticeBucket } from '../../model/Practice/types';
 	import type { PracticeChartsProps } from './types';
 	import './PracticeCharts.css';
 
@@ -33,23 +33,12 @@
 		goals.flatMap((goal, index) =>
 			goal === null
 				? []
-				: [{ id: history[index].id, x1: x(index) - 39.75, x2: x(index) + 39.75, goal }]
+				: [{ id: history[index].id, x1: x(index) - 636 / 18, x2: x(index) + 636 / 18, goal }]
 		)
 	);
 	const y = (minutes: number): number => 160 - (minutes / historyMaximum) * 140;
-	const x = (index: number): number => (index + 0.5) * 79.5;
-	const points = $derived(
-		history
-			.slice(0, -1)
-			.map((week, index) => `${x(index)},${y(week.minutes)}`)
-			.join(' ')
-	);
-	const latest = $derived(
-		history
-			.slice(-2)
-			.map((week, index) => `${x(index + 6)},${y(week.minutes)}`)
-			.join(' ')
-	);
+	const x = (index: number): number => (index + 0.5) * (636 / 9);
+	const points = $derived(history.map((week, index) => `${x(index)},${y(week.minutes)}`).join(' '));
 	const layers = $derived(
 		activities.map((activity, index) => {
 			const lower = history.map((week) =>
@@ -197,12 +186,11 @@
 						data-goal={step.goal}
 					/>{/each}
 				<polyline {points} class="practice-history-line" />
-				<polyline points={latest} class="practice-history-line practice-history-partial" />
 				{#each history as week, index (week.id)}<circle
 						cx={x(index)}
 						cy={y(week.minutes)}
-						r={index === 7 ? 6 : 4}
-						class={index === 7 ? 'practice-current-point' : undefined}
+						r={index === 4 ? 6 : 4}
+						class={index === 4 ? 'practice-current-point' : undefined}
 					/>{/each}
 			</svg>
 			<div class="practice-history-triggers">
@@ -211,14 +199,13 @@
 					<button
 						id={triggerId}
 						type="button"
+						aria-current={week.date === history[4]?.date ? 'date' : undefined}
 						onclick={() => onweek(week.date)}
-						aria-label={`${dateLabel(week.date, locale.current)}: ${minutesLabel(week.minutes, locale.current)}`}
+						aria-label={`${dateLabel(week.date, locale.current, { day: 'numeric', month: 'long', year: 'numeric' })}: ${minutesLabel(week.minutes, locale.current)}`}
 					>
 						<span class="practice-history-label"
-							><span
-								>{dateLabel(week.date, locale.current, { day: 'numeric', month: 'numeric' })}</span
-							><span class="practice-history-value"
-								>{minutesLabel(week.minutes, locale.current)}</span
+							><span>{weekDateLabel(week.date, locale.current)}</span><span
+								class="practice-history-value">{minutesLabel(week.minutes, locale.current)}</span
 							></span
 						>
 					</button>
@@ -228,7 +215,7 @@
 						{activities}
 						weeklyMinutes={goalOf(week) ?? undefined}
 						partial={week.date === periodRange('week', today).start}
-						label={`${dateLabel(week.date, locale.current)} — ${dateLabel(addDays(week.date, 6), locale.current)}`}
+						label={`${dateLabel(week.date, locale.current)} — ${dateLabel(addDays(week.date, 6), locale.current, { day: 'numeric', month: 'short', year: 'numeric' })}`}
 					/>
 				{/each}
 			</div>

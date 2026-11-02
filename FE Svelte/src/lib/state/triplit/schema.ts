@@ -16,6 +16,15 @@ export const schema = S.Collections({
 			isDeleted: S.Boolean()
 		})
 	},
+	/** One independently editable plan per ISO week; id is the local Monday (YYYY-MM-DD). */
+	practiceWeekPlans: {
+		schema: S.Schema({
+			id: S.Id(),
+			scopeIds: S.Json(),
+			goals: S.Json(),
+			updatedAt: S.String()
+		})
+	},
 	scopeCaptureSettings: {
 		schema: S.Schema({ id: S.Id(), suggestedKindIds: S.Json() })
 	},

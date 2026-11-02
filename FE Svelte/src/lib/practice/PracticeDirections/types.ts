@@ -1,6 +1,6 @@
-import type { PracticeDirection, PracticePeriod } from '../PracticeDemo/types';
+import type { PracticeDirection, PracticePeriod } from '../../model/Practice/types';
 export type PracticeDirectionsProps = {
-	rows: readonly PracticeDirection[];
+	rows: readonly (PracticeDirection & Readonly<{ unplannedMinutes?: number }>)[];
 	period: PracticePeriod;
 	activityId: string | null;
 	onselect: (id: string) => void;

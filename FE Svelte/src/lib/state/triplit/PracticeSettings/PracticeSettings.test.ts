@@ -76,14 +76,13 @@ describe('practice source settings', () => {
 		);
 		expect(await fx.client.fetch(fx.client.query('practiceSettings'))).toHaveLength(1);
 	});
-	it('refuses nonnumeric fields and missing activities without replacing the saved source', async () => {
+	it('accepts an empty legacy scope filter and still refuses invalid source fields', async () => {
 		const fx = await open();
 		await fx.repo.setPracticeSource(fx.source);
 		await expect(fx.repo.setPracticeSource({ ...fx.source, path: ['title'] })).rejects.toThrow();
-		await expect(
-			fx.repo.setPracticeSource({ ...fx.source, scopeIds: ['missing'] })
-		).rejects.toThrow();
-		expect(await fx.repo.getPracticeSource()).toEqual(fx.source);
+		const emptyFilter = { ...fx.source, scopeIds: [] };
+		await fx.repo.setPracticeSource(emptyFilter);
+		expect(await fx.repo.getPracticeSource()).toEqual(emptyFilter);
 	});
 	it('exports and restores the source and accepts backups predating the setting', async () => {
 		const fx = await open();
@@ -99,7 +98,8 @@ describe('practice source settings', () => {
 			...backup,
 			collections: Object.fromEntries(
 				Object.entries(backup.collections).filter(
-					([key]) => key !== 'practiceSettings' && key !== 'practiceTargets'
+					([key]) =>
+						key !== 'practiceSettings' && key !== 'practiceTargets' && key !== 'practiceWeekPlans'
 				)
 			)
 		};

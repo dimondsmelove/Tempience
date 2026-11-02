@@ -4,7 +4,7 @@ import { practiceFields, samePath } from '$lib/state/triplit/PracticeSettings/so
 import type { PracticeSource } from '$lib/state/triplit/PracticeSettings/types';
 import type { Intersection, Trace, TraceKindV } from '$lib/state/triplit/types';
 import type { PracticeProjection, PracticeIssue } from './types';
-import type { PracticeEntry } from '$lib/practice/PracticeDemo/types';
+import type { PracticeEntry } from '$lib/model/Practice/types';
 
 export const projectPractice = (
 	source: PracticeSource,
@@ -16,14 +16,14 @@ export const projectPractice = (
 ): PracticeProjection => {
 	const entries: PracticeEntry[] = [],
 		issues: PracticeIssue[] = [];
-	const scopeIds = new Set(source.scopeIds.filter((id) => activeScopeIds.includes(id)));
+	const active = new Set(activeScopeIds);
 	const memberships = new Map<string, Set<string>>();
 	for (const link of links) {
 		if (
 			link.isDeleted ||
 			link.kind !== 'belongs_to' ||
 			link.fromEntityType === 'traceKind' ||
-			!scopeIds.has(link.toId)
+			!active.has(link.toId)
 		)
 			continue;
 		const ids = memberships.get(link.fromId) ?? new Set<string>();

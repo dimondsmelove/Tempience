@@ -12,3 +12,6 @@ export const dateLabel = (
 	new Intl.DateTimeFormat(language, { ...options, timeZone: 'UTC' }).format(
 		new Date(`${date}T12:00:00Z`)
 	);
+
+export const weekDateLabel = (start: string, language: Locale): string =>
+	dateLabel(start, language, { day: '2-digit', month: '2-digit' });

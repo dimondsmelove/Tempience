@@ -1,4 +1,4 @@
-import type { PracticeBucket, PracticeChartActivity } from '../PracticeDemo/types';
+import type { PracticeBucket, PracticeChartActivity } from '../../model/Practice/types';
 
 export type PracticeTooltipProps = {
 	triggerId: string;

@@ -1,4 +1,8 @@
-import type { PracticeBucket, PracticePeriod, PracticeChartActivity } from '../PracticeDemo/types';
+import type {
+	PracticeBucket,
+	PracticePeriod,
+	PracticeChartActivity
+} from '../../model/Practice/types';
 
 export type PracticeChartsProps = {
 	buckets: readonly PracticeBucket[];

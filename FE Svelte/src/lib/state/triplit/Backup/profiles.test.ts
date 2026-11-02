@@ -158,7 +158,7 @@ const restoreInto = async (file: DataSpaceBackup) => {
 
 it('publishes exactly the historical profiles and keeps every original collection mandatory', () => {
 	expect(BACKUP_COLLECTION_PROFILES.map((profile) => profile.length)).toEqual([
-		15, 16, 17, 19, 20, 21
+		15, 16, 17, 19, 20, 21, 22
 	]);
 	for (const profile of BACKUP_COLLECTION_PROFILES)
 		expect(ORIGINAL_BACKUP_COLLECTIONS.every((name) => profile.includes(name))).toBe(true);

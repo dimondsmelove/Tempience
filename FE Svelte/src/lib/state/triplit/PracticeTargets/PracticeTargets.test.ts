@@ -121,7 +121,9 @@ describe('practice targets repository', () => {
 		const older = {
 			...backup,
 			collections: Object.fromEntries(
-				Object.entries(backup.collections).filter(([key]) => key !== 'practiceTargets')
+				Object.entries(backup.collections).filter(
+					([key]) => key !== 'practiceTargets' && key !== 'practiceWeekPlans'
+				)
 			)
 		};
 		expect(parseDataSpaceBackup(older).collections.practiceTargets).toEqual([]);

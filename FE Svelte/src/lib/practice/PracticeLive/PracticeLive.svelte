@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { onDestroy } from 'svelte';
 	import { CogOutline } from 'flowbite-svelte-icons';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
@@ -7,7 +6,7 @@
 	import { scopeColourOf } from '$lib/theme/scope-colour';
 	import {
 		practiceSettingsRepository,
-		practiceTargetsRepository,
+		practiceWeekPlansRepository,
 		tempienceRepository
 	} from '$lib/state/triplit';
 	import { errorText } from '$lib/state/Locale/errors';
@@ -21,26 +20,38 @@
 		entriesIn,
 		periodRange,
 		totalMinutes
-	} from '$lib/practice/PracticeDemo/model';
-	import { dateLabel, minutesLabel } from '$lib/practice/PracticeDemo/format';
-	import type { PracticePeriod } from '$lib/practice/PracticeDemo/types';
+	} from '$lib/model/Practice/model';
+	import { dateLabel, minutesLabel } from '$lib/model/Practice/format';
+	import type { PracticePeriod } from '$lib/model/Practice/types';
 	import type { PracticeDashboardData } from '$lib/state/Practice/types';
 	import { PracticeState } from '$lib/state/Practice/Practice.svelte';
 	import PracticeEditor from './PracticeEditor.svelte';
 	import PracticeRecords from './PracticeRecords.svelte';
-	import { liveDirections, liveHistory, selectionGoal, selectionRemaining } from './live';
+	import {
+		historyActivityIds,
+		rangeActivityIds,
+		liveDirections,
+		liveHistory,
+		selectionGoal,
+		selectionRemaining
+	} from './live';
 	import PracticeSettings from './PracticeSettings.svelte';
-	import '$lib/practice/PracticeDemo/PracticeDemo.css';
-	import '$lib/practice/PracticeDemo/PracticeRecords.css';
+	import '$lib/practice/PracticeLive/PracticeRecords.css';
 	import './PracticeLive.css';
 
 	const practice = new PracticeState(
 		tempienceRepository,
 		practiceSettingsRepository,
-		practiceTargetsRepository
+		practiceWeekPlansRepository
 	);
 	const stop = practice.start();
 	onDestroy(stop);
+	let settingsDirty = $state(false);
+	const toggleSettings = (): void => {
+		if (settingsOpen && settingsDirty && !window.confirm(t('practice.discardSettings'))) return;
+		settingsOpen = !settingsOpen;
+		settingsDirty = false;
+	};
 	let period = $state<PracticePeriod>('week');
 	let anchor = $state(practice.today);
 	let activityId = $state<string | null>(null);
@@ -50,41 +61,79 @@
 	const settingsId = $props.id();
 	let settingsOpen = $state(false);
 
-	const sourceValid = $derived(
-		practice.validSource &&
-			!!practice.source &&
-			practice.source.scopeIds.length > 0 &&
-			practice.source.scopeIds.every((id) =>
-				practice.scopes.some((scope) => scope.id === id && !scope.isDeleted)
-			)
-	);
+	const sourceValid = $derived(practice.validSource && !!practice.source);
 	const data: PracticeDashboardData = $derived(practice.data);
-	const activities = $derived(
+	const allActivities = $derived(
 		data.activities.map((item) => ({
 			...item,
 			color: scopeColourOf(item.colour, appearance.scopeBase)
 		}))
 	);
+	const weekPlan = $derived(practice.planFor(periodRange('week', anchor).start));
 	const range = $derived(periodRange(period, anchor));
 	const selected = $derived(entriesIn(data.entries, range, activityId, data.kindId));
-	const total = $derived(totalMinutes(selected));
-	const goalOf = (id: string, date: string): number | null => practice.targetFor(id, date);
-	const ids = $derived(activities.map((item) => item.id));
-	const rows = $derived(
-		liveDirections(activities, data.entries, data.kindId, period, range, goalOf)
+	const trackedActivities = $derived(allActivities);
+	const visibleIds = $derived(
+		new Set(rangeActivityIds(data.entries, range, data.kindId, weekPlan?.scopeIds ?? []))
 	);
-	const shown = $derived(rows.filter((row) => !activityId || row.id === activityId));
+	const activities = $derived(allActivities.filter((item) => visibleIds.has(item.id)));
+	const total = $derived(totalMinutes(selected));
+	const goalOf = (id: string, date: string): number | null =>
+		practice.targetFor(id, periodRange('week', date).start);
+	const ids = $derived(weekPlan?.scopeIds ?? []);
+	const plannedOf = (id: string, date: string): boolean =>
+		practice.planFor(periodRange('week', date).start)?.scopeIds.includes(id) ?? false;
+	const plannedTotal = $derived(
+		totalMinutes(selected.filter((entry) => entry.scopeIds.some((id) => plannedOf(id, entry.date))))
+	);
+	const unplannedTotal = $derived(total - plannedTotal);
+	const rows = $derived(
+		liveDirections(activities, data.entries, data.kindId, period, range, goalOf, plannedOf)
+	);
+	const shown = $derived(
+		rows.filter(
+			(row) =>
+				(!activityId || row.id === activityId) && (weekPlan?.scopeIds.includes(row.id) ?? false)
+		)
+	);
 	const goal = $derived(
 		period === 'week' ? selectionGoal(activityId ? [activityId] : ids, range.start, goalOf) : null
 	);
 	const remaining = $derived(goal === null ? null : selectionRemaining(shown));
-	const goalsSet = $derived(activities.filter((item) => item.weeklyMinutes !== null).length);
-	const buckets = $derived(activityBuckets(selected, period, range, ids));
-	const history = $derived(
-		liveHistory(data.entries, data.today, activityId, data.kindId, ids, goalOf)
+	const buckets = $derived(
+		activityBuckets(
+			selected,
+			period,
+			range,
+			activities.map((item) => item.id)
+		)
 	);
-	const saveTarget = (scopeId: string, minutesPerWeek: number | null): Promise<unknown> =>
-		practiceTargetsRepository.setWeeklyTarget({ scopeId, minutesPerWeek });
+	const historyIds = $derived(
+		historyActivityIds(
+			data.entries,
+			data.today,
+			data.kindId,
+			allActivities.map((item) => item.id),
+			(week) => practice.planFor(week)?.scopeIds ?? []
+		)
+	);
+	const historyActivities = $derived(allActivities.filter((item) => historyIds.includes(item.id)));
+	const history = $derived(
+		liveHistory(
+			data.entries,
+			anchor,
+			activityId,
+			data.kindId,
+			historyIds,
+			goalOf,
+			(date) => practice.planFor(date)?.scopeIds ?? []
+		)
+	);
+	const savePlan = (
+		week: string,
+		scopeIds: readonly string[],
+		goals: Readonly<Record<string, number>>
+	) => practiceWeekPlansRepository.savePracticeWeekPlan(week, { scopeIds, goals });
 	const selection = $derived(
 		activities.find((item) => item.id === activityId)?.name ?? t('practice.allActivities')
 	);
@@ -105,10 +154,10 @@
 		const source = practice.source;
 		if (!sourceValid || !source) return;
 		const initialScopes =
-			activityId && source.scopeIds.includes(activityId)
+			activityId && trackedActivities.some((item) => item.id === activityId)
 				? [activityId]
-				: source.scopeIds.length === 1
-					? source.scopeIds
+				: weekPlan?.scopeIds.length === 1
+					? [weekPlan.scopeIds[0]]
 					: [];
 		editor = {
 			key: ++editorKey,
@@ -150,18 +199,15 @@
 						aria-expanded={settingsOpen}
 						aria-controls={settingsId}
 						data-testid="practice-settings-toggle"
-						onclick={() => (settingsOpen = !settingsOpen)}
+						onclick={toggleSettings}
 						><CogOutline class="h-4 w-4" aria-hidden="true" />{t('practice.settings')}</button
 					>{/if}
-				<a class="practice-back cg-control" href={resolve('/practice/demo')}
-					>{t('practice.demo')} ↗</a
-				>
 			</div>
 		</header>
 		{#if editor}
 			{#key editor.key}<PracticeEditor
 					entry={editor.entry}
-					tracked={activities}
+					tracked={trackedActivities}
 					onclose={() => (editor = null)}
 				/>{/key}
 		{/if}
@@ -175,10 +221,11 @@
 					id={settingsId}
 					{practice}
 					{sourceValid}
-					{activities}
-					week={periodRange('week', data.today).start}
-					onsave={async (id, minutes) => void (await saveTarget(id, minutes))}
-					onclose={() => (settingsOpen = false)}
+					activities={trackedActivities}
+					week={periodRange('week', anchor).start}
+					onsave={async (week, scopeIds, goals) => void (await savePlan(week, scopeIds, goals))}
+					ondirty={(dirty) => (settingsDirty = dirty)}
+					onclose={toggleSettings}
 				/>
 			{:else if !sourceValid}
 				<section class="practice-empty" data-testid="practice-empty">
@@ -218,15 +265,14 @@
 						><span class="practice-range">{rangeLabel}</span><button
 							class="cg-control"
 							aria-label={t('practice.next')}
-							disabled={range.end > data.today}
 							onclick={() => (anchor = adjacentPeriod(period, anchor, 1))}>›</button
 						><button class="cg-control" onclick={() => (anchor = data.today)}
 							>{t('practice.today')}</button
 						>
 					</div>
 				</div>
-				{#if goalsSet < activities.length}<p class="practice-norms-status" role="note">
-						{t(goalsSet ? 'practice.someNorms' : 'practice.noNorms')}
+				{#if !weekPlan}<p class="practice-norms-status" role="note">
+						{t('practice.emptyWeekPlan')}
 					</p>{/if}
 				<section class="practice-summary" aria-label={t('practice.summary')}>
 					<div class="practice-summary-main">
@@ -234,14 +280,23 @@
 						<strong data-testid="practice-total">{minutesLabel(total, locale.current)}</strong><span
 							>{goal === null
 								? t('practice.inPeriod')
-								: t('practice.ofGoal', { goal: minutesLabel(goal, locale.current) })}</span
+								: t('practice.plannedOfGoal', {
+										minutes: minutesLabel(plannedTotal, locale.current),
+										goal: minutesLabel(goal, locale.current)
+									})}</span
 						>
 					</div>
+					{#if unplannedTotal > 0}<div>
+							<p>{t('practice.unplanned')}</p>
+							<strong data-testid="practice-unplanned"
+								>{minutesLabel(unplannedTotal, locale.current)}</strong
+							><span>{t('practice.withoutPlan')}</span>
+						</div>{/if}
 					{#if remaining !== null}<div>
 							<p>{t('practice.remaining')}</p>
 							<strong data-testid="practice-remaining"
 								>{minutesLabel(remaining, locale.current)}</strong
-							><span>{goal ? `${Math.round((total / goal) * 100)}%` : ''}</span>
+							><span>{goal ? `${Math.round((plannedTotal / goal) * 100)}%` : ''}</span>
 						</div>{/if}
 					<div>
 						<p>{t('practice.sessions')}</p>
@@ -280,7 +335,7 @@
 					weeklyMinutes={goal}
 					{selection}
 					today={data.today}
-					activities={activities.filter((item) => !activityId || item.id === activityId)}
+					activities={historyActivities.filter((item) => !activityId || item.id === activityId)}
 					onday={openDay}
 					onweek={openWeek}
 				/>

@@ -11,7 +11,7 @@
 		onclose
 	}: {
 		entry: DraftEntry;
-		/** The source's activities: a counted record names exactly one of them. */
+		/** Active Scopes offered for fixing or creating a practice record. */
 		tracked: readonly Readonly<{ id: string; name: string }>[];
 		onclose: () => void;
 	} = $props();
@@ -32,7 +32,7 @@
 </script>
 
 <section class="practice-editor" aria-label={t('practice.recordEditor')}>
-	{#if tracked.length > 1}
+	{#if tracked.length > 1 || (tracked.length === 1 && chosen.length === 0)}
 		<fieldset class="practice-direction-field" role="radiogroup" aria-required="true">
 			<legend
 				>{t('practice.direction')}

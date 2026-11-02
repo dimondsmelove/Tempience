@@ -1,5 +1,6 @@
 import { createPracticeTargetsRepository } from './PracticeTargets/PracticeTargets';
 import { createPracticeSettingsRepository } from './PracticeSettings/PracticeSettings';
+import { createPracticeWeekPlansRepository } from './PracticeWeeks/PracticeWeeks';
 import { activeDataSpace, triplit } from './client';
 import { createBackupRepository } from './Backup/Backup';
 import { asRepositoryClient, createTriplitRepository } from './repository';
@@ -50,3 +51,4 @@ export const scenarioImportRepository = createScenarioImportRepository(
 
 export const practiceSettingsRepository = createPracticeSettingsRepository(triplit);
 export const practiceTargetsRepository = createPracticeTargetsRepository(triplit);
+export const practiceWeekPlansRepository = createPracticeWeekPlansRepository(triplit);

@@ -14,9 +14,8 @@ export const samePath = (left: readonly string[], right: readonly string[]): boo
 export const parsePracticeSource = (input: unknown): PracticeSource => {
 	const row = input as Record<string, unknown> | null;
 	const strings = (value: unknown): value is string[] =>
-		Array.isArray(value) &&
-		value.length > 0 &&
-		value.every((item) => typeof item === 'string' && item.length > 0);
+		Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0);
+	const nonemptyStrings = (value: unknown): value is string[] => strings(value) && value.length > 0;
 	if (
 		!row ||
 		typeof row !== 'object' ||
@@ -24,7 +23,7 @@ export const parsePracticeSource = (input: unknown): PracticeSource => {
 		row.id !== 'source' ||
 		typeof row.kindId !== 'string' ||
 		!row.kindId ||
-		!strings(row.path) ||
+		!nonemptyStrings(row.path) ||
 		!strings(row.scopeIds) ||
 		Object.keys(row).some((key) => !['id', 'kindId', 'path', 'scopeIds'].includes(key))
 	)

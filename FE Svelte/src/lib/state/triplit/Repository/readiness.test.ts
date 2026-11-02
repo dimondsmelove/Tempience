@@ -17,6 +17,7 @@ afterEach(async () => {
 const omit = <T extends object, K extends keyof T>(value: T, key: K): Omit<T, K> =>
 	Object.fromEntries(Object.entries(value).filter(([name]) => name !== key)) as Omit<T, K>;
 const legacySchema = S.Collections(omit(schema, 'intentionAssessments'));
+const schemaWithoutPracticeWeekPlans = S.Collections(omit(schema, 'practiceWeekPlans'));
 
 const timestamp = '2026-09-13T08:00:00.000Z';
 const intentionRow = {
@@ -73,6 +74,21 @@ it('refuses assessment operations on a client that still runs the schema without
 	expect(await codeOf(repository.listIntentionAssessments())).toMatch(/^storage_schema/);
 	// Existing operations keep working on the stored schema.
 	expect(await repository.listTraces()).toHaveLength(1);
+});
+
+it('refuses practice plan operations until storage has the new collection', async () => {
+	const client = new TriplitClient({
+		schema: schemaWithoutPracticeWeekPlans,
+		storage: { type: 'memory' },
+		autoConnect: false
+	});
+	clients.push(client as never);
+	const { createPracticeWeekPlansRepository } = await import('../PracticeWeeks/PracticeWeeks');
+	await expect(
+		createPracticeWeekPlansRepository(client as never).listPracticeWeekPlans()
+	).rejects.toMatchObject({
+		code: 'storage_schema'
+	});
 });
 
 it('detects a real failed schema update: Triplit falls back to the stored schema', async () => {

@@ -75,6 +75,7 @@ describe('the inbound feed', () => {
 			...INBOUND_COLLECTIONS
 		]);
 		expect(fx.subscriptions.every((entry) => entry.query.where === undefined)).toBe(true);
+		expect(INBOUND_COLLECTIONS).toContain('practiceWeekPlans');
 		expect(result).toBeUndefined();
 		for (const collection of INBOUND_COLLECTIONS.slice(0, -1)) fx.answer(collection);
 		await flush();

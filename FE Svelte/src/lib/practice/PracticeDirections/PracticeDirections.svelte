@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
-	import { minutesLabel } from '../PracticeDemo/format';
-	import { remainingMinutes, sortDirections } from '../PracticeDemo/model';
-	import type { PracticeSort } from '../PracticeDemo/types';
+	import { minutesLabel } from '../../model/Practice/format';
+	import { remainingMinutes, sortDirections } from '../../model/Practice/model';
+	import type { PracticeSort } from '../../model/Practice/types';
 	import type { PracticeDirectionsProps } from './types';
 	let { rows, period, activityId, onselect }: PracticeDirectionsProps = $props();
 	const hasGoals = $derived(rows.some((row) => row.weeklyMinutes !== null));
@@ -60,7 +60,12 @@
 					></i>{row.name}<span aria-hidden="true">↗</span></span
 				>
 				<span class="practice-activity-amount"
-					>{minutesLabel(row.minutes, locale.current)}{#if goalOf(row)}<span>
+					>{minutesLabel(row.minutes, locale.current)}{#if (row.unplannedMinutes ?? 0) > 0}<span>
+							- {t('practice.withoutPlan')}: {minutesLabel(
+								row.unplannedMinutes ?? 0,
+								locale.current
+							)}</span
+						>{/if}{#if goalOf(row)}<span>
 							/ {minutesLabel(row.weeklyMinutes!, locale.current)}</span
 						>{:else if period === 'week' && hasGoals}<span>
 							· {t('practice.noGoal')}</span

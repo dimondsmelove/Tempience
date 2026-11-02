@@ -1,15 +1,13 @@
 import { SvelteSet } from 'svelte/reactivity';
 import { Temporal } from 'temporal-polyfill';
 import { CodedError } from '$lib/model/Errors/CodedError';
-import { addDays } from '$lib/practice/PracticeDemo/model';
+import { addDays } from '$lib/model/Practice/model';
 import { practiceFields, samePath } from '$lib/state/triplit/PracticeSettings/source';
 import type { PracticeSettingsRepository } from '$lib/state/triplit/PracticeSettings/PracticeSettings';
 import type { PracticeSource } from '$lib/state/triplit/PracticeSettings/types';
-import type { PracticeTargetsRepository } from '$lib/state/triplit/PracticeTargets/PracticeTargets';
-import { weeklyTargetFor } from '$lib/state/triplit/PracticeTargets/targets';
-import type { PracticeTarget } from '$lib/state/triplit/PracticeTargets/types';
+import type { PracticeWeekPlan } from '../triplit/PracticeWeeks/types';
 import type { Intersection, Scope, Trace, TraceKind, TraceKindV } from '$lib/state/triplit/types';
-import type { PracticeActivity } from '$lib/practice/PracticeDemo/types';
+import type { PracticeActivity } from '$lib/model/Practice/types';
 import type { PracticeDashboardData, PracticeRepository } from './types';
 import { projectPractice } from './projection';
 
@@ -20,7 +18,7 @@ export class PracticeState {
 	links = $state.raw<readonly Intersection[]>([]);
 	traces = $state.raw<readonly Trace[]>([]);
 	source = $state.raw<PracticeSource | null>(null);
-	targets = $state.raw<readonly PracticeTarget[]>([]);
+	plans = $state.raw<readonly PracticeWeekPlan[]>([]);
 	failure = $state.raw<unknown>(null);
 	loading = $state(true);
 	readonly timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -37,11 +35,19 @@ export class PracticeState {
 	constructor(
 		private repository: PracticeRepository,
 		private settings: PracticeSettingsRepository,
-		private budgets?: Pick<PracticeTargetsRepository, 'subscribePracticeTargets'>
+		private weekPlans?: {
+			subscribePracticeWeekPlans: (
+				next: (rows: readonly PracticeWeekPlan[]) => void,
+				fail: (cause: unknown) => void
+			) => () => void;
+		}
 	) {}
-	/** The weekly budget of an activity in the week holding `date`; null is «no goal». */
-	targetFor(scopeId: string, date: string): number | null {
-		return weeklyTargetFor(this.targets, scopeId, date);
+	/** A missing week has no plan and therefore no goals. */
+	planFor(week: string): PracticeWeekPlan | null {
+		return this.plans.find((plan) => plan.week === week) ?? null;
+	}
+	targetFor(scopeId: string, week: string): number | null {
+		return this.planFor(week)?.goals[scopeId] ?? null;
 	}
 	get kind() {
 		return this.kinds.find((kind) => kind.id === this.source?.kindId && !kind.isDeleted);
@@ -64,36 +70,29 @@ export class PracticeState {
 					this.traces,
 					this.versions,
 					this.links,
-					this.scopes.map((scope) => scope.id),
+					this.scopes.filter((scope) => !scope.isDeleted).map((scope) => scope.id),
 					this.timezone
 				)
 			: { entries: [], issues: [] };
 	}
 	get data(): PracticeDashboardData {
 		const entries = this.projection.entries;
-		const activities: PracticeActivity[] = this.source
-			? this.source.scopeIds.flatMap((id) => {
-					const scope = this.scopes.find((scope) => scope.id === id);
-					return scope
-						? [
-								{
-									id: scope.id,
-									name: scope.name,
-									note: '',
-									weeklyMinutes: this.targetFor(scope.id, this.today),
-									colour:
-										scope.colorHue === null
-											? null
-											: {
-													hue: scope.colorHue,
-													chroma: scope.colorChroma,
-													depth: scope.colorDepth ?? undefined
-												}
-								}
-							]
-						: [];
-				})
-			: [];
+		const activities: PracticeActivity[] = this.scopes
+			.filter((scope) => !scope.isDeleted)
+			.map((scope) => ({
+				id: scope.id,
+				name: scope.name,
+				note: '',
+				weeklyMinutes: null,
+				colour:
+					scope.colorHue === null
+						? null
+						: {
+								hue: scope.colorHue,
+								chroma: scope.colorChroma,
+								depth: scope.colorDepth ?? undefined
+							}
+			}));
 		return {
 			entries,
 			activities,
@@ -159,9 +158,12 @@ export class PracticeState {
 					this.follow(received, fail, mine);
 				}
 			}, fail),
-			this.budgets?.subscribePracticeTargets((rows) => {
-				if (mine()) this.targets = rows;
-			}, fail) ?? (() => {})
+			this.weekPlans?.subscribePracticeWeekPlans((rows) => {
+				if (mine()) {
+					this.plans = rows;
+					received('plans');
+				}
+			}, fail) ?? (() => received('plans'))
 		];
 		return () => {
 			if (mine()) this.stop();

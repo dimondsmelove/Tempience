@@ -1,4 +1,4 @@
-import type { PracticeActivity, PracticeEntry } from '$lib/practice/PracticeDemo/types';
+import type { PracticeActivity, PracticeEntry } from '$lib/model/Practice/types';
 import type { TempienceRepository } from '$lib/state/triplit/repository';
 export type PracticeRepository = Pick<
 	TempienceRepository,
