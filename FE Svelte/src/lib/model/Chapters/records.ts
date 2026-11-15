@@ -16,23 +16,23 @@ export const startOf = (
 	return trace.aboutTime?.basis === 'absolute' ? Date.parse(trace.aboutTime.start) : null;
 };
 
-/** The records in any of `scopes` about a time in `[start, end)`, oldest first. */
+/** Records starting in [start, end), oldest first; null scopes includes unscoped records. */
 export const recordsIn = (
 	view: RecordView,
-	scopes: ReadonlySet<string>,
+	scopes: ReadonlySet<string> | null,
 	start: number,
 	end: number,
 	drawn: ReadonlyMap<string, Readonly<{ start: number }>>
 ): ChapterRecord[] => {
 	const memberships = new Map<string, string[]>();
 	for (const link of view.intersections) {
-		if (link.kind !== 'belongs_to' || !scopes.has(link.toId)) continue;
+		if (link.kind !== 'belongs_to' || (scopes !== null && !scopes.has(link.toId))) continue;
 		memberships.set(link.fromId, [...(memberships.get(link.fromId) ?? []), link.toId]);
 	}
 	const records: ChapterRecord[] = [];
 	for (const trace of view.traces) {
 		const scopeIds = memberships.get(trace.id);
-		if (!scopeIds) continue;
+		if (scopes !== null && !scopeIds) continue;
 		const at = startOf(trace, drawn);
 		if (at === null || at < start || at >= end) continue;
 		records.push({
@@ -40,7 +40,7 @@ export const recordsIn = (
 			title: trace.displayTitle ?? trace.content,
 			at,
 			intent: trace.relation === 'intend',
-			scopeIds
+			scopeIds: scopeIds ?? []
 		});
 	}
 	return records.toSorted((a, b) => a.at - b.at);

@@ -83,6 +83,18 @@
 		)
 	);
 	const counts = $derived(countsUnder(listed, idsAt(driver.lineup), workbench.view));
+	let allScopes = $state(false);
+	const shownRecords = $derived(
+		allScopes
+			? recordsIn(
+					workbench.view,
+					null,
+					focused?.start ?? start,
+					(focused ? (focused.end ?? end) : end) ?? Infinity,
+					workbench.projection.timeByTraceId
+				)
+			: listed
+	);
 	/** The chapter right after this one, when it already exists. */
 	const following = $derived(
 		end === null ? null : (store.list.find((item) => ms(item.start) === end) ?? null)
@@ -105,7 +117,7 @@
 			: id === 'lineup' && driver.stage?.lineup
 				? `${label} · ${t('chapter.lineupOfStage', { name: driver.stage.name })}`
 				: id === 'records'
-					? `${label} · ${listed.length}`
+					? `${label} · ${shownRecords.length}`
 					: label;
 
 	let closing = $state(false);
@@ -175,7 +187,15 @@
 {/snippet}
 
 {#snippet records()}
-	<ChapterRecords {workbench} lineup={driver.lineup} records={listed} />
+	<div class="flex flex-wrap gap-1" role="group" aria-label={t('chapter.recordsScopes')}>
+		<Button size="sm" pressed={!allScopes} onclick={() => (allScopes = false)}
+			>{t('chapter.recordsLineup')}</Button
+		>
+		<Button size="sm" pressed={allScopes} onclick={() => (allScopes = true)}
+			>{t('chapter.recordsAllScopes')}</Button
+		>
+	</div>
+	<ChapterRecords {workbench} lineup={driver.lineup} records={shownRecords} />
 {/snippet}
 
 <section class="flex flex-col gap-3" data-testid="chapter-view">

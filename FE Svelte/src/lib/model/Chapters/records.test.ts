@@ -39,6 +39,46 @@ describe('a chapter’s records', () => {
 			['plan', true]
 		]);
 	});
+	it('includes unscoped records only without a scope filter and keeps time boundaries', () => {
+		const view = {
+			traces: [
+				{
+					id: 'start',
+					content: 'start',
+					aboutTime: { basis: 'absolute', start: '2026-09-01T00:00:00Z' }
+				},
+				{
+					id: 'end',
+					content: 'end',
+					aboutTime: { basis: 'absolute', start: '2026-10-01T00:00:00Z' }
+				},
+				{
+					id: 'before',
+					content: 'before',
+					aboutTime: { basis: 'absolute', start: '2026-08-31T23:59:59Z' }
+				},
+				{ id: 'undated', content: 'undated' },
+				{
+					id: 'linked',
+					content: 'linked',
+					aboutTime: { basis: 'absolute', start: '2026-09-02T00:00:00Z' }
+				}
+			],
+			intersections: [
+				{ fromId: 'linked', toId: 'work', kind: 'belongs_to' },
+				{ fromId: 'linked', toId: 'health', kind: 'belongs_to' }
+			]
+		} as unknown as Pick<ExplorerSnapshot, 'traces' | 'intersections'>;
+		const start = Date.parse('2026-09-01T00:00:00Z');
+		const end = Date.parse('2026-10-01T00:00:00Z');
+		const all = recordsIn(view, null, start, end, new Map());
+		expect(all.map((item) => item.id)).toEqual(['start', 'linked']);
+		expect(all[0].scopeIds).toEqual([]);
+		expect(all[1].scopeIds).toEqual(['work', 'health']);
+		expect(
+			recordsIn(view, new Set(['work']), start, end, new Map()).map((item) => item.id)
+		).toEqual(['linked']);
+	});
 });
 
 describe('countsUnder', () => {
