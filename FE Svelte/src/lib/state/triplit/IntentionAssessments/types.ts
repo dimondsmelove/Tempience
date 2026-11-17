@@ -1,10 +1,17 @@
 export type IntentionOutcome = 'completed' | 'partial' | 'not_completed' | 'alternative';
 
+/**
+ * What an assessment may state about the outcome: one of the four, or «none» — an explicit
+ * statement that there is no outcome, which overrides an earlier source. An intention is
+ * evaluated to one of the four or to null; «none» never leaves the evaluation.
+ */
+export type AssessedOutcome = IntentionOutcome | 'none';
+
 export type IntentionAssessmentSource = 'evidence' | 'direct';
 
 /** Explicit feature input: an absent key leaves the feature untouched, null removes the own value. */
 export type IntentionAssessmentValues = {
-	outcome?: IntentionOutcome | null;
+	outcome?: AssessedOutcome | null;
 	open?: boolean | null;
 };
 
@@ -21,7 +28,7 @@ export type IntentionAssessment = {
 	activationId: string | null;
 	/** operationId of the retarget that moved the source; null while it sits at its origin. */
 	placementRevision: string | null;
-	outcome: IntentionOutcome | null;
+	outcome: AssessedOutcome | null;
 	open: boolean | null;
 	/** operationId of the write that determined each own value, including an explicit clearing. */
 	outcomeRevision: string | null;
@@ -44,7 +51,7 @@ export type IntentionAssessment = {
  */
 export type StoredAssessmentCandidate = {
 	at: string;
-	outcome?: IntentionOutcome | null;
+	outcome?: AssessedOutcome | null;
 	open?: boolean | null;
 	withdrawn?: string;
 };
@@ -85,7 +92,7 @@ export type StoredIntentionAssessment = {
 	origin: StoredAssessmentOrigin;
 	initial: Record<string, StoredAssessmentCandidate>;
 	values?: {
-		outcome?: StoredAssessmentOverride<IntentionOutcome>;
+		outcome?: StoredAssessmentOverride<AssessedOutcome>;
 		open?: StoredAssessmentOverride<boolean>;
 	} | null;
 	placement?: StoredAssessmentPlacement | null;

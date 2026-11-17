@@ -208,6 +208,16 @@ it('records a direct assessment as its own source with the action time', async (
 	expect(await code(repository.createDirectAssessment(intention.id, {}))).toBe('assessment_values');
 });
 
+it('stores an explicit «none» outcome as a statement and still refuses unknown outcomes', async () => {
+	const { repository, intention } = await setup();
+	const none = await repository.createDirectAssessment(intention.id, { outcome: 'none' });
+	expect(none).toMatchObject({ source: 'direct', outcome: 'none', open: null });
+	expect(await repository.listIntentionAssessments()).toEqual([none]);
+	expect(
+		await code(repository.createDirectAssessment(intention.id, { outcome: 'nothing' as never }))
+	).toBe('assessment_values');
+});
+
 it('withdraws and restores a source without losing its first time', async () => {
 	const { repository, link } = await setup();
 	const created = await repository.createEvidenceAssessment(link.id, { outcome: 'not_completed' });

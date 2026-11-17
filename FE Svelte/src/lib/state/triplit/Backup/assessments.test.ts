@@ -69,6 +69,8 @@ describe('backup of intention assessments', () => {
 		delete older.collections.practiceSettings;
 		delete older.collections.practiceTargets;
 		delete older.collections.practiceWeekPlans;
+		delete older.collections.intentionOrders;
+		delete older.collections.legendView;
 		expect(BACKUP_COLLECTION_PROFILES.at(-1)?.toSorted()).toEqual(
 			[...BACKUP_COLLECTIONS].toSorted()
 		);

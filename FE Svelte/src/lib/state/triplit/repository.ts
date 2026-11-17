@@ -43,6 +43,7 @@ import { byNewestCaptured } from './Traces/read';
 import { fetchReplica } from './replica-fetch';
 import { guardAiWrites } from './actor-guard';
 import type { TempienceTriplitClient } from './client';
+import { createLegendViewRepository } from './LegendView/LegendView';
 import { createScopeCaptureRepository } from './scope-capture-repository';
 import { createTraceDatasetReader } from './trace-dataset';
 
@@ -87,6 +88,7 @@ export const createTriplitRepository = (client: TempienceTriplitClient): Tempien
 		...createTraceRepository(asRepositoryClient(client)),
 		...createTraceDatasetReader(client),
 		...createScopeCaptureRepository(client),
+		...createLegendViewRepository(client),
 		...createFocusedReads(client),
 		...createLinkReads(client),
 		subscribeTraceKinds: (next, fail) =>

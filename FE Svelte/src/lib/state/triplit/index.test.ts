@@ -11,6 +11,7 @@ import type { JsonObject } from './types';
 
 type StoredEntity = Record<string, unknown> & { id: string };
 type Collection =
+	| 'legendView'
 	| 'scopeCaptureSettings'
 	| 'traceKinds'
 	| 'traceKindVersions'
@@ -32,6 +33,7 @@ type Collection =
 const createFakeClient = (): RepositoryClient => {
 	const collections: Record<Collection, Map<string, StoredEntity>> = {
 		scopeCaptureSettings: new Map(),
+		legendView: new Map(),
 		traceKinds: new Map(),
 		traceKindVersions: new Map(),
 		traces: new Map(),

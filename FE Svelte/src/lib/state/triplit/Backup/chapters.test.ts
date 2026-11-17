@@ -98,6 +98,8 @@ describe('backup of chapters', () => {
 		delete older.collections.practiceSettings;
 		delete older.collections.practiceTargets;
 		delete older.collections.practiceWeekPlans;
+		delete older.collections.intentionOrders;
+		delete older.collections.legendView;
 		const parsed = parseDataSpaceBackup(older);
 		expect(parsed.collections.chapters).toEqual([]);
 		expect(parsed.collections.chapterStages).toEqual([]);

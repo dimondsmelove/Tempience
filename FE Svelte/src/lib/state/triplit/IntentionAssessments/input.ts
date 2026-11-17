@@ -3,7 +3,7 @@ import { requireEntity, type Operation } from '../Repository/transaction';
 import type { Entity, Transaction } from '../Repository/types';
 import { normalizeTrace } from '../Traces/read';
 import { isIntentionRelation } from '../Traces/roles';
-import { isAssessmentFeature, isIntentionOutcome } from './read';
+import { isAssessedOutcome, isAssessmentFeature } from './read';
 import type { IntentionAssessmentValues, StoredAssessmentCandidate } from './types';
 
 export const refuse = (
@@ -32,7 +32,7 @@ export const parseAssessmentInput = (
 	const result: IntentionAssessmentValues = {};
 	if (Object.hasOwn(values, 'outcome')) {
 		const outcome = values.outcome ?? null;
-		if (outcome !== null && !isIntentionOutcome(outcome)) {
+		if (outcome !== null && !isAssessedOutcome(outcome)) {
 			refuse('assessment_values', 'Недопустимый итог намерения.', { reason: 'outcome' });
 		}
 		result.outcome = outcome;

@@ -158,7 +158,7 @@ const restoreInto = async (file: DataSpaceBackup) => {
 
 it('publishes exactly the historical profiles and keeps every original collection mandatory', () => {
 	expect(BACKUP_COLLECTION_PROFILES.map((profile) => profile.length)).toEqual([
-		15, 16, 17, 19, 20, 21, 22
+		15, 16, 17, 19, 20, 21, 22, 23, 24
 	]);
 	for (const profile of BACKUP_COLLECTION_PROFILES)
 		expect(ORIGINAL_BACKUP_COLLECTIONS.every((name) => profile.includes(name))).toBe(true);
@@ -170,6 +170,7 @@ it('restores a first-release (d948e1d) export: introduced collections become emp
 	const parsed = parseDataSpaceBackup(file);
 	expect(parsed.collections.scopeCaptureSettings).toEqual([]);
 	expect(parsed.collections.intentionAssessments).toEqual([]);
+	expect(parsed.collections.legendView).toEqual([]);
 	const repository = await restoreInto(file);
 	expect((await repository.listTraces()).map((trace) => trace.content)).toEqual([
 		'Опубликованная запись'

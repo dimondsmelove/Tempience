@@ -64,7 +64,7 @@ describe('TraceDraftState — editing a saved Trace', () => {
 		expect((await fx.repository.listTraces()).map((row) => row.id)).toEqual([saved.id]);
 	});
 
-	it('lets an intention keep its past date for unrelated edits and refuses a new past date', async () => {
+	it('allows editing an intention to a different past date', async () => {
 		// An intention whose date has since passed: the generic command stores it as history does.
 		const saved = await fx.repository.createTrace(
 			plainDraft('Созвон', 'intend', dayTime('2026-09-12'))
@@ -73,23 +73,17 @@ describe('TraceDraftState — editing a saved Trace', () => {
 		draft.description = 'подготовить вопросы';
 		expect(draft.issues).toEqual([]);
 		expect(draft.canSave).toBe(true);
-		// Changing away and back: the original past placement is unchanged, so it is legal.
+		// A different past date is valid in the form and on save.
 		draft.time = {
 			mode: 'chosen',
 			chosen: { aboutKind: 'instant', aboutTime: dayTime('2026-09-10'), aboutTraceId: null }
 		};
 		draft.touch('time');
-		expect(draft.issueFor('time')?.key).toBe('draft.timePast');
-		expect(draft.canSave).toBe(false);
-		draft.time = {
-			mode: 'chosen',
-			chosen: { aboutKind: 'instant', aboutTime: dayTime('2026-09-12'), aboutTraceId: null }
-		};
 		expect(draft.issueFor('time')).toBeNull();
 		expect(draft.canSave).toBe(true);
 		await draft.save(async () => {});
 		const after = (await fx.repository.getTrace(saved.id))!;
-		expect(after.aboutTime).toEqual(dayTime('2026-09-12'));
+		expect(after.aboutTime).toEqual(dayTime('2026-09-10'));
 		expect(after.description).toBe('подготовить вопросы');
 		expect(after.relation).toBe('intend');
 	});

@@ -2,6 +2,7 @@
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import { positionPopover } from './position';
+	import { notifyToggle } from './toggle';
 	import type { PopoverProps } from './types';
 	let {
 		id,
@@ -12,15 +13,21 @@
 		class: className,
 		icon = false,
 		haspopup,
-		title
+		title,
+		disabled = false,
+		variant = 'quiet',
+		pressed,
+		ontoggle
 	}: PopoverProps = $props();
 	const close = () => document.getElementById(id)?.hidePopover();
 </script>
 
 <Button
 	size="sm"
-	variant="quiet"
+	{variant}
+	{pressed}
 	{icon}
+	{disabled}
 	class={className}
 	aria-label={label}
 	aria-haspopup={haspopup}
@@ -37,6 +44,7 @@
 	popover="auto"
 	class="cg-popover popover border border-outline bg-surface text-ink"
 	aria-label={label}
+	ontoggle={(event) => notifyToggle(event, ontoggle)}
 	{@attach positionPopover}
 	{@attach overlayScrollbar}
 >

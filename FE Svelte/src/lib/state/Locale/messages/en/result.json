@@ -53,6 +53,7 @@
 	"result.directHint": "A decision about the intention itself, independent of any fact. Each assessment is a new action.",
 	"result.directSave": "Assess",
 	"result.outcomeNone": "No outcome",
+	"result.noOutcome": "No outcome",
 	"result.directFailed": "Could not save the assessment: {{message}}",
 	"result.retarget": "Correct the target",
 	"result.retargetHint": "Move this assessment to another intention. It keeps its original first time.",

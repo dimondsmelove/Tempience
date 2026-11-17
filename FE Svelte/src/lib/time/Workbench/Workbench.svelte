@@ -104,6 +104,7 @@
 		});
 		// The chapters of the space, live from Triplit; their commands write through the repository.
 		const stopChapters = preview ? () => {} : workbench.chapters.connect(tempienceRepository);
+		const stopLegend = preview ? () => {} : workbench.filters.connect(tempienceRepository);
 		// Changes from other devices reach the ribbon for as long as the workbench is shown.
 		const stopInbound = preview
 			? () => {}
@@ -115,6 +116,7 @@
 		return () => {
 			stopInbound();
 			stopChapters();
+			stopLegend();
 			workbench.viewport.motionEnabled = false;
 			workbench.viewport.set(workbench.viewport.window);
 		};

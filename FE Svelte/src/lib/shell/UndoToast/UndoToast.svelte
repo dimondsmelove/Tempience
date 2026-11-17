@@ -1,10 +1,31 @@
 <script lang="ts">
+	import type { Attachment } from 'svelte/attachments';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import type { UndoState } from '$lib/state/Undo/Undo.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 
 	let { undo }: { undo: UndoState } = $props();
+	const elevate: Attachment<HTMLElement> = (element) => {
+		const mobile = window.matchMedia('(max-width: 800px)');
+		const update = () => {
+			if (mobile.matches) {
+				if (element.matches(':popover-open')) element.hidePopover();
+				element.setAttribute('popover', 'manual');
+				element.showPopover();
+			} else {
+				if (element.matches(':popover-open')) element.hidePopover();
+				element.removeAttribute('popover');
+			}
+		};
+		update();
+		window.addEventListener('mobile-sheet-change', update);
+		mobile.addEventListener('change', update);
+		return () => {
+			window.removeEventListener('mobile-sheet-change', update);
+			mobile.removeEventListener('change', update);
+		};
+	};
 	/** A refusal of the inverse is the user's to read: it changed nothing. */
 	const failure = $derived(
 		undo.failure === null
@@ -41,6 +62,7 @@
 {#if undo.pending}
 	<div
 		class="cg-popover fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border border-outline bg-raised px-3 py-2 text-sm text-ink shadow-md"
+		{@attach elevate}
 		role="status"
 		data-testid="undo-toast"
 	>
@@ -66,3 +88,15 @@
 		>
 	</div>
 {/if}
+
+<style>
+	@media (max-width: 800px) {
+		[data-testid='undo-toast']:popover-open {
+			inset: auto auto 16px 50%;
+			margin: 0;
+			width: max-content;
+			max-width: calc(100vw - 16px);
+			bottom: max(16px, calc(100dvh - var(--mobile-sheet-top, 100dvh) + 8px));
+		}
+	}
+</style>

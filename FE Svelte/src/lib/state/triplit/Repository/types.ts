@@ -1,6 +1,7 @@
 import type { TraceKindLifecycleResult } from '../Kinds/Kinds';
 import type { Chapter } from '$lib/model/Chapters/types';
 import type { ChapterRepository } from '../Chapters/types';
+import type { LegendViewRepository } from '../LegendView/LegendView';
 import type { ScopeCaptureRepository } from '../scope-capture-repository';
 import type { TraceRecordResult, TraceRecordSave } from '../Traces/record';
 import type { TraceLifecycleResult } from '../Traces/edit';
@@ -59,6 +60,7 @@ import type {
 } from '../types';
 
 export type Collection =
+	| 'legendView'
 	| 'scopeCaptureSettings'
 	| 'traceKinds'
 	| 'traceKindVersions'
@@ -338,6 +340,7 @@ type RepositorySubscription<T> = (
 export type TempienceRepository = TraceRepository &
 	TraceDatasetReader &
 	ScopeCaptureRepository &
+	LegendViewRepository &
 	FocusedReads &
 	LinkReads & {
 		subscribeTraceKinds: RepositorySubscription<TraceKind>;

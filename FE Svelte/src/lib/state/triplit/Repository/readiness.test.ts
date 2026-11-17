@@ -17,6 +17,7 @@ afterEach(async () => {
 const omit = <T extends object, K extends keyof T>(value: T, key: K): Omit<T, K> =>
 	Object.fromEntries(Object.entries(value).filter(([name]) => name !== key)) as Omit<T, K>;
 const legacySchema = S.Collections(omit(schema, 'intentionAssessments'));
+const schemaWithoutIntentionOrders = S.Collections(omit(schema, 'intentionOrders'));
 const schemaWithoutPracticeWeekPlans = S.Collections(omit(schema, 'practiceWeekPlans'));
 
 const timestamp = '2026-09-13T08:00:00.000Z';
@@ -87,6 +88,19 @@ it('refuses practice plan operations until storage has the new collection', asyn
 	await expect(
 		createPracticeWeekPlansRepository(client as never).listPracticeWeekPlans()
 	).rejects.toMatchObject({
+		code: 'storage_schema'
+	});
+});
+
+it('refuses intention order operations until storage has the new collection', async () => {
+	const client = new TriplitClient({
+		schema: schemaWithoutIntentionOrders,
+		storage: { type: 'memory' },
+		autoConnect: false
+	});
+	clients.push(client as never);
+	const { createIntentionOrdersRepository } = await import('../IntentionOrders/IntentionOrders');
+	await expect(createIntentionOrdersRepository(client as never).list()).rejects.toMatchObject({
 		code: 'storage_schema'
 	});
 });

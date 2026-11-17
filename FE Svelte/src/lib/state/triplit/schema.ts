@@ -17,6 +17,9 @@ export const schema = S.Collections({
 		})
 	},
 	/** One independently editable plan per ISO week; id is the local Monday (YYYY-MM-DD). */
+	intentionOrders: {
+		schema: S.Schema({ id: S.Id(), ids: S.Json(), updatedAt: S.String() })
+	},
 	practiceWeekPlans: {
 		schema: S.Schema({
 			id: S.Id(),
@@ -27,6 +30,9 @@ export const schema = S.Collections({
 	},
 	scopeCaptureSettings: {
 		schema: S.Schema({ id: S.Id(), suggestedKindIds: S.Json() })
+	},
+	legendView: {
+		schema: S.Schema({ id: S.Id(), hiddenLegend: S.Json(), soloLegend: S.String() })
 	},
 	uiThemes: { schema: S.Schema({ id: S.Id(), data: S.Json() }) },
 	uiAppearance: { schema: S.Schema({ id: S.Id(), themeId: S.String(), mode: S.String() }) },

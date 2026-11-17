@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { ButtonVariant } from '$lib/ui/Button/types';
 export type PopoverProps = {
 	id: string;
 	label: string;
@@ -12,5 +13,13 @@ export type PopoverProps = {
 	haspopup?: 'menu';
 	/** The trigger's tooltip; the label otherwise names it to readers alone. */
 	title?: string;
+	/** Disable the trigger when its action is unavailable. */
+	disabled?: boolean;
+	/** The trigger's look, as `Button`'s `variant`; quiet by default. */
+	variant?: ButtonVariant;
+	/** The trigger is a toggle in its on state, as `Button`'s `pressed`. */
+	pressed?: boolean;
+	/** Observe the native popover state, for lazy content. */
+	ontoggle?: (open: boolean) => void;
 };
 export type Rect = { left: number; right: number; top: number; bottom: number };

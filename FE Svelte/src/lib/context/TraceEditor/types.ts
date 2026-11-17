@@ -15,6 +15,8 @@ export type TraceEditorProps = {
 	 * a surface that needs exactly one of its activities); while set, saving is blocked with it.
 	 */
 	saveBlock?: string | null;
+	/** Restrict the editor to task fields without changing the record relation. */
+	taskMode?: boolean;
 };
 /**
  * Where a new record stands: an event that happened, an intention, or an event stated as an

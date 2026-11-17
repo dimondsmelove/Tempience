@@ -1,3 +1,4 @@
+import { createIntentionOrdersRepository } from './IntentionOrders/IntentionOrders';
 import { createPracticeTargetsRepository } from './PracticeTargets/PracticeTargets';
 import { createPracticeSettingsRepository } from './PracticeSettings/PracticeSettings';
 import { createPracticeWeekPlansRepository } from './PracticeWeeks/PracticeWeeks';
@@ -24,12 +25,7 @@ export { linkSourceId } from './IntentionAssessments/binding';
 export type { EvidenceRetarget } from './IntentionAssessments/retarget';
 export { isIntentionRelation, type RelationBlock } from './Traces/roles';
 export { isTypedTrace, traceRecordText, type TraceRecordText } from './Traces/fields';
-export {
-	plannedStartElapsed,
-	samePlacement,
-	validateManualIntentionTime,
-	type IntentionTimeCheck
-} from './Traces/intention-time';
+export { samePlacement } from './Traces/intention-time';
 export { isSupplementMarker, supplementState, type SupplementState } from './Traces/supplement';
 export { planInverse, type InversePlan, type InverseStep } from './Undo/plan';
 export type { UndoResult } from './Undo/Undo';
@@ -52,3 +48,5 @@ export const scenarioImportRepository = createScenarioImportRepository(
 export const practiceSettingsRepository = createPracticeSettingsRepository(triplit);
 export const practiceTargetsRepository = createPracticeTargetsRepository(triplit);
 export const practiceWeekPlansRepository = createPracticeWeekPlansRepository(triplit);
+
+export const intentionOrdersRepository = createIntentionOrdersRepository(triplit);

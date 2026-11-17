@@ -1,12 +1,14 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- these sets are immutable values replaced whole (ReadonlySet); reactivity is the reassignment, nothing is changed in place */
 import type { LegendKey } from '$lib/model/Legend/types';
+import type { LegendViewRepository } from '$lib/state/triplit/LegendView/LegendView';
+import type { LegendView } from '$lib/state/triplit/LegendView/types';
 
 /**
  * Legend kinds (hidden with Shift+click, or one kept alone with «соло», research
  * п. 17), hidden Scopes and «Только эти Scope» count together and reset
  * with one button (DESIGN.md §7). The record search sits beside them: it dims
  * what it misses instead of hiding anything, so it is not counted as a filter,
- * but «Сбросить всё» clears it too. Never persisted (research п. 9, Q2-A).
+ * but «Сбросить всё» clears it too. Only the legend is persisted.
  */
 export class FiltersState {
 	hiddenLegend = $state<ReadonlySet<LegendKey>>(new Set());
@@ -18,6 +20,88 @@ export class FiltersState {
 	scopeQuery = $state('');
 	/** «Поиск по записям…»: title and description of the records on the axis. */
 	recordQuery = $state('');
+
+	private disconnect: (() => void) | null = null;
+	private writer: LegendViewRepository | null = null;
+	private generation = 0;
+	private pending = 0;
+	private revision = 0;
+	private writes: Promise<void> = Promise.resolve();
+
+	/** Follow one data space until disconnected; reconnecting starts with the default view. */
+	connect(writer: LegendViewRepository): () => void {
+		this.disconnect?.();
+		const generation = ++this.generation;
+		this.writer = writer;
+		this.pending = 0;
+		this.writes = Promise.resolve();
+		this.hiddenLegend = new Set();
+		this.soloLegend = null;
+		const stop = writer.subscribeLegendView(
+			(view) => {
+				if (generation !== this.generation || this.pending || this.matches(view)) return;
+				this.revision++;
+				this.hiddenLegend = new Set(view.hiddenLegend);
+				this.soloLegend = view.soloLegend;
+			},
+			(error) => console.warn('[tempience:legend] the legend feed failed', error)
+		);
+		const disconnect = () => {
+			if (generation !== this.generation) return;
+			++this.generation;
+			stop();
+			this.writer = null;
+			this.disconnect = null;
+		};
+		this.disconnect = disconnect;
+		return disconnect;
+	}
+
+	private matches(view: LegendView): boolean {
+		return (
+			this.soloLegend === view.soloLegend &&
+			this.hiddenLegend.size === new Set(view.hiddenLegend).size &&
+			view.hiddenLegend.every((key) => this.hiddenLegend.has(key))
+		);
+	}
+
+	private persist(): void {
+		const writer = this.writer;
+		if (!writer) return;
+		const generation = this.generation;
+		const revision = ++this.revision;
+		const view = { hiddenLegend: [...this.hiddenLegend], soloLegend: this.soloLegend };
+		this.pending++;
+		this.writes = this.writes.then(async () => {
+			let saved = false;
+			try {
+				await writer.setLegendView(view);
+				saved = true;
+			} catch (error) {
+				console.warn('[tempience:legend] saving the legend failed', error);
+			} finally {
+				if (generation === this.generation) {
+					this.pending--;
+					if (saved && this.pending === 0) {
+						void writer.getLegendView().then(
+							(latest) => {
+								if (
+									generation !== this.generation ||
+									revision !== this.revision ||
+									this.pending ||
+									this.matches(latest)
+								)
+									return;
+								this.hiddenLegend = new Set(latest.hiddenLegend);
+								this.soloLegend = latest.soloLegend;
+							},
+							(error) => console.warn('[tempience:legend] reading the legend failed', error)
+						);
+					}
+				}
+			}
+		});
+	}
 
 	get activeCount(): number {
 		return (
@@ -41,11 +125,13 @@ export class FiltersState {
 		const next = new Set(this.hiddenLegend);
 		if (!next.delete(key)) next.add(key);
 		this.hiddenLegend = next;
+		this.persist();
 	}
 
 	/** Click: only this kind stays; the same kind again brings everything back. The hidden set waits underneath. */
 	soloLegendKind(key: LegendKey): void {
 		this.soloLegend = this.soloLegend === key ? null : key;
+		this.persist();
 	}
 
 	toggleKind(kindId: string): void {
@@ -78,8 +164,10 @@ export class FiltersState {
 		this.shownKindIds = new Set();
 		this.scopeQuery = '';
 		this.recordQuery = '';
+		const legendChanged = this.hiddenLegend.size > 0 || this.soloLegend !== null;
 		this.hiddenLegend = new Set();
 		this.soloLegend = null;
+		if (legendChanged) this.persist();
 		this.hiddenScopes = new Set();
 		this.onlyScopes = null;
 	}

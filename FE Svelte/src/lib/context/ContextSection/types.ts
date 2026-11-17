@@ -7,6 +7,7 @@ export type ContextSectionProps = Readonly<{
 	label: string;
 	/** Its heading, when it says more than the name (a count). */
 	title?: string;
+	titleExtra?: Snippet;
 	collapsed: boolean;
 	ontoggle: () => void;
 	/** The first section of the Context draws no rule above it. */

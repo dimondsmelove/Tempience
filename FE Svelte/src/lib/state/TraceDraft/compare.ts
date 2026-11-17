@@ -1,7 +1,4 @@
-import {
-	samePlacement,
-	validateManualIntentionTime
-} from '$lib/state/triplit/Traces/intention-time';
+import { samePlacement } from '$lib/state/triplit/Traces/intention-time';
 import { withoutHidden } from '$lib/model/TraceForm/conditions';
 import { assertTraceData } from '$lib/state/triplit/trace-kind-v-validation';
 import type { JsonObject, TraceKindV } from '$lib/state/triplit/types';
@@ -92,8 +89,7 @@ const dataIssue = (values: DraftValues, context: IssueContext): DraftIssue | nul
 /**
  * Every reason the values cannot be saved yet: the plain title, the typed version and its
  * data (checked by the same validator the repository uses, after the JSON reading of the
- * form's partial value), and the accepted manual intention time rule with the record's own
- * saved placement as the original.
+ * form's partial value), plus any target issues.
  */
 export const draftIssues = (values: DraftValues, context: IssueContext): DraftIssue[] => {
 	const issues: DraftIssue[] = [];
@@ -106,12 +102,6 @@ export const draftIssues = (values: DraftValues, context: IssueContext): DraftIs
 		const issue = dataIssue(values, context);
 		if (issue) issues.push(issue);
 	}
-	const check = validateManualIntentionTime(
-		context.baseline?.placement ?? null,
-		{ relation: values.relation, ...values.placement },
-		context.now
-	);
-	if (!check.ok) issues.push({ field: 'time', key: 'draft.timePast' });
 	if (context.targets) issues.push(...targetIssues(values, context.targets));
 	return issues;
 };

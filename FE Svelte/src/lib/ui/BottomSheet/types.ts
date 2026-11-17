@@ -6,6 +6,8 @@ export type BottomSheetProps = Readonly<{
 	position?: SheetPosition;
 	modal?: boolean;
 	heading?: boolean;
+	fit?: boolean;
+	bottomOffset?: number;
 	measuredHeight?: number;
 	onposition?: (position: SheetPosition) => void;
 	onclose: () => void;

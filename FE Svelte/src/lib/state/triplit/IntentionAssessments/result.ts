@@ -65,8 +65,9 @@ export const compareIntentionSources = (a: IntentionSourceState, b: IntentionSou
 /**
  * Derives the current outcome and openness of one intention from its sources. Each feature is
  * decided independently by the last effective source that supplies it; a null own value
- * contributes nothing and an explicit false counts. Without sources the intention is not
- * assessed and open. Nothing is stored: the result follows the rows it was computed from.
+ * contributes nothing, an explicit false counts, and an explicit «none» outcome counts as
+ * the value «no outcome» (null here) that overrides every earlier source. Without sources
+ * the intention has no outcome and is open. Nothing is stored: the result follows the rows it was computed from.
  */
 export const evaluateIntention = (
 	intentionId: string,
@@ -90,7 +91,7 @@ export const evaluateIntention = (
 	const open: IntentionFeature<boolean> = { value: true, sourceId: null };
 	for (const { assessment } of effective) {
 		if (assessment.outcome !== null) {
-			outcome.value = assessment.outcome;
+			outcome.value = assessment.outcome === 'none' ? null : assessment.outcome;
 			outcome.sourceId = assessment.id;
 		}
 		if (assessment.open !== null) {

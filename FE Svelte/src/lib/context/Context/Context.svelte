@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { errorText } from '$lib/state/Locale/errors';
 	import { getTimeInputHost } from '$lib/ui/TimeInput/host.svelte';
-	import { CloseOutline } from 'flowbite-svelte-icons';
 	import EntityView from '$lib/context/EntityView/EntityView.svelte';
 	import TraceForms from '$lib/forms/TraceForms/TraceForms.svelte';
 	import Capture from '$lib/context/Capture/Capture.svelte';
@@ -23,6 +22,7 @@
 	import { explorerTraceOf } from '$lib/state/Workbench/snapshot';
 	import type { WorkbenchState } from '$lib/state/Workbench/Workbench.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import PanelHeader from '$lib/ui/PanelHeader/PanelHeader.svelte';
 	import { overlayScrollbar } from '$lib/ui/Scrollbar';
 	import { selectionKey } from '$lib/state/Selection/Selection.svelte';
 	import { untrack } from 'svelte';
@@ -126,68 +126,37 @@
 	};
 </script>
 
-<!-- One line in every language: the buttons keep their size, the words give way. -->
-<header
-	class={[
-		'cg-toolbar flex min-w-0 shrink-0 flex-nowrap items-center border-b border-outline bg-surface',
-		timeInput?.editor && 'time-context-heading'
-	]}
-	data-sheet-drag-handle={onexpand ? true : undefined}
+<PanelHeader
+	title="Context"
+	position={selection.position}
+	canBack={selection.canBack}
+	canForward={selection.canForward}
+	onback={() => workbench.back()}
+	onforward={() => workbench.forward()}
+	{onclose}
+	dragHandle={!!onexpand}
+	hidden={!!timeInput?.editor}
 >
-	<span class="shrink-0 text-[length:var(--cg-text-size-control)] font-semibold">Context</span>
-	<Button
-		size="sm"
-		variant="quiet"
-		icon
-		aria-label={t('context.back')}
-		disabled={!selection.canBack}
-		data-testid="history-back"
-		onclick={() => workbench.back()}>←</Button
-	>
-	<span
-		class="shrink-0 font-mono text-xs whitespace-nowrap text-muted"
-		data-testid="history-position">{selection.position.n ?? '—'} / {selection.position.m}</span
-	>
-	<Button
-		size="sm"
-		variant="quiet"
-		icon
-		aria-label={t('context.forward')}
-		disabled={!selection.canForward}
-		data-testid="history-forward"
-		onclick={() => workbench.forward()}>→</Button
-	>
-	<div class="min-w-0 grow"></div>
-	{#if onexpand}<Button
-			icon
-			variant="quiet"
-			class="shrink-0"
-			aria-label={t('context.resize')}
-			onclick={onexpand}>↕</Button
-		>{/if}
-	{#if selection.current}
-		<Button
-			size="sm"
-			variant="quiet"
-			class="min-w-0 shrink truncate"
-			title={t('context.restTitle')}
-			data-testid="context-rest"
-			onclick={() => workbench.rest()}>{t('context.rest')}</Button
-		>
-	{/if}
-	<Button
-		size="sm"
-		variant="quiet"
-		icon
-		class="shrink-0"
-		aria-label={t('context.close')}
-		title={t('context.close')}
-		data-testid="context-collapse"
-		onclick={onclose}
-	>
-		<CloseOutline class="h-4 w-4" />
-	</Button>
-</header>
+	{#snippet actions()}
+		{#if onexpand}<Button
+				icon
+				variant="quiet"
+				class="shrink-0"
+				aria-label={t('context.resize')}
+				onclick={onexpand}>↕</Button
+			>{/if}
+		{#if selection.current}
+			<Button
+				size="sm"
+				variant="quiet"
+				class="min-w-0 shrink truncate"
+				title={t('context.restTitle')}
+				data-testid="context-rest"
+				onclick={() => workbench.rest()}>{t('context.rest')}</Button
+			>
+		{/if}
+	{/snippet}
+</PanelHeader>
 <!-- The navigator on the right (DESIGN.md §8): capture, a period, a record with its parts, or the neutral placeholder at rest.
      One scroller with one bar (owner review 2026-09-19, п. 26; pack 3, P7): the overlay bar every surface shares —
      the ribbon, the rail, the Kind table — now grabbable, so the native bar is hidden here as there. -->
@@ -268,9 +237,6 @@
 </div>
 
 <style>
-	.time-context-heading {
-		display: none;
-	}
 	.time-context-body {
 		padding: 0;
 		overflow: hidden;

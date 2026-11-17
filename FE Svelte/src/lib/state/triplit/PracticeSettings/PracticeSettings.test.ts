@@ -99,7 +99,11 @@ describe('practice source settings', () => {
 			collections: Object.fromEntries(
 				Object.entries(backup.collections).filter(
 					([key]) =>
-						key !== 'practiceSettings' && key !== 'practiceTargets' && key !== 'practiceWeekPlans'
+						key !== 'practiceSettings' &&
+						key !== 'practiceTargets' &&
+						key !== 'practiceWeekPlans' &&
+						key !== 'intentionOrders' &&
+						key !== 'legendView'
 				)
 			)
 		};

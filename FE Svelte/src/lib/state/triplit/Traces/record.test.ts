@@ -3,10 +3,8 @@ import type { TempienceRepository } from '../repository';
 import { traceRecordText } from './fields';
 import {
 	dayTime,
-	minuteTime,
 	openRecordFixture,
 	outcome,
-	plainDraft,
 	plainFields,
 	snapshotOf,
 	type RecordFixture
@@ -201,56 +199,23 @@ describe('saveTraceRecord — edit', () => {
 });
 
 describe('saveTraceRecord — manual intention date', () => {
-	it('refuses a new past date, allows none and a future one, and keeps an equal original', async () => {
+	it('creates and edits an intention with past dates, then removes the date', async () => {
 		open();
-		const intend = (start: string) =>
-			plainFields('Взвеситься', { relation: 'intend', aboutTime: dayTime(start) });
-		expect(await outcome(repo.saveTraceRecord({ fields: intend('2020-01-01') }))).toBe(
-			'intention_time_past'
-		);
-		expect(await repo.listTraces()).toEqual([]);
-		const future = await repo.saveTraceRecord({ fields: intend('2100-01-01') });
-		const undated = await repo.saveTraceRecord({
-			fields: plainFields('Когда-нибудь', { relation: 'intend', aboutTime: { basis: 'unknown' } })
+		const created = await repo.saveTraceRecord({
+			fields: plainFields('Взвеситься', { relation: 'intend', aboutTime: dayTime('2020-01-01') })
 		});
-		expect([future.trace.relation, undated.trace.relation]).toEqual(['intend', 'intend']);
-		// A record saved by a previous build keeps its past date while the final value is the same time.
-		const legacy = await repo.createTrace(
-			plainDraft('Старое намерение', 'intend', minuteTime('2020-01-01T08:00:00.000Z'))
-		);
-		const same = await repo.saveTraceRecord({
-			id: legacy.id,
-			fields: {
-				title: 'Старое намерение (правка)',
-				aboutTime: minuteTime('2020-01-01T08:00:00.000Z')
-			}
+		expect(created.trace.aboutTime).toEqual(dayTime('2020-01-01'));
+		const edited = await repo.saveTraceRecord({
+			id: created.trace.id,
+			fields: { aboutTime: dayTime('2020-01-02') }
 		});
-		expect(same.trace).toMatchObject({
-			content: 'Старое намерение (правка)',
-			aboutTime: minuteTime('2020-01-01T08:00:00.000Z')
+		expect(edited.trace.aboutTime).toEqual(dayTime('2020-01-02'));
+		const cleared = await repo.saveTraceRecord({
+			id: created.trace.id,
+			fields: { aboutTime: { basis: 'unknown' } }
 		});
-		// The same instant spelled differently is still the original time.
-		expect(
-			await outcome(
-				repo.saveTraceRecord({
-					id: legacy.id,
-					fields: { aboutTime: minuteTime('2020-01-01T10:00+02:00') }
-				})
-			)
-		).toBe('accepted');
-		expect(
-			await outcome(
-				repo.saveTraceRecord({
-					id: legacy.id,
-					fields: { aboutTime: minuteTime('2020-01-02T08:00Z') }
-				})
-			)
-		).toBe('intention_time_past');
-		expect(
-			await outcome(
-				repo.saveTraceRecord({ id: legacy.id, fields: { aboutTime: { basis: 'unknown' } } })
-			)
-		).toBe('accepted');
+		expect(cleared.trace.aboutTime).toEqual({ basis: 'unknown' });
+		expect((await repo.getTrace(created.trace.id))?.aboutTime).toEqual({ basis: 'unknown' });
 	});
 
 	it('keeps a fact date when the relation switches to an intention, and leaves facts alone', async () => {
@@ -263,11 +228,11 @@ describe('saveTraceRecord — manual intention date', () => {
 			fields: { relation: 'intend' }
 		});
 		expect(switched.trace).toMatchObject({ relation: 'intend', aboutTime: dayTime('2020-01-01') });
-		expect(
-			await outcome(
-				repo.saveTraceRecord({ id: fact.trace.id, fields: { aboutTime: dayTime('2020-01-02') } })
-			)
-		).toBe('intention_time_past');
+		const edited = await repo.saveTraceRecord({
+			id: fact.trace.id,
+			fields: { aboutTime: dayTime('2020-01-02') }
+		});
+		expect(edited.trace.aboutTime).toEqual(dayTime('2020-01-02'));
 		const back = await repo.saveTraceRecord({
 			id: fact.trace.id,
 			fields: { relation: 'actual', aboutTime: dayTime('2020-01-02') }

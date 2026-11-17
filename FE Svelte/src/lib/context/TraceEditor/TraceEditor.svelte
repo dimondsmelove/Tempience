@@ -15,7 +15,7 @@
 	import KindFields from './KindFields.svelte';
 	import ModeTabs from './ModeTabs.svelte';
 
-	let { draft, onopen, oncancel, saveBlock = null }: TraceEditorProps = $props();
+	let { draft, onopen, oncancel, saveBlock = null, taskMode = false }: TraceEditorProps = $props();
 	const id = $props.id();
 	const locked = $derived(draft.phase !== 'editing' || draft.diagnostic !== null);
 	const existing = $derived(savedPlacement(draft.saved) ?? undefined);
@@ -177,11 +177,11 @@
 				onblur={() => draft.touch('description')}></textarea>
 		</label>
 		<ScopeFields {draft} />
-		<KindFields {draft} />
-		{#if modeSwitch}
+		{#if !taskMode}<KindFields {draft} />{/if}
+		{#if !taskMode && modeSwitch}
 			<ModeTabs value={mode} disabled={modeDisabled} onchange={chooseMode} />
 		{/if}
-		{#if mode === 'evidence' && !supplement}<ResultFields {draft} />{/if}
+		{#if !taskMode && mode === 'evidence' && !supplement}<ResultFields {draft} />{/if}
 		{#if !supplement}
 			<TimeFields
 				prefilledTime={draft.entry.mode === 'create' && !draft.entry.preset}

@@ -1,7 +1,7 @@
 import type { MessageKey } from '$lib/state/Locale/types';
 import type {
-	IntentionAssessmentValues,
-	IntentionOutcome
+	AssessedOutcome,
+	IntentionAssessmentValues
 } from '$lib/state/triplit/IntentionAssessments/types';
 import type { Operation } from '$lib/state/triplit/Repository/transaction';
 import type { TempienceRepository } from '$lib/state/triplit/repository';
@@ -119,7 +119,7 @@ export type EvidenceRole = Readonly<{
 	otherTitle: string;
 	source: LinkSourceStatus;
 	/** The link's own current values, when its source is current. */
-	own: Readonly<{ outcome: IntentionOutcome | null; open: boolean | null }> | null;
+	own: Readonly<{ outcome: AssessedOutcome | null; open: boolean | null }> | null;
 }>;
 
 export type DraftField = 'title' | 'description' | 'time' | 'data' | 'version' | 'targets';

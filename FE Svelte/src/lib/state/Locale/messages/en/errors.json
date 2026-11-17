@@ -32,7 +32,6 @@
 	"error.record_fields": "A new record needs its capture time, time zone and placement kind.",
 	"error.kind_pinned": "The Kind and version of a saved record do not change.",
 	"error.link_foreign": "The link does not belong to the record being saved.",
-	"error.intention_time_past": "An intention's new date must be in the future; the date can be removed.",
 	"error.supplement_orphan": "A supplement must belong to one existing record.",
 	"error.supplement_orphan_link": "A supplement must belong to one existing record: withdraw the supplement itself, not its link.",
 	"error.supplement_orphan_unavailable": "The supplement's original is unavailable.",

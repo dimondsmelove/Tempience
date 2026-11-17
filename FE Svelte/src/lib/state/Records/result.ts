@@ -3,6 +3,7 @@ import { traceSummary, type KindCatalog, type TraceSummary } from '$lib/model/Tr
 import type { AssessmentIneligibility } from '$lib/state/triplit/IntentionAssessments/eligibility';
 import { evaluateIntention } from '$lib/state/triplit/IntentionAssessments/result';
 import type {
+	AssessedOutcome,
 	IntentionAssessment,
 	IntentionOutcome
 } from '$lib/state/triplit/IntentionAssessments/types';
@@ -14,7 +15,7 @@ export type IntentionSourceView = Readonly<{
 	id: string;
 	kind: 'direct' | 'evidence';
 	/** The values this statement itself holds; null means it says nothing about that feature. */
-	outcome: IntentionOutcome | null;
+	outcome: AssessedOutcome | null;
 	open: boolean | null;
 	/** Whether this statement takes part in the current result at all. */
 	effective: boolean;

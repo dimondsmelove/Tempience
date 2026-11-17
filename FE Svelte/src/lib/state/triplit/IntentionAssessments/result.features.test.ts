@@ -94,3 +94,34 @@ it('excludes undated, detached, deleted or role-broken sources and reports why',
 			.eligibility
 	).toEqual({ eligible: false, reason: 'intention_deleted' });
 });
+
+it('an explicit «none» outcome overrides an earlier source and reads as no outcome until a later statement', () => {
+	const a = dated('A', day('2026-09-10'));
+	const partial = evidence('A', 'I', '2026-09-10T12:00:00.000Z', {
+		outcome: 'partial',
+		open: true
+	});
+	const none = direct('direct-none', 'I', '2026-09-11T12:00:00.000Z', { outcome: 'none' });
+	const ctx = context([intention, a], [link('A', 'I')]);
+	expect(evaluateIntention('I', [partial], ctx).outcome).toEqual({
+		value: 'partial',
+		sourceId: partial.id
+	});
+	// The explicit statement wins over the earlier outcome, and is reported as «no outcome».
+	expect(evaluateIntention('I', [partial, none], ctx)).toMatchObject({
+		outcome: { value: null, sourceId: 'direct-none' },
+		open: { value: true, sourceId: partial.id }
+	});
+	// A later outcome statement wins again.
+	const done = direct('direct-done', 'I', '2026-09-12T12:00:00.000Z', {
+		outcome: 'completed',
+		open: false
+	});
+	expect(evaluateIntention('I', [partial, none, done], ctx).outcome).toEqual({
+		value: 'completed',
+		sourceId: 'direct-done'
+	});
+	// Without any «none» statement an untouched feature still reveals the earlier source.
+	const closure = direct('direct-close', 'I', '2026-09-11T12:00:00.000Z', { open: false });
+	expect(evaluateIntention('I', [partial, closure], ctx).outcome.value).toBe('partial');
+});

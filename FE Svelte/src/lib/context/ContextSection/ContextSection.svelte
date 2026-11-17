@@ -9,6 +9,7 @@
 		id,
 		label,
 		title = label,
+		titleExtra,
 		collapsed,
 		ontoggle,
 		flushFirst = false,
@@ -27,7 +28,9 @@
 	data-testid={`context-section-${id}`}
 >
 	<div class="flex items-center justify-between gap-1">
-		<h3 class={SECTION_HEADING_CLASS}>{title}</h3>
+		<h3 class={[SECTION_HEADING_CLASS, titleExtra && 'flex items-center gap-2']}>
+			{title}{@render titleExtra?.()}
+		</h3>
 		<Button
 			size="sm"
 			variant="quiet"

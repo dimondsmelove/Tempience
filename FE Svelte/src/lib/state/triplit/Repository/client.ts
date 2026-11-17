@@ -5,6 +5,8 @@ import type { Collection, Entity, RepositoryClient } from './types';
 
 const queryFor = (client: TempienceTriplitClient, collection: Collection) => {
 	switch (collection) {
+		case 'legendView':
+			return client.query('legendView');
 		case 'scopeCaptureSettings':
 			return client.query('scopeCaptureSettings');
 		case 'traceKinds':

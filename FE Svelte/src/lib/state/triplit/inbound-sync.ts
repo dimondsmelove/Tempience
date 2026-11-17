@@ -20,7 +20,8 @@ export const INBOUND_COLLECTIONS = [
 	'scopeSegments',
 	'practiceSettings',
 	'practiceTargets',
-	'practiceWeekPlans'
+	'practiceWeekPlans',
+	'intentionOrders'
 ] as const;
 
 export type InboundCollection = (typeof INBOUND_COLLECTIONS)[number];

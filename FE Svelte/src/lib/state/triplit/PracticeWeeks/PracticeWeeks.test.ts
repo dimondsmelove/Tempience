@@ -163,7 +163,10 @@ describe('practice week plans', () => {
 		const older = {
 			...backup,
 			collections: Object.fromEntries(
-				Object.entries(backup.collections).filter(([key]) => key !== 'practiceWeekPlans')
+				Object.entries(backup.collections).filter(
+					([key]) =>
+						key !== 'practiceWeekPlans' && key !== 'intentionOrders' && key !== 'legendView'
+				)
 			)
 		};
 		expect(parseDataSpaceBackup(older).collections.practiceWeekPlans).toEqual([]);

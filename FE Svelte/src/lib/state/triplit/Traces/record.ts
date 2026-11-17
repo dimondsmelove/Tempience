@@ -25,7 +25,6 @@ import type {
 import { createTraceInTransaction } from './create';
 import { editTraceInTransaction } from './edit';
 import { storedTraceText, type TraceRecordTextInput } from './fields';
-import { validateManualIntentionTime } from './intention-time';
 import { normalizeTrace } from './read';
 import { assertSupplementIntegrity } from './supplement';
 
@@ -73,18 +72,6 @@ export type TraceRecordResult = {
 
 const temporalFields = ['aboutKind', 'aboutTime', 'aboutTraceId', 'statedDuration'] as const;
 
-/** The save's own operation time is `now`: the refusal is reproducible from the journal. */
-const assertIntentionTime = (original: Trace | null, next: Trace, operation: Operation): void => {
-	const check = validateManualIntentionTime(original, next, Date.parse(operation.timestamp));
-	if (!check.ok) {
-		throw new RepositoryError(
-			'intention_time_past',
-			'Новая дата намерения должна быть в будущем; дату можно снять.',
-			{ reason: check.reason }
-		);
-	}
-};
-
 const createRecord = async (
 	transaction: Transaction,
 	save: TraceRecordSave,
@@ -121,7 +108,6 @@ const createRecord = async (
 		actor,
 		operation
 	);
-	assertIntentionTime(null, trace, operation);
 	return trace;
 };
 
@@ -141,7 +127,6 @@ const editRecord = async (
 		if (Object.hasOwn(fields, key)) (patch as Record<string, unknown>)[key] = fields[key];
 	}
 	const after = await editTraceInTransaction(transaction, save.id, patch, actor, operation);
-	assertIntentionTime(before, after, operation);
 	return after;
 };
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Attachment } from 'svelte/attachments';
 	import Button from '$lib/ui/Button/Button.svelte';
+	import { isTopSheet, trackSheet } from './layers';
 	import { nearestPosition, sheetHeights } from './geometry';
 	import { SHEET_POSITIONS } from './constants';
 	import { sheetDrag } from './drag';
@@ -11,6 +12,8 @@
 		position = 'half',
 		modal = false,
 		heading = true,
+		fit = false,
+		bottomOffset = 64,
 		measuredHeight = $bindable(0),
 		onposition,
 		onclose,
@@ -30,7 +33,8 @@
 			const visual = window.visualViewport;
 			rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
 			const bar =
-				parent.querySelector<HTMLElement>('[data-testid="mobile-actions"]')?.offsetHeight ?? 64;
+				parent.querySelector<HTMLElement>('[data-testid="mobile-actions"]')?.offsetHeight ??
+				bottomOffset;
 			const inset = Math.max(
 				0,
 				rect.bottom - (visual ? visual.offsetTop + visual.height : innerHeight)
@@ -50,16 +54,50 @@
 		};
 	};
 
+	const focusable = (root: HTMLElement) =>
+		[
+			...root.querySelectorAll<HTMLElement>(
+				'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+			)
+		].filter((el) => el.getClientRects().length > 0);
+
 	const manageFocus: Attachment<HTMLElement> = (element) => {
 		if (!modal) return;
 		const previous = document.activeElement as HTMLElement | null;
-		const frame = requestAnimationFrame(() => element.focus({ preventScroll: true }));
+		const frame = requestAnimationFrame(() =>
+			(element.querySelector<HTMLElement>('[data-sheet-initial-focus]') ?? element).focus({
+				preventScroll: true
+			})
+		);
+		const onToastKey = (event: KeyboardEvent) => {
+			const toast = document.querySelector<HTMLElement>('[data-testid="undo-toast"]:popover-open');
+			if (!isTopSheet(element) || element.contains(event.target as Node)) return;
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				event.stopPropagation();
+				onclose();
+			} else if (event.key === 'Tab' && toast?.contains(event.target as Node)) {
+				const buttons = [...toast.querySelectorAll<HTMLElement>('button:not(:disabled)')];
+				if (
+					(!event.shiftKey && document.activeElement === buttons.at(-1)) ||
+					(event.shiftKey && document.activeElement === buttons[0])
+				) {
+					event.preventDefault();
+					const controls = focusable(element);
+					(event.shiftKey ? controls.at(-1) : controls[0])?.focus();
+				}
+			}
+		};
+		window.addEventListener('keydown', onToastKey);
 		return () => {
+			window.removeEventListener('keydown', onToastKey);
 			cancelAnimationFrame(frame);
 			if (previous?.isConnected) previous.focus({ preventScroll: true });
 		};
 	};
 	const onkeydown = (event: KeyboardEvent) => {
+		if ((event.target as HTMLElement).closest('[data-testid=bottom-sheet]') !== event.currentTarget)
+			return;
 		if (event.key === 'Escape') {
 			if ((event.currentTarget as HTMLElement).querySelector('[popover]:popover-open')) return;
 			event.preventDefault();
@@ -67,19 +105,21 @@
 			onclose();
 		} else if (modal && event.key === 'Tab') {
 			const root = event.currentTarget as HTMLElement;
-			const controls = [
-				...root.querySelectorAll<HTMLElement>(
-					'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
-				)
-			].filter((el) => el.getClientRects().length > 0);
+			const controls = focusable(root);
 			const first = controls[0],
 				last = controls.at(-1);
 			if (event.shiftKey && (document.activeElement === first || document.activeElement === root)) {
 				event.preventDefault();
-				last?.focus();
+				const toast = document.querySelector<HTMLElement>(
+					'[data-testid="undo-toast"]:popover-open'
+				);
+				(toast?.querySelectorAll<HTMLElement>('button:not(:disabled)').item(1) ?? last)?.focus();
 			} else if (!event.shiftKey && document.activeElement === last) {
 				event.preventDefault();
-				first?.focus();
+				const toast = document.querySelector<HTMLElement>(
+					'[data-testid="undo-toast"]:popover-open'
+				);
+				(toast?.querySelector<HTMLElement>('button:not(:disabled)') ?? first)?.focus();
 			}
 		}
 	};
@@ -120,12 +160,14 @@
 	bind:clientHeight={measuredHeight}
 	data-testid="bottom-sheet"
 	data-position={position}
-	style:height="{height}px"
+	style:height={fit ? 'auto' : `${height}px`}
+	style:max-height={fit ? `${Math.max(0, available - 64)}px` : undefined}
 	style:bottom="{bottom}px"
 	{onkeydown}
 	{@attach drag}
 	{@attach measure}
 	{@attach manageFocus}
+	{@attach trackSheet}
 >
 	<button
 		class="sheet-grip"
@@ -159,6 +201,7 @@
 		box-shadow: var(--cg-shadow);
 		transition: height 180ms ease;
 		overflow: hidden;
+		padding-bottom: env(safe-area-inset-bottom);
 	}
 	.bottom-sheet.dragging {
 		transition: none;

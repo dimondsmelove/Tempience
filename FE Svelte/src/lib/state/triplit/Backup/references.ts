@@ -1,3 +1,4 @@
+import { validOrderKey } from '../IntentionOrders/IntentionOrders';
 import { CodedError } from '$lib/model/Errors/CodedError';
 import { assessmentIdFor, parseStoredAssessment } from '../IntentionAssessments/read';
 import { readStoredTraceData, readStoredTraceTime } from '../Traces/stored-time';
@@ -244,6 +245,18 @@ export const assertBackupReferences = (collections: BackupCollections): void => 
 	assertTraceReferences(collections);
 	assertAssessmentReferences(collections);
 	assertChapterReferences(collections);
+	for (const row of collections.intentionOrders) {
+		if (
+			!validOrderKey(row.id) ||
+			typeof row.updatedAt !== 'string' ||
+			!Number.isFinite(Date.parse(row.updatedAt))
+		)
+			throw new CodedError(
+				'backup_intention_order',
+				'An intention order has an invalid key or update time.'
+			);
+	}
+	// Card IDs may be stale after a move or deletion; they are intentionally not checked here.
 	const scopeIds = new Set(collections.scopes.map((row) => row.id));
 	for (const row of collections.practiceWeekPlans) {
 		const plan = parsePracticeWeekPlan(row);

@@ -23,7 +23,6 @@ export const REPOSITORY_ERROR_CODES = [
 	'record_fields',
 	'kind_pinned',
 	'link_foreign',
-	'intention_time_past',
 	'supplement_orphan',
 	'supplement_cardinality',
 	'supplement_placement',

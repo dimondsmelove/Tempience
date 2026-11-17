@@ -2,6 +2,7 @@ import { RepositoryError } from '../Repository/errors';
 import { tupleId } from '../Repository/transaction';
 import { assertIsoTimestamp, compareCalendarValues } from '../trace-time';
 import type {
+	AssessedOutcome,
 	IntentionAssessment,
 	IntentionOutcome,
 	StoredAssessmentCandidate,
@@ -17,6 +18,8 @@ export const INTENTION_OUTCOMES: readonly IntentionOutcome[] = [
 	'alternative'
 ];
 
+export const ASSESSED_OUTCOMES: readonly AssessedOutcome[] = [...INTENTION_OUTCOMES, 'none'];
+
 export const ASSESSMENT_FEATURES = ['outcome', 'open'] as const;
 
 export type AssessmentFeature = (typeof ASSESSMENT_FEATURES)[number];
@@ -27,6 +30,9 @@ export const assessmentIdFor = (activationId: string): string =>
 
 export const isIntentionOutcome = (value: unknown): value is IntentionOutcome =>
 	INTENTION_OUTCOMES.includes(value as IntentionOutcome);
+
+export const isAssessedOutcome = (value: unknown): value is AssessedOutcome =>
+	ASSESSED_OUTCOMES.includes(value as AssessedOutcome);
 
 export const isAssessmentFeature = (value: unknown): value is AssessmentFeature =>
 	ASSESSMENT_FEATURES.includes(value as AssessmentFeature);
@@ -49,7 +55,7 @@ const assertFeatureValues = (value: unknown, id: unknown, label: string): void =
 	for (const key of Object.keys(value)) {
 		if (!isAssessmentFeature(key)) corrupt(id, `${label} содержит неизвестный признак ${key}`);
 	}
-	if (value.outcome != null && !isIntentionOutcome(value.outcome)) {
+	if (value.outcome != null && !isAssessedOutcome(value.outcome)) {
 		corrupt(id, `${label}: недопустимый итог`);
 	}
 	if (value.open != null && typeof value.open !== 'boolean') {
@@ -214,7 +220,7 @@ export const hasLiveStatement = (stored: StoredIntentionAssessment): boolean =>
 export const resolveAssessmentValues = (
 	stored: StoredIntentionAssessment
 ): Pick<IntentionAssessment, 'outcome' | 'open' | 'outcomeRevision' | 'openRevision'> => {
-	let outcome: IntentionOutcome | null = null;
+	let outcome: AssessedOutcome | null = null;
 	let open: boolean | null = null;
 	let outcomeRevision: string | null = null;
 	let openRevision: string | null = null;

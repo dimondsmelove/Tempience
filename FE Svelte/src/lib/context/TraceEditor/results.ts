@@ -1,7 +1,10 @@
 import type { MessageKey } from '$lib/state/Locale/types';
 import type { IntentionState } from '$lib/state/TraceDraft/results';
 import type { TargetState } from '$lib/state/TraceDraft/targets';
-import type { IntentionOutcome } from '$lib/state/triplit/IntentionAssessments/types';
+import type {
+	AssessedOutcome,
+	IntentionOutcome
+} from '$lib/state/triplit/IntentionAssessments/types';
 
 /** The four accepted outcomes in the order the «Итог» list offers them. */
 export const OUTCOME_KEYS: readonly (readonly [IntentionOutcome, MessageKey])[] = [
@@ -11,9 +14,11 @@ export const OUTCOME_KEYS: readonly (readonly [IntentionOutcome, MessageKey])[] 
 	['alternative', 'result.alternative']
 ];
 
-/** «Итог не оценён» is the absence of an outcome, never a fifth value. */
-export const outcomeKey = (outcome: IntentionOutcome | null): MessageKey =>
-	OUTCOME_KEYS.find(([value]) => value === outcome)?.[1] ?? 'result.unassessed';
+/** «Итог не оценён» is the absence of an outcome; an explicit «none» statement reads «Без итога». */
+export const outcomeKey = (outcome: AssessedOutcome | null): MessageKey =>
+	outcome === 'none'
+		? 'result.noOutcome'
+		: (OUTCOME_KEYS.find(([value]) => value === outcome)?.[1] ?? 'result.unassessed');
 
 export const openKey = (open: boolean | null): MessageKey =>
 	open === false ? 'result.closedNow' : 'result.openNow';
@@ -30,8 +35,8 @@ export const STATE_KEYS: Record<TargetState, MessageKey> = {
 
 /** The «Итог» control's value for the target's own input: '' untouched, 'clear' for null. */
 export const outcomeControlValue = (input: {
-	outcome?: IntentionOutcome | null;
-}): IntentionOutcome | '' | 'clear' =>
+	outcome?: AssessedOutcome | null;
+}): AssessedOutcome | '' | 'clear' =>
 	Object.hasOwn(input, 'outcome') ? (input.outcome ?? 'clear') : '';
 
 export type { IntentionState };

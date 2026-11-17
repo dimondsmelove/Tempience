@@ -122,7 +122,11 @@ describe('practice targets repository', () => {
 			...backup,
 			collections: Object.fromEntries(
 				Object.entries(backup.collections).filter(
-					([key]) => key !== 'practiceTargets' && key !== 'practiceWeekPlans'
+					([key]) =>
+						key !== 'practiceTargets' &&
+						key !== 'practiceWeekPlans' &&
+						key !== 'intentionOrders' &&
+						key !== 'legendView'
 				)
 			)
 		};
