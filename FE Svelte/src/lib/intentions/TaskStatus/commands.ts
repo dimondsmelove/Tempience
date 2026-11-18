@@ -33,24 +33,6 @@ export const panelCommands = (options: {
 			options.failure(errorText(cause));
 		}
 	};
-	const deleteTask = async (id: string) => {
-		try {
-			const { operation } = await tempienceRepository.setTraceDeleted(id, true, 'user');
-			if (operation)
-				options.undo.offer({
-					label: () => t('overview.deleted'),
-					space: activeDataSpace.id,
-					invert: async () => {
-						await tempienceRepository.undoOperation(operation.id, 'user');
-					},
-					read: options.refresh
-				});
-			options.close();
-			options.failure('');
-			await options.refresh();
-		} catch (cause) {
-			options.failure(errorText(cause));
-		}
-	};
-	return { changeStatus, deleteTask };
+
+	return { changeStatus };
 };

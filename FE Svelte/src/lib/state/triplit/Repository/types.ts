@@ -20,6 +20,11 @@ import type {
 	RepeatOutcome,
 	RepeatResult
 } from '$lib/intentions/RepeatIntention/types';
+import type {
+	DeleteMode,
+	DeleteOptions,
+	DeleteResult
+} from '$lib/intentions/DeleteIntention/types';
 import type { OutcomeResult } from '$lib/intentions/Outcome/types';
 import type {
 	Assertion,
@@ -174,6 +179,11 @@ export type TraceRepository = ChapterRepository & {
 	editTrace: (id: string, patch: TracePatch, actor?: LogActor) => Promise<Trace>;
 	/** One form save: the Trace with its explicit memberships, relations and entered assessments. */
 	saveTraceRecord: (save: TraceRecordSave, actor?: LogActor) => Promise<TraceRecordResult>;
+	deleteIntention: (
+		intentionId: string,
+		mode: DeleteMode,
+		options?: DeleteOptions
+	) => Promise<DeleteResult>;
 	/** Closes an intention, records its outcome and creates an atomic copy of its intention DAG. */
 	repeatIntention: (
 		intentionId: string,

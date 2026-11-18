@@ -7,6 +7,9 @@
 	import type { Hierarchy } from '../Hierarchy/Hierarchy';
 	import type { MoveTarget } from '../MoveIntention/types';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
+	import { getContext } from 'svelte';
+	import { boardWhenContext, type BoardWhenContext } from '../WhenModel/boardWhen';
+	import WhenPopover from '../WhenPopover/WhenPopover.svelte';
 	import { errorText } from '$lib/state/Locale/errors';
 	import { tempienceRepository } from '$lib/state/triplit';
 	import ContextSection from '$lib/context/ContextSection/ContextSection.svelte';
@@ -19,9 +22,8 @@
 	import Button from '$lib/ui/Button/Button.svelte';
 	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
 	import { ScopePicker, scopeOptionsOf } from '$lib/ui/ScopePicker';
-	import DatePopover from './DatePopover.svelte';
 	import CreateForm from './CreateForm.svelte';
-	import { childDateLabel, panelRelations, scopesOf, traceDate } from './panel';
+	import { childDateLabel, panelRelations, scopesOf } from './panel';
 	import { TASK_SECTIONS, TASK_SECTIONS_STORAGE_KEY } from './sections';
 	let {
 		trace,
@@ -42,7 +44,6 @@
 		setStatus,
 		setPanelOutcome,
 		ondelete,
-		move,
 		onnavigate,
 		onedit,
 		onrefresh
@@ -70,7 +71,6 @@
 		setStatus: (id: string, open: boolean) => void;
 		setPanelOutcome: (id: string, value: TaskOutcomeChoice) => void;
 		ondelete: (id: string) => void;
-		move: (id: string, day: string | null) => void;
 		onnavigate: (id: string) => void;
 		onedit: () => void;
 		onrefresh: () => void;
@@ -78,6 +78,7 @@
 	let adding = $state(false),
 		busy = $state(false),
 		failure = $state('');
+	const when = getContext<BoardWhenContext | undefined>(boardWhenContext);
 	const folds = new FoldedSections(TASK_SECTIONS, TASK_SECTIONS_STORAGE_KEY);
 	const relations = $derived(panelRelations(trace.id, hierarchy, traces));
 	const ownScopes = $derived(scopesOf(trace.id, scopes, links));
@@ -124,7 +125,6 @@
 		{setStatus}
 		{setPanelOutcome}
 		{ondelete}
-		{move}
 		{onnavigate}
 		{onedit}
 		{onrefresh}
@@ -199,13 +199,16 @@
 					class="child-title"
 					onclick={() => onnavigate(child.id)}>{child.content.split('\n')[0]}</button
 				><span class="child-date"
-					><DatePopover
-						value={traceDate(child, zone)}
-						label="{t('intentions.date')}: {child.content.split('\n')[0]}"
-						disabled={child.intentOpen === false}
-						onchange={(value) => move(child.id, value)}
-						onclear={() => move(child.id, null)}
-						>{childDateLabel(child, zone, locale.current, t('intentions.undated'))}</DatePopover
+					>{#if when}<WhenPopover
+							trace={child}
+							{...when.context()}
+							label="{t('intentions.date')}: {child.content.split('\n')[0]}"
+							disabled={child.intentOpen === false}
+							onpick={(choice) => when.pick(child.id, choice)}
+							>{childDateLabel(child, zone, locale.current, t('intentions.undated'))}</WhenPopover
+						>{:else}<span
+							>{childDateLabel(child, zone, locale.current, t('intentions.undated'))}</span
+						>{/if}
 					></span
 				>
 			</div>{/each}

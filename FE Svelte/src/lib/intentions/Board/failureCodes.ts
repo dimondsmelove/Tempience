@@ -1,10 +1,11 @@
 import type { createIntention } from '../CreateIntention/CreateIntention';
 import type { CompleteResult, RevertCompletionResult } from '../CompleteIntention/types';
 import type { MoveResult } from '../MoveIntention/types';
+import type { WhenResult } from '../WhenModel/types';
 
 type CreateResult = Awaited<ReturnType<typeof createIntention>>;
 type Failure = Extract<
-	CreateResult | CompleteResult | RevertCompletionResult | MoveResult,
+	CreateResult | CompleteResult | RevertCompletionResult | MoveResult | WhenResult,
 	{ ok: false }
 >['reason'];
 export const intentionFailureCodes = [
@@ -16,6 +17,8 @@ export const intentionFailureCodes = [
 	'not_intention',
 	'closed',
 	'invalid_target',
+	'needs_day',
+	'needs_full',
 	'typed_unsupported',
 	'later_result_exists',
 	'not_a_completion'

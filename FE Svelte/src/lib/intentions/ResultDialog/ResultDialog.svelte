@@ -3,7 +3,7 @@
 	import { CalendarMonthOutline } from 'flowbite-svelte-icons';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import MobileSheet from '$lib/ui/MobileSheet/MobileSheet.svelte';
-	import DatePopover from '../Board/DatePopover.svelte';
+	import WhenDayPicker from '../WhenPopover/WhenDayPicker.svelte';
 	import OutcomeIcon from '../OutcomeIcon/OutcomeIcon.svelte';
 	import type { ResultOutcome } from '../Outcome/types';
 	import type { MoveTarget } from '../MoveIntention/types';
@@ -161,14 +161,14 @@
 				onclick={() => setCarry(target?.kind === 'undated' ? null : { kind: 'undated' })}
 				>{t('intentions.undated')}</Button
 			>
-			<DatePopover
+			<WhenDayPicker
 				value={target?.kind === 'day' ? target.dayKey : ''}
 				label={t('intentions.date')}
 				disabled={recorded || saving}
 				variant="default"
 				icon
-				onchange={(value) => setCarry({ kind: 'day', dayKey: value })}
-				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></DatePopover
+				onpick={(value) => setCarry({ kind: 'day', dayKey: value })}
+				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></WhenDayPicker
 			>
 		</div>
 	{/if}
@@ -192,15 +192,15 @@
 				pressed={copyDay === copyTarget(7)}
 				onclick={() => toggleCopy(copyTarget(7))}>{t('intentions.repeat.week')}</Button
 			>
-			<DatePopover
+			<WhenDayPicker
 				value={copyDay ?? ''}
 				label={t('intentions.date')}
 				disabled={recorded || saving}
 				variant="default"
 				icon
-				onchange={selectCopy}
+				onpick={selectCopy}
 				onclear={() => (copyDay = null)}
-				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></DatePopover
+				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></WhenDayPicker
 			>
 		</div>
 		{#if copyDay}<div class="copy-preview">

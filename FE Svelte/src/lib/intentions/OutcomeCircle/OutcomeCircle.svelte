@@ -4,7 +4,7 @@
 	import { t } from '$lib/state/Locale/Locale.svelte';
 	import type { IntentionOutcome } from '$lib/state/triplit/IntentionAssessments/types';
 	import type { ResultOutcome } from '../Outcome/types';
-	import DatePopover from '../Board/DatePopover.svelte';
+	import WhenDayPicker from '../WhenPopover/WhenDayPicker.svelte';
 	import { repeatDays } from '../RepeatIntention/targets';
 	import { locale } from '$lib/state/Locale/Locale.svelte';
 	import { CalendarMonthOutline } from 'flowbite-svelte-icons';
@@ -132,11 +132,11 @@
 			>
 		{/each}
 		<div class="repeat-date-row">
-			<DatePopover
+			<WhenDayPicker
 				value=""
 				label={t('intentions.date')}
 				variant="default"
-				onchange={(day) => {
+				onpick={(day) => {
 					parentClose();
 					repeat(day, Date.now());
 				}}
@@ -146,7 +146,7 @@
 						height="16"
 						aria-hidden="true"
 					/></span
-				></DatePopover
+				></WhenDayPicker
 			>
 		</div>
 	</div>

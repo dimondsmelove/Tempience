@@ -5,12 +5,13 @@
 	import type { ResultOutcome } from '../Outcome/types';
 	import type { IntentionAssessment } from '$lib/state/triplit/IntentionAssessments/types';
 	import type { ExplorerIntersection } from '$lib/model/Snapshot/types';
-	import { CalendarMonthOutline } from 'flowbite-svelte-icons';
+	import { getContext } from 'svelte';
+	import { boardWhenContext, type BoardWhenContext } from '../WhenModel/boardWhen';
+	import WhenPopover from '../WhenPopover/WhenPopover.svelte';
 	import type { ExplorerTrace, ExplorerScope } from '$lib/model/Snapshot/types';
 	import { locale, t } from '$lib/state/Locale/Locale.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import ScopeChip from '$lib/ui/ScopeChip/ScopeChip.svelte';
-	import DatePopover from './DatePopover.svelte';
 	import { crumbOf, type Hierarchy } from '../Hierarchy/Hierarchy';
 	let {
 		trace,
@@ -53,6 +54,7 @@
 		endDrag: () => void;
 		keyboardMove: (direction: -1 | 1) => void;
 	} = $props();
+	const when = getContext<BoardWhenContext>(boardWhenContext);
 	const closed = $derived(trace.intentOpen === false);
 	const results = $derived(intentionResults(trace.id, traces, links, assessments));
 	const crumb = $derived(
@@ -144,16 +146,14 @@
 		onclick={() => edit(trace.id)}>{trace.content.split('\n')[0]}</button
 	>
 	<div class="card-actions">
-		<DatePopover
-			value={date}
-			label={t('intentions.date')}
+		<WhenPopover
+			{trace}
+			{zone}
+			now={when.context().now}
+			weekStart={when.context().weekStart}
 			disabled={closed}
-			icon
-			onchange={(value) => move(trace.id, value)}
-			onclear={() => move(trace.id, null)}
-		>
-			<CalendarMonthOutline width="16" height="16" aria-hidden="true" />
-		</DatePopover>
+			onpick={(choice) => when.pick(trace.id, choice)}
+		/>
 		<span class:hidden={!date}
 			><Button
 				variant="quiet"
@@ -161,7 +161,10 @@
 				icon
 				disabled={closed || !date}
 				aria-label={t('intentions.removeDate')}
-				onclick={() => move(trace.id, null)}>×</Button
+				onclick={() => {
+					if (when) when.pick(trace.id, { kind: 'undated' });
+					else move(trace.id, null);
+				}}>×</Button
 			></span
 		>
 	</div>
@@ -239,10 +242,12 @@
 		z-index: 1;
 	}
 	article:hover .card-actions,
-	article:focus-within .card-actions {
+	article:focus-within .card-actions,
+	article:has(:global(:popover-open)) .card-actions {
 		visibility: visible;
 	}
-	.card-actions :global(button) {
+	.card-actions > :global(button),
+	.card-actions > span :global(button) {
 		min-height: 0;
 		height: 18.2px;
 		width: 22px;

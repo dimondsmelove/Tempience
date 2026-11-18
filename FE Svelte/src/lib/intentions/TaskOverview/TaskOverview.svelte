@@ -4,9 +4,11 @@
 	import ContextActions from '$lib/context/ContextActions/ContextActions.svelte';
 	import Button from '$lib/ui/Button/Button.svelte';
 	import { CalendarMonthOutline, PenOutline, TrashBinOutline } from 'flowbite-svelte-icons';
+	import { getContext } from 'svelte';
+	import { boardWhenContext, type BoardWhenContext } from '../WhenModel/boardWhen';
+	import WhenPopover from '../WhenPopover/WhenPopover.svelte';
 	import OutcomeCircle from '../OutcomeCircle/OutcomeCircle.svelte';
 	import TaskStatus from '../TaskStatus/TaskStatus.svelte';
-	import DatePopover from '../Board/DatePopover.svelte';
 	import TaskInlineField from '../Board/TaskInlineField.svelte';
 	import { traceDate } from '../Board/panel';
 	import { OVERVIEW_SECTION_ID } from './constants';
@@ -21,13 +23,13 @@
 		setStatus,
 		setPanelOutcome,
 		ondelete,
-		move,
 		onnavigate,
 		onedit,
 		onrefresh,
 		collapsed,
 		ontoggle
 	}: TaskOverviewProps = $props();
+	const when = getContext<BoardWhenContext | undefined>(boardWhenContext);
 	const day = $derived(traceDate(trace, zone));
 	const closed = $derived(trace.intentOpen === false);
 	const dateText = $derived(
@@ -78,16 +80,19 @@
 		</div>
 	</div>
 	<div class="date">
-		<DatePopover
-			value={day}
-			label={t('intentions.date')}
-			disabled={closed}
-			variant="quiet"
-			onchange={(value) => move(trace.id, value)}
-			onclear={() => move(trace.id, null)}
-			><CalendarMonthOutline width="16" height="16" aria-hidden="true" />
-			<span class="mono">{dateText}{time ? ` · ${time}` : ''}</span></DatePopover
-		>
+		{#if when}<WhenPopover
+				{trace}
+				{...when.context()}
+				label={t('intentions.date')}
+				disabled={closed}
+				variant="quiet"
+				onpick={(choice) => when.pick(trace.id, choice)}
+				><CalendarMonthOutline width="16" height="16" aria-hidden="true" />
+				<span class="mono">{dateText}{time ? ` · ${time}` : ''}</span></WhenPopover
+			>{:else}<span class="date-text"
+				><CalendarMonthOutline width="16" height="16" aria-hidden="true" />
+				<span class="mono">{dateText}{time ? ` · ${time}` : ''}</span></span
+			>{/if}
 	</div>
 	<TaskStatus
 		open={!closed}
@@ -153,6 +158,11 @@
 		align-items: baseline;
 		gap: 0.375rem;
 		line-height: 1rem;
+	}
+	.date-text {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.375rem;
 	}
 	.suggestion {
 		color: var(--cg-text-muted);

@@ -40,7 +40,6 @@ it('shows empty records while omitting empty parent and scope placeholders', () 
 			setStatus: () => {},
 			setPanelOutcome: () => {},
 			ondelete: () => {},
-			move: () => {},
 			onnavigate: () => {},
 			onedit: () => {},
 			onrefresh: () => {}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ExplorerTrace } from '$lib/model/Snapshot/types';
-import { backlogWithClosedChildren, weekBuckets, weekStartAt } from './WeekModel';
+import { backlogWithClosedChildren, boundsOf, weekBuckets, weekStartAt } from './WeekModel';
 import { buildHierarchy } from '../Hierarchy/Hierarchy';
 
 const zone = 'Europe/Belgrade';
@@ -37,6 +37,13 @@ const minute = (start: string): ExplorerTrace['aboutTime'] => ({
 	certainty: 'exact',
 	start,
 	end: null
+});
+const minuteInterval = (start: string, end: string): ExplorerTrace['aboutTime'] => ({
+	basis: 'absolute',
+	precision: 'minute',
+	certainty: 'exact',
+	start,
+	end
 });
 const ids = (items: ExplorerTrace[]) => items.map((item) => item.id);
 
@@ -86,6 +93,66 @@ describe('weekBuckets', () => {
 		];
 		expect(new Set(ids(listed)).size).toBe(listed.length);
 		expect(listed.length + result.outside).toBe(traces.length - 1);
+	});
+	it('buckets every intent outcome by open state for a past day without losing any trace', () => {
+		const outcomes = ['completed', 'partial', 'alternative', 'not_completed', null] as const;
+		const traces = outcomes.flatMap((intentOutcome) =>
+			[true, false].map((intentOpen) =>
+				trace(
+					`${intentOutcome ?? 'none'}-${intentOpen ? 'open' : 'closed'}`,
+					minuteInterval('2026-09-15T10:00:00+02:00', '2026-09-15T11:00:00+02:00'),
+					{ aboutKind: 'interval', intentOpen, intentOutcome }
+				)
+			)
+		);
+		const result = weekBuckets(traces, now, now, zone);
+		const openIds = outcomes.map((outcome) => `${outcome ?? 'none'}-open`).sort();
+		const closedIds = outcomes.map((outcome) => `${outcome ?? 'none'}-closed`).sort();
+		const assigned = [
+			...result.days.flatMap((bucket) => ids(bucket.items)),
+			...ids(result.week),
+			...ids(result.undated),
+			...ids(result.review),
+			...ids(result.later)
+		];
+
+		expect(ids(result.review)).toEqual(openIds);
+		expect(ids(result.days[1].items)).toEqual(closedIds);
+		expect(
+			result.days
+				.filter((bucket) => bucket.dayKey !== '2026-09-15')
+				.every((bucket) => bucket.items.length === 0)
+		).toBe(true);
+		expect(result.week).toEqual([]);
+		expect(result.undated).toEqual([]);
+		expect(result.later).toEqual([]);
+		expect(result.outside).toBe(0);
+		expect(assigned).toHaveLength(traces.length);
+		expect(new Set(assigned)).toEqual(new Set(traces.map((item) => item.id)));
+	});
+	it('places a past open intention in review at Belgrade midnight and in later just after', () => {
+		const midnight = Date.parse('2026-09-16T00:00:00+02:00');
+		const atMidnight = trace(
+			'end-at-midnight',
+			minuteInterval('2026-09-15T23:59:00+02:00', '2026-09-16T00:00:00+02:00'),
+			{ aboutKind: 'interval', intentOpen: true }
+		);
+		const afterMidnight = trace(
+			'end-one-ms-after',
+			minuteInterval('2026-09-15T23:59:00+02:00', '2026-09-16T00:00:00.001+02:00'),
+			{ aboutKind: 'interval', intentOpen: true }
+		);
+		const boundaryNow = midnight;
+		const result = weekBuckets([atMidnight, afterMidnight], boundaryNow, boundaryNow, zone);
+
+		expect(boundsOf(atMidnight, boundaryNow, zone)?.end).toBe(midnight);
+		expect(boundsOf(afterMidnight, boundaryNow, zone)?.end).toBe(midnight + 1);
+		expect(ids(result.review)).toEqual(['end-at-midnight']);
+		expect(ids(result.week)).toEqual([]);
+		expect(ids(result.later)).toEqual(['end-one-ms-after']);
+		expect(result.days.every((bucket) => bucket.items.length === 0)).toBe(true);
+		expect(result.undated).toEqual([]);
+		expect(result.outside).toBe(0);
 	});
 	it('places open dated items outside the displayed week in later, except review', () => {
 		const traces = [

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/ui/Button/Button.svelte';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, setContext } from 'svelte';
 	import { Temporal } from 'temporal-polyfill';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { buildHierarchy } from '../Hierarchy/Hierarchy';
@@ -18,10 +18,20 @@
 	import { createIntention } from '../CreateIntention/CreateIntention';
 	import { completeIntention, revertCompletion } from '../CompleteIntention/CompleteIntention';
 	import { moveIntention } from '../MoveIntention/MoveIntention';
+	import { applyBoardWhen, boardWhenContext, type BoardWhenContext } from '../WhenModel/boardWhen';
+	import type { WhenChoice } from '../WhenModel/types';
 	import { recordResult, setOutcome } from '../Outcome/Outcome';
 	import type { ResultOutcome } from '../Outcome/types';
 	import type { RepeatFailure } from '../RepeatIntention/types';
 	import ResultDialog from '../ResultDialog/ResultDialog.svelte';
+	import DeleteIntentionDialog from '../DeleteIntention/DeleteIntentionDialog.svelte';
+	import { planFromSnapshot } from '../DeleteIntention/snapshot';
+	import {
+		deleteChoiceForPlan,
+		deleteCommand,
+		deleteIntentionWithUndo
+	} from '../DeleteIntention/deleteCommand';
+	import type { DeletePlan } from '../DeleteIntention/types';
 	import { finishResult } from '../ResultDialog/result';
 	import { repeatIntentionWithUndo } from './repeatCommand';
 	import type { MoveTarget } from '../MoveIntention/types';
@@ -67,6 +77,12 @@
 		drag = null;
 	};
 	let resultDialog = $state<{ id: string; outcome: ResultOutcome } | null>(null);
+	let deleteDialog = $state<{
+		id: string;
+		title: string;
+		plan: DeletePlan;
+		retries: number;
+	} | null>(null);
 	let error = $state('');
 	let announcement = $state('');
 	let history = $state<PanelHistory>({ views: [], index: -1 });
@@ -221,12 +237,67 @@
 			return errorText(cause);
 		}
 	};
-	const { changeStatus, deleteTask } = panelCommands({
+	const { changeStatus } = panelCommands({
 		undo,
 		refresh: () => board.refresh(),
 		failure: (message) => (error = message),
 		close: () => (panelVisible = false)
 	});
+	const runDeleteCommand = async (
+		current: { id: string; title: string; plan: DeletePlan; retries: number },
+		mode: 'all' | 'only'
+	) => {
+		try {
+			const outcome = await deleteCommand({
+				id: current.id,
+				mode,
+				plan: current.plan,
+				retries: current.retries,
+				execute: (nextMode, plan) =>
+					deleteIntentionWithUndo({
+						id: current.id,
+						title: current.title,
+						mode: nextMode,
+						plan,
+						undo,
+						refresh: () => board.refresh(),
+						failure: (message) => (error = message),
+						close: () => (panelVisible = false)
+					}),
+				refresh: async () => {
+					await board.refresh();
+					if (board.failure) throw board.failure;
+				},
+				getPlan: () => {
+					const fresh = board.snapshot;
+					return fresh?.traces.some((trace) => trace.id === current.id)
+						? planFromSnapshot(fresh, current.id)
+						: null;
+				}
+			});
+			if (outcome.kind === 'confirm') {
+				deleteDialog = { ...current, plan: outcome.plan, retries: current.retries + 1 };
+			} else {
+				deleteDialog = null;
+				if (outcome.kind === 'stopped') error = t('intentions.deletePlanChanged');
+				else if (outcome.kind === 'failed' && !error) error = t('intentions.not_found');
+			}
+		} catch (cause) {
+			deleteDialog = null;
+			error = errorText(cause);
+		}
+	};
+	const requestDelete = (id: string) => {
+		const trace = snapshot?.traces.find((item) => item.id === id);
+		if (!snapshot || !trace) return;
+		const plan = planFromSnapshot(snapshot, id);
+		const current = { id, title: trace.content.split('\n')[0], plan, retries: 0 };
+		if (deleteChoiceForPlan(plan) === 'delete') void runDeleteCommand(current, 'all');
+		else deleteDialog = current;
+	};
+	const confirmDelete = async (mode: 'all' | 'only') => {
+		if (deleteDialog) await runDeleteCommand(deleteDialog, mode);
+	};
 	const complete = async (id: string, forceComplete = false) => {
 		try {
 			if (
@@ -423,6 +494,38 @@
 			error = errorText(cause);
 		}
 	};
+	const whenContext = () => ({
+		zone: board.timezone,
+		now: Date.now(),
+		weekStart: buckets.weekStart
+	});
+	const whenTo = (id: string, choice: WhenChoice) =>
+		applyBoardWhen(tempienceRepository, id, choice, whenContext(), {
+			failure: (code) => {
+				error = reason(code);
+			},
+			error: (cause) => {
+				error = errorText(cause);
+			},
+			success: async (operationId) => {
+				error = '';
+				if (operationId) {
+					undo.offer({
+						label: () => t('intentions.moved'),
+						space: activeDataSpace.id,
+						invert: async () => {
+							await tempienceRepository.undoOperation(operationId, 'user');
+						},
+						read: () => board.refresh()
+					});
+					await board.refresh();
+				}
+			}
+		});
+	setContext<BoardWhenContext>(boardWhenContext, {
+		context: whenContext,
+		pick: (id, choice) => void whenTo(id, choice)
+	});
 	const itemsFor = (target: OrderTarget): readonly ExplorerTrace[] => {
 		if (target.kind === 'day')
 			return buckets.days.find((day) => day.dayKey === target.dayKey)?.items ?? [];
@@ -642,8 +745,7 @@
 						repeat={(id, day, now) => void repeat(id, day, now)}
 						setStatus={(id, value) => void changeStatus(id, value)}
 						setPanelOutcome={(id, value) => void preset(id, value, false)}
-						ondelete={(id) => void deleteTask(id)}
-						{move}
+						ondelete={requestDelete}
 						onnavigate={(id) => navigate({ kind: 'task', id })}
 						onedit={() => navigate({ kind: 'edit', id: view.id })}
 						onrefresh={() => void board.refresh()}
@@ -741,6 +843,25 @@
 		{/if}
 	{/if}
 </SidePanel>
+{#if deleteDialog}
+	{@const deleting = deleteDialog}
+	<DeleteIntentionDialog
+		title={deleting.title}
+		plan={deleting.plan}
+		sharedChild={deleting.plan.keptShared.length === 1
+			? snapshot?.traces
+					.find((trace) => trace.id === deleting.plan.keptShared[0].id)
+					?.content.split('\n')[0]
+			: undefined}
+		sharedParent={deleting.plan.keptShared.length === 1
+			? snapshot?.traces
+					.find((trace) => trace.id === deleting.plan.keptShared[0].otherParentIds[0])
+					?.content.split('\n')[0]
+			: undefined}
+		cancel={() => (deleteDialog = null)}
+		confirm={confirmDelete}
+	/>
+{/if}
 {#if resultDialog}
 	<ResultDialog
 		outcome={resultDialog.outcome}

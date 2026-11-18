@@ -12,7 +12,7 @@
 	import { scopeOptionsOf } from '$lib/ui/ScopePicker';
 	import { positionPopover } from '$lib/ui/Popover/position';
 	import type { MoveTarget } from '../MoveIntention/types';
-	import DatePopover from './DatePopover.svelte';
+	import WhenDayPicker from '../WhenPopover/WhenDayPicker.svelte';
 	import {
 		dateLabel,
 		formParentId,
@@ -145,17 +145,18 @@
 					)}</Button
 				>
 			{/each}
-			<DatePopover
+			<WhenDayPicker
 				value={target.kind === 'day' ? target.dayKey : ''}
+				{today}
 				label={t('intentions.dateMore')}
 				variant="default"
 				pressed={target.kind === 'day' && !isWhen('today') && !isWhen('tomorrow')}
-				onchange={(value) => (target = { kind: 'day', dayKey: value })}
+				onpick={(value) => (target = { kind: 'day', dayKey: value })}
 			>
 				{target.kind === 'day' && !isWhen('today') && !isWhen('tomorrow')
 					? `${t('intentions.dateMore')} · ${dateLabel(target, locale.current, t('intentions.week'), t('intentions.undated'))}`
 					: t('intentions.dateMore')}
-			</DatePopover>
+			</WhenDayPicker>
 		</div>
 	</div>
 	<div class="section">

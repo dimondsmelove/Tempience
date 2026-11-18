@@ -12,7 +12,6 @@ export type TaskOverviewProps = {
 	setStatus: (id: string, open: boolean) => void;
 	setPanelOutcome: (id: string, value: TaskOutcomeChoice) => void;
 	ondelete: (id: string) => void;
-	move: (id: string, day: string | null) => void;
 	onnavigate: (id: string) => void;
 	onedit: () => void;
 	onrefresh: () => void;

@@ -33,7 +33,6 @@ it('shows independent controls and the muted, struck-through title for a complet
 			setStatus: () => {},
 			setPanelOutcome: () => {},
 			ondelete: () => {},
-			move: () => {},
 			onnavigate: () => {},
 			onedit: () => {},
 			onrefresh: () => {},

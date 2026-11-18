@@ -28,6 +28,7 @@ import { createSourceRepository } from './Sources/Sources';
 import { createLedgerRepository } from './Traces/Ledger';
 import { createTraceCommands } from './Traces/Traces';
 import { createTraceRecordRepository } from './Traces/record';
+import { createDeleteIntentionRepository } from '$lib/intentions/DeleteIntention/DeleteIntention';
 import { createRepeatIntentionRepository } from '$lib/intentions/RepeatIntention/RepeatIntention';
 import { createOutcomeRepository } from '$lib/intentions/Outcome/Outcome';
 import { createUndoRepository } from './Undo/Undo';
@@ -66,6 +67,7 @@ export const createTraceRepository = (client: RepositoryClient): TraceRepository
 	...createTraceCommands(client),
 	...createTraceRecordRepository(client),
 	...createRepeatIntentionRepository(client),
+	...createDeleteIntentionRepository(client),
 	...createOutcomeRepository(client),
 	...createUndoRepository(client),
 	...createLedgerRepository(client),

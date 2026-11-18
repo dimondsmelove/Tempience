@@ -11,6 +11,21 @@ describe('intention order', () => {
 			'b'
 		]);
 	});
+	it('ignores IDs that are absent from the current items', () => {
+		expect(applyOrder(items, ['a', 'deleted', 'c']).map((item) => item.id)).toEqual([
+			'a',
+			'c',
+			'b'
+		]);
+	});
+	it('restores an item to its saved position when the saved order is unchanged', () => {
+		const withoutB = items.filter((item) => item.id !== 'b');
+		expect(applyOrder(withoutB, ['a', 'b', 'c']).map((item) => item.id)).toEqual(['a', 'c']);
+		expect(applyOrder(items, ['a', 'b', 'c']).map((item) => item.id)).toEqual(['a', 'b', 'c']);
+	});
+	it('appends a restored item when the saved order was overwritten without its ID', () => {
+		expect(applyOrder(items, ['c', 'a']).map((item) => item.id)).toEqual(['c', 'a', 'b']);
+	});
 	it('inserts at the beginning, middle and end and moves within a list', () => {
 		expect(placeAt(['a', 'b'], 'c', 'a')).toEqual(['c', 'a', 'b']);
 		expect(placeAt(['a', 'b'], 'c', 'b')).toEqual(['a', 'c', 'b']);
