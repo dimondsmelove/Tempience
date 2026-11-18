@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { finishResult, hasResultText, tomorrowTarget } from './result';
+import {
+	finishResult,
+	hasResultText,
+	savesAndCloses,
+	selectCarry,
+	toggleCopyDay,
+	tomorrowTarget
+} from './result';
 import { weekStartAt } from '../WeekModel/WeekModel';
 import { planPlacement } from '../MoveIntention/MoveIntention';
 
@@ -17,6 +24,25 @@ it('uses the local calendar day across DST and midnight', () => {
 		kind: 'day',
 		dayKey: '2026-01-01'
 	});
+});
+
+it('keeps carry and copy mutually exclusive and toggles a selected copy off', () => {
+	const copy = toggleCopyDay(
+		{ carry: { kind: 'day', dayKey: '2026-11-19' }, copyDay: null },
+		'2026-11-20'
+	);
+	expect(copy).toEqual({ carry: null, copyDay: '2026-11-20' });
+	expect(toggleCopyDay(copy, '2026-11-20')).toEqual({ carry: null, copyDay: null });
+	expect(selectCarry({ kind: 'week', weekStart: 0 })).toEqual({
+		carry: { kind: 'week', weekStart: 0 },
+		copyDay: null
+	});
+});
+
+it('closes partial results when a copy is selected and always closes alternatives', () => {
+	expect(savesAndCloses('partial', null)).toBe(false);
+	expect(savesAndCloses('partial', '2026-11-19')).toBe(true);
+	expect(savesAndCloses('alternative', null)).toBe(true);
 });
 
 it('moves to the displayed week, including Sunday and a past week', () => {

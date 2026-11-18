@@ -37,6 +37,8 @@ const rank = (step: InverseStep): number => {
 	switch (step.kind) {
 		case 'trace.lifecycle':
 			return restores ? 0 : 11;
+		case 'trace.created':
+			return 12;
 		case 'scope.lifecycle':
 		case 'traceKind.lifecycle':
 			return 1;
@@ -179,6 +181,9 @@ const compensate = async (
 	undone: string
 ): Promise<void> => {
 	switch (step.kind) {
+		case 'trace.created':
+			await setTraceDeletedInTransaction(transaction, step.traceId, true, actor, operation);
+			return;
 		case 'trace.lifecycle':
 			await setTraceDeletedInTransaction(
 				transaction,
@@ -268,7 +273,11 @@ export const undoOperationInTransaction = async (
 		await compensate(transaction, step, actor, operation, operationId);
 	}
 	for (const step of plan.steps) {
-		if (step.kind === 'trace.fields' || step.kind === 'trace.lifecycle') {
+		if (
+			step.kind === 'trace.created' ||
+			step.kind === 'trace.fields' ||
+			step.kind === 'trace.lifecycle'
+		) {
 			await assertSupplementIntegrity(transaction, step.traceId);
 		}
 	}

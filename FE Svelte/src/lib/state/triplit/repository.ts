@@ -28,6 +28,8 @@ import { createSourceRepository } from './Sources/Sources';
 import { createLedgerRepository } from './Traces/Ledger';
 import { createTraceCommands } from './Traces/Traces';
 import { createTraceRecordRepository } from './Traces/record';
+import { createRepeatIntentionRepository } from '$lib/intentions/RepeatIntention/RepeatIntention';
+import { createOutcomeRepository } from '$lib/intentions/Outcome/Outcome';
 import { createUndoRepository } from './Undo/Undo';
 import {
 	LEAF_LOOKUP_LIMIT,
@@ -63,6 +65,8 @@ export const createTraceRepository = (client: RepositoryClient): TraceRepository
 	...createLogRepository(client),
 	...createTraceCommands(client),
 	...createTraceRecordRepository(client),
+	...createRepeatIntentionRepository(client),
+	...createOutcomeRepository(client),
 	...createUndoRepository(client),
 	...createLedgerRepository(client),
 	...createKindRepository(client),

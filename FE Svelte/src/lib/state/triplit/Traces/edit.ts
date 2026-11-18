@@ -11,6 +11,7 @@ import { normalizeTrace } from './read';
 import { assertRelationChangeAllowed } from './roles';
 import { traceRevisionStamps, traceRevisions } from './revisions';
 import { assertSupplementIntegrity, isSupplementMarker } from './supplement';
+import type { TraceLifecycleUndoGuard } from '../Undo/lifecycle-guard';
 
 const sameJson = (left: unknown, right: unknown): boolean =>
 	JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
@@ -162,7 +163,8 @@ export const setTraceDeletedInTransaction = async (
 	id: string,
 	isDeleted: boolean,
 	actor: LogActor,
-	operation: Operation = newOperation()
+	operation: Operation = newOperation(),
+	undoGuard?: TraceLifecycleUndoGuard
 ): Promise<TraceLifecycleResult> => {
 	const before = await requireEntity(transaction, 'traces', id);
 	if (Boolean(before.isDeleted) === isDeleted) {
@@ -189,7 +191,10 @@ export const setTraceDeletedInTransaction = async (
 		entityType: 'trace',
 		entityId: id,
 		action: logActionForDeleted(isDeleted),
-		patch: buildFieldPatches(before, after, ['isDeleted']),
+		patch: {
+			...buildFieldPatches(before, after, ['isDeleted']),
+			...(undoGuard ? { undoGuard: { before: null, after: undoGuard } } : {})
+		},
 		actor,
 		cause: operation.cause ?? (isDeleted ? 'normal' : 'restore')
 	});

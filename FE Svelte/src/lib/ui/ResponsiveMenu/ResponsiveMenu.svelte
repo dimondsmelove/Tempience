@@ -7,13 +7,15 @@
 		label,
 		icon = false,
 		trigger,
-		children
+		children,
+		onopen = () => {}
 	}: {
 		id: string;
 		label: string;
 		icon?: boolean;
 		trigger: Snippet;
 		children: Snippet<[() => void]>;
+		onopen?: () => void;
 	} = $props();
 	let width = $state(1024);
 	let sheetOpen = $state(false);
@@ -29,7 +31,10 @@
 		aria-label={label}
 		aria-haspopup="menu"
 		aria-expanded={sheetOpen}
-		onclick={() => (sheetOpen = true)}>{@render trigger()}</button
+		onclick={() => {
+			sheetOpen = true;
+			onopen();
+		}}>{@render trigger()}</button
 	>
 	{#if sheetOpen}
 		<MobileSheet {label} onclose={close}>
@@ -37,5 +42,13 @@
 		</MobileSheet>
 	{/if}
 {:else}
-	<Popover {id} {label} {icon} haspopup="menu" {trigger} {children} />
+	<Popover
+		{id}
+		{label}
+		{icon}
+		haspopup="menu"
+		{trigger}
+		{children}
+		ontoggle={(isOpen) => isOpen && onopen()}
+	/>
 {/if}

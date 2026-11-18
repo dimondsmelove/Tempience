@@ -17,6 +17,7 @@
 		zone,
 		complete,
 		preset,
+		repeat = () => {},
 		setStatus,
 		setPanelOutcome,
 		ondelete,
@@ -67,8 +68,10 @@
 		<OutcomeCircle
 			outcome={trace.intentOutcome}
 			open={!closed}
+			{zone}
 			activate={() => complete(trace.id)}
 			preset={(value) => preset(trace.id, value)}
+			repeat={(day, now) => repeat(trace.id, day, now)}
 		/>
 		<div class="title-field">
 			<TaskInlineField id={trace.id} field="title" value={trace.content} {onrefresh} />

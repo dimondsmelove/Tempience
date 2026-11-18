@@ -276,11 +276,86 @@ describe('undoOperation — Trace records', () => {
 		expect(await snapshotOf(repo)).toEqual(before);
 	});
 
-	it('refuses to undo a creation and leaves nothing behind', async () => {
+	it('soft-deletes a created Trace after withdrawing its own links and assessments', async () => {
+		open();
+		const intention = await repo.createTrace(plainDraft('Намерение', 'intend'));
+		const created = await repo.saveTraceRecord({
+			fields: plainFields('Новая запись'),
+			memberships: { add: [(await repo.createScope({ name: 'Scope' })).id] },
+			links: {
+				add: [
+					{ kind: 'evidence_for', intentionId: intention.id, assessment: { outcome: 'partial' } }
+				]
+			}
+		});
+		const undone = await repo.undoOperation(created.operation.id);
+		expect(undone.plan.steps.map((step) => step.kind).toSorted()).toEqual([
+			'assessment.created',
+			'link.created',
+			'link.created',
+			'trace.created'
+		]);
+		expect(await journalOf(repo, undone.operation.id)).toEqual([
+			'intentionAssessment:deleted:undo',
+			'intersection:deleted:undo',
+			'intersection:deleted:undo',
+			'trace:deleted:undo'
+		]);
+		expect(
+			(await repo.listTraces(true)).find((row) => row.id === created.trace.id)?.isDeleted
+		).toBe(true);
+	});
+
+	it('refuses a changed creation atomically', async () => {
 		open();
 		const created = await repo.saveTraceRecord({ fields: plainFields('Новая запись') });
+		await repo.saveTraceRecord({ id: created.trace.id, fields: { title: 'Изменённая запись' } });
+		await repo.saveTraceRecord({ id: created.trace.id, fields: { title: 'Новая запись' } });
 		const before = await snapshotOf(repo);
-		expect(await outcome(repo.undoOperation(created.operation.id))).toBe('undo_unsupported');
+		expect(await outcome(repo.undoOperation(created.operation.id))).toBe('undo_stale');
 		expect(await snapshotOf(repo)).toEqual(before);
+	});
+
+	it('refuses a later dependent assessment atomically', async () => {
+		open();
+		const created = await repo.createTrace(plainDraft('Новое намерение', 'intend'));
+		await repo.createDirectAssessment(created.id, { open: false });
+		const before = await snapshotOf(repo);
+		expect(
+			await outcome(repo.undoOperation((await repo.listLogs(created.id)).at(-1)!.operationId))
+		).toBe('undo_stale');
+		expect(await snapshotOf(repo)).toEqual(before);
+	});
+
+	it('refuses a later trace referring to the created trace', async () => {
+		open();
+		const created = await repo.saveTraceRecord({ fields: plainFields('Original') });
+		await repo.createTrace({
+			...plainDraft('Reference'),
+			aboutKind: 'trace_ref',
+			aboutTime: null,
+			aboutTraceId: created.trace.id
+		});
+		const before = await snapshotOf(repo);
+		expect(await outcome(repo.undoOperation(created.operation.id))).toBe('undo_stale');
+		expect(await snapshotOf(repo)).toEqual(before);
+	});
+
+	it('refuses a later dependent link or deletion atomically', async () => {
+		open();
+		const created = await repo.createTrace(plainDraft('Новая запись'));
+		const target = await repo.createTrace(plainDraft('Связанная запись'));
+		await repo.linkTraceToTrace(created.id, target.id, 'related_to');
+		const before = await snapshotOf(repo);
+		expect(
+			await outcome(repo.undoOperation((await repo.listLogs(created.id))[0].operationId))
+		).toBe('undo_stale');
+		expect(await snapshotOf(repo)).toEqual(before);
+		await repo.setTraceDeleted(created.id, true);
+		const deletionState = await snapshotOf(repo);
+		expect(
+			await outcome(repo.undoOperation((await repo.listLogs(created.id)).at(-1)!.operationId))
+		).toBe('undo_stale');
+		expect(await snapshotOf(repo)).toEqual(deletionState);
 	});
 });

@@ -1,5 +1,6 @@
 import { RepositoryError } from '../Repository/errors';
 import type { IntersectionKind, Log } from '../types';
+import type { TraceLifecycleUndoGuard } from './lifecycle-guard';
 
 export type FieldChange = { before: unknown; after: unknown };
 
@@ -14,8 +15,14 @@ export type AssessmentAddress = { intentionId: string; evidenceId: string; activ
  * exactly this consequence is still current before compensating it.
  */
 export type InverseStep =
+	| { kind: 'trace.created'; traceId: string; snapshot: Record<string, unknown> }
 	| { kind: 'trace.fields'; traceId: string; fields: Record<string, FieldChange> }
-	| { kind: 'trace.lifecycle'; traceId: string; deleted: boolean }
+	| {
+			kind: 'trace.lifecycle';
+			traceId: string;
+			deleted: boolean;
+			undoGuard?: TraceLifecycleUndoGuard;
+	  }
 	| { kind: 'link.created'; linkId: string; activationId: string; linkKind: IntersectionKind }
 	| { kind: 'link.lifecycle'; linkId: string; deleted: boolean }
 	| { kind: 'assessment.created'; assessmentId: string }
@@ -71,9 +78,64 @@ const unsupported = (log: Log): never => {
 const change = (log: Log, field: string): FieldChange | undefined =>
 	log.patch[field] as FieldChange | undefined;
 
+const validDependencies = (value: unknown): value is { id: string; fingerprint: string }[] =>
+	Array.isArray(value) &&
+	value.every(
+		(dependency) =>
+			dependency !== null &&
+			typeof dependency === 'object' &&
+			typeof dependency.id === 'string' &&
+			typeof dependency.fingerprint === 'string'
+	);
+
+const traceLifecycleUndoGuard = (log: Log): TraceLifecycleUndoGuard | undefined => {
+	if (!Object.hasOwn(log.patch, 'undoGuard')) return undefined;
+	const raw = change(log, 'undoGuard')?.after;
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return unsupported(log);
+	const guard = raw as Partial<TraceLifecycleUndoGuard>;
+	if (
+		!guard.revisions ||
+		typeof guard.revisions !== 'object' ||
+		!guard.dependencies ||
+		typeof guard.dependencies !== 'object' ||
+		!validDependencies(guard.dependencies.traces) ||
+		!validDependencies(guard.dependencies.intersections) ||
+		!validDependencies(guard.dependencies.assessments) ||
+		Object.values(guard.revisions).some(
+			(revision) => revision !== null && typeof revision !== 'string'
+		) ||
+		[
+			...guard.dependencies.traces,
+			...guard.dependencies.intersections,
+			...guard.dependencies.assessments
+		].some(
+			(dependency) =>
+				typeof dependency.id !== 'string' || typeof dependency.fingerprint !== 'string'
+		)
+	)
+		return unsupported(log);
+	return guard as TraceLifecycleUndoGuard;
+};
+
 const traceStep = (log: Log): InverseStep => {
+	if (log.action === 'created') {
+		const snapshot = log.patch.snapshot;
+		if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+			return unsupported(log);
+		return {
+			kind: 'trace.created',
+			traceId: log.entityId,
+			snapshot: snapshot as Record<string, unknown>
+		};
+	}
 	if (log.action === 'deleted' || log.action === 'restored') {
-		return { kind: 'trace.lifecycle', traceId: log.entityId, deleted: log.action === 'deleted' };
+		const undoGuard = traceLifecycleUndoGuard(log);
+		return {
+			kind: 'trace.lifecycle',
+			traceId: log.entityId,
+			deleted: log.action === 'deleted',
+			...(undoGuard ? { undoGuard } : {})
+		};
 	}
 	if (log.action !== 'updated') return unsupported(log);
 	const fields: Record<string, FieldChange> = {};
@@ -201,7 +263,17 @@ export const planInverse = (logs: readonly Log[], operationId: string): InverseP
 		const returned = steps.some(
 			(other) => other.kind === 'assessment.placement' && other.after.evidenceId === step.linkId
 		);
-		if (!returned) {
+		const createdWithSource = own.some((entry) => {
+			if (entry.entityType !== 'intentionAssessment' || entry.action !== 'created') return false;
+			const snapshot = entry.patch.snapshot as
+				{ origin?: { evidenceId?: string; factId?: string } } | undefined;
+			const origin = snapshot?.origin;
+			return (
+				origin?.evidenceId === step.linkId &&
+				steps.some((other) => other.kind === 'trace.created' && other.traceId === origin.factId)
+			);
+		});
+		if (!returned && !createdWithSource) {
 			throw new RepositoryError('undo_unsupported', UNSUPPORTED, {
 				operationId,
 				entityType: 'intersection',

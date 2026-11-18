@@ -71,6 +71,13 @@
 		@apply scroll-smooth;
 	}
 
+	/* The shell fills the window and scrolls inside its own panes, so the document itself must
+	   never get a scrollbar: a sub-pixel rounding of the window height, a browser zoom or a stray
+	   element would otherwise add one beside a page whose content does not even reach the bottom. */
+	html:has(.appearance-shell) {
+		overflow: hidden;
+	}
+
 	body {
 		@apply min-h-screen antialiased;
 		background-color: var(--cg-bg-canvas);

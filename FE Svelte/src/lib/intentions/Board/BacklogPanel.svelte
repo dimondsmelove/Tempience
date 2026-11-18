@@ -22,6 +22,7 @@
 		keyboardMove,
 		complete,
 		preset,
+		repeat,
 		assessments,
 		move,
 		edit,
@@ -42,6 +43,7 @@
 		| 'keyboardMove'
 		| 'complete'
 		| 'preset'
+		| 'repeat'
 		| 'assessments'
 		| 'move'
 		| 'edit'
@@ -111,6 +113,7 @@
 				{keyboardMove}
 				{complete}
 				{preset}
+				{repeat}
 				{assessments}
 				{move}
 				{edit}
@@ -135,6 +138,7 @@
 				{keyboardMove}
 				{complete}
 				{preset}
+				{repeat}
 				{assessments}
 				{move}
 				{edit}
@@ -161,6 +165,7 @@
 			{keyboardMove}
 			{complete}
 			{preset}
+			{repeat}
 			{assessments}
 			{move}
 			{edit}

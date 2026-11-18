@@ -39,6 +39,7 @@
 		add,
 		complete,
 		preset,
+		repeat = () => {},
 		assessments,
 		move,
 		edit,
@@ -73,6 +74,7 @@
 		) => Promise<string | null>;
 		complete: (id: string) => void;
 		preset: (id: string, value: 'completed' | 'none' | 'not_completed' | ResultOutcome) => void;
+		repeat?: (id: string, day: string, now: number) => void;
 		assessments: readonly IntentionAssessment[];
 		move: (id: string, date: string | null) => void;
 		edit: (id: string) => void;
@@ -210,6 +212,7 @@
 					showDate={mode === 'sidebar' && target?.kind !== 'undated'}
 					{complete}
 					{preset}
+					{repeat}
 					{assessments}
 					{links}
 					{move}

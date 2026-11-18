@@ -24,6 +24,28 @@ const code = (run: () => unknown): string => {
 };
 
 describe('planInverse', () => {
+	it('plans a created Trace from its creation snapshot', () => {
+		const snapshot = {
+			id: 't',
+			content: 'A',
+			isDeleted: false,
+			createdAt: '2026-09-13T10:00:00.000Z'
+		};
+		expect(
+			planInverse(
+				[
+					log({
+						entityType: 'trace',
+						entityId: 't',
+						action: 'created',
+						patch: { snapshot } as never
+					})
+				],
+				'op'
+			).steps
+		).toEqual([{ kind: 'trace.created', traceId: 't', snapshot }]);
+	});
+
 	it('reads the owned consequences of one operation from its journal', () => {
 		const plan = planInverse(
 			[
@@ -190,7 +212,17 @@ describe('planInverse', () => {
 		expect(code(() => planInverse([], 'op'))).toBe('undo_unknown');
 		expect(
 			code(() =>
-				planInverse([log({ entityType: 'trace', entityId: 't', action: 'created' })], 'op')
+				planInverse(
+					[
+						log({
+							entityType: 'trace',
+							entityId: 't',
+							action: 'created',
+							patch: { snapshot: null } as never
+						})
+					],
+					'op'
+				)
 			)
 		).toBe('undo_unsupported');
 		expect(

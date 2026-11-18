@@ -9,6 +9,7 @@ import { RepositoryError } from '../Repository/errors';
 import type { Entity, Transaction } from '../Repository/types';
 import { normalizeTrace } from '../Traces/read';
 import { traceRevisions } from '../Traces/revisions';
+import { traceLifecycleDependencies } from './lifecycle-guard';
 import type { InversePlan, InverseStep } from './plan';
 
 /** Values compare by content: replicas store merged JSON maps in their own key order. */
@@ -76,6 +77,65 @@ const guardTraceFields = async (
 	}
 };
 
+const guardTraceCreated = async (
+	{ transaction, plan }: GuardContext,
+	step: InverseStep & { kind: 'trace.created' }
+): Promise<void> => {
+	const row = await fetchRow(transaction, 'traces', step.traceId, step);
+	if (row.isDeleted) stale(step, 'lifecycle');
+	// Creation has no per-field stamps. Its journal snapshot is the ownership proof, so compare
+	// the persisted values directly while allowing updatedAt to reflect unrelated writes only
+	// when those writes did not change any actual Trace value.
+	for (const [field, value] of Object.entries(step.snapshot)) {
+		if (field === 'updatedAt' || field === 'revisions') continue;
+		if (canonical(row[field]) !== canonical(value)) stale(step, 'value', { field });
+	}
+	const laterTraceWrite = (await transaction.fetch('logs')).find(
+		(log) =>
+			log.entityType === 'trace' &&
+			log.entityId === step.traceId &&
+			log.operationId !== plan.operationId &&
+			['updated', 'deleted', 'restored'].includes(String(log.action))
+	);
+	if (laterTraceWrite) stale(step, 'later_write', { operationId: laterTraceWrite.operationId });
+	const ownedTraces = new Set(
+		plan.steps
+			.filter((candidate) => candidate.kind === 'trace.created')
+			.map((candidate) => candidate.traceId)
+	);
+	for (const trace of await transaction.fetch('traces')) {
+		if (trace.aboutTraceId === step.traceId && !ownedTraces.has(trace.id)) {
+			stale(step, 'dependent_trace', { traceId: trace.id });
+		}
+	}
+	const ownedLinks = new Set(
+		plan.steps
+			.filter((candidate) => candidate.kind === 'link.created')
+			.map((candidate) => candidate.linkId)
+	);
+	for (const link of await transaction.fetch('intersections')) {
+		if ((link.fromId === step.traceId || link.toId === step.traceId) && !ownedLinks.has(link.id)) {
+			stale(step, 'dependent_link', { linkId: link.id });
+		}
+	}
+	const ownedAssessments = new Set(
+		plan.steps
+			.filter((candidate) => candidate.kind === 'assessment.created')
+			.map((candidate) => candidate.assessmentId)
+	);
+	for (const assessment of await transaction.fetch('intentionAssessments')) {
+		const origin = assessment.origin;
+		if (
+			origin !== null &&
+			typeof origin === 'object' &&
+			(origin as Record<string, unknown>).intentionId === step.traceId &&
+			!ownedAssessments.has(assessment.id)
+		) {
+			stale(step, 'dependent_assessment', { assessmentId: assessment.id });
+		}
+	}
+};
+
 const guardTraceLifecycle = async (
 	{ transaction, plan }: GuardContext,
 	step: InverseStep & { kind: 'trace.lifecycle' }
@@ -84,6 +144,26 @@ const guardTraceLifecycle = async (
 	if (Boolean(row.isDeleted) !== step.deleted) stale(step, 'lifecycle');
 	const revision = traceRevisions(row).isDeleted ?? null;
 	if (revision !== plan.operationId) stale(step, 'revision', { field: 'isDeleted', revision });
+	if (!step.undoGuard) return;
+	const revisions = traceRevisions(row);
+	for (const [field, expected] of Object.entries(step.undoGuard.revisions)) {
+		if ((revisions[field as keyof typeof revisions] ?? null) !== expected) {
+			stale(step, 'revision', {
+				field,
+				revision: revisions[field as keyof typeof revisions] ?? null
+			});
+		}
+	}
+	const dependencies = step.undoGuard.dependencies;
+	const currentDependencies = traceLifecycleDependencies(
+		step.traceId,
+		await transaction.fetch('traces'),
+		await transaction.fetch('intersections'),
+		await transaction.fetch('intentionAssessments')
+	);
+	if (canonical(currentDependencies) !== canonical(dependencies)) {
+		stale(step, 'dependent_record');
+	}
 };
 
 const guardLink = async (
@@ -110,6 +190,24 @@ const guardLink = async (
 		);
 		if (source.status === 'current' && !ownsSource(plan, source.assessment.id)) {
 			stale(step, 'source', { assessmentId: source.assessment.id });
+		}
+		if (
+			source.status === 'current' &&
+			plan.steps.some(
+				(candidate) =>
+					candidate.kind === 'assessment.created' && candidate.assessmentId === source.assessment.id
+			)
+		) {
+			const stored = parseStoredAssessment(
+				await fetchRow(transaction, 'intentionAssessments', source.assessment.id, step)
+			);
+			if (
+				Object.entries(stored.initial).some(
+					([id, candidate]) => id !== plan.operationId && candidate.withdrawn === undefined
+				)
+			) {
+				stale(step, 'source', { assessmentId: source.assessment.id });
+			}
 		}
 	}
 };
@@ -247,6 +345,9 @@ const guardTraceKind = async (
 export const assertInvertible = async (context: GuardContext): Promise<void> => {
 	for (const step of context.plan.steps) {
 		switch (step.kind) {
+			case 'trace.created':
+				await guardTraceCreated(context, step);
+				break;
 			case 'trace.fields':
 				await guardTraceFields(context, step);
 				break;

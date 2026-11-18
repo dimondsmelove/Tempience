@@ -20,8 +20,10 @@
 	import { moveIntention } from '../MoveIntention/MoveIntention';
 	import { recordResult, setOutcome } from '../Outcome/Outcome';
 	import type { ResultOutcome } from '../Outcome/types';
+	import type { RepeatFailure } from '../RepeatIntention/types';
 	import ResultDialog from '../ResultDialog/ResultDialog.svelte';
 	import { finishResult } from '../ResultDialog/result';
+	import { repeatIntentionWithUndo } from './repeatCommand';
 	import type { MoveTarget } from '../MoveIntention/types';
 	import type { ExplorerTrace } from '$lib/model/Snapshot/types';
 	import type { DraggedIntention } from './drag';
@@ -183,6 +185,17 @@
 			new Date(`${key}T12:00:00Z`)
 		);
 	const reason = (code: string) => t(`intentions.${code}` as MessageKey);
+	const repeatFailure = (code: RepeatFailure) =>
+		t(`intentions.repeatFailure.${code}` as MessageKey);
+	const repeatToast = (outcome: ResultOutcome | 'completed', day: string) => {
+		const weekday = new Intl.DateTimeFormat(locale.current, {
+			weekday: 'short',
+			timeZone: 'UTC'
+		}).format(new Date(`${day}T12:00:00Z`));
+		return t(`intentions.repeatToast.${outcome}` as MessageKey, {
+			date: `${weekday} ${Temporal.PlainDate.from(day).day}`
+		});
+	};
 	const add = async (
 		title: string,
 		target: MoveTarget,
@@ -281,13 +294,62 @@
 			error = errorText(cause);
 		}
 	};
+	const repeat = async (id: string, day: string, now: number) => {
+		try {
+			const command = await repeatIntentionWithUndo(tempienceRepository, id, 'completed', '', day, {
+				now,
+				zone: board.timezone
+			});
+			const result = command.result;
+			if (!result.ok) {
+				error = repeatFailure(result.reason);
+				return;
+			}
+			error = '';
+			undo.offer({
+				label: () => repeatToast('completed', result.copyDay),
+				space: activeDataSpace.id,
+				invert: command.undo!,
+				read: () => board.refresh()
+			});
+			await board.refresh();
+		} catch (cause) {
+			error = errorText(cause);
+		}
+	};
 	const saveResult = async (
 		id: string,
 		outcome: ResultOutcome,
 		text: string,
-		target: MoveTarget | null
+		target: MoveTarget | null,
+		copyDay: string | null
 	) => {
 		try {
+			if (copyDay) {
+				const now = Date.now();
+				const command = await repeatIntentionWithUndo(
+					tempienceRepository,
+					id,
+					outcome,
+					text,
+					copyDay,
+					{ now, zone: board.timezone }
+				);
+				const repeated = command.result;
+				if (!repeated.ok) {
+					error = repeatFailure(repeated.reason);
+					return false;
+				}
+				undo.offer({
+					label: () => repeatToast(outcome, repeated.copyDay),
+					space: activeDataSpace.id,
+					invert: command.undo!,
+					read: () => board.refresh()
+				});
+				error = '';
+				await board.refresh();
+				return true;
+			}
 			const result = await recordResult(tempienceRepository, id, text, outcome, {
 				now: Date.now(),
 				zone: board.timezone
@@ -506,6 +568,7 @@
 				{keyboardMove}
 				complete={(id) => void complete(id)}
 				preset={(id, value) => void preset(id, value)}
+				repeat={(id, day, now) => void repeat(id, day, now)}
 				assessments={board.assessments}
 				move={(id, date) => void move(id, date)}
 				{edit}
@@ -534,6 +597,7 @@
 							{keyboardMove}
 							complete={(id) => void complete(id)}
 							preset={(id, value) => void preset(id, value)}
+							repeat={(id, day, now) => void repeat(id, day, now)}
 							assessments={board.assessments}
 							move={(id, date) => void move(id, date)}
 							{edit}
@@ -575,6 +639,7 @@
 						{add}
 						{complete}
 						preset={(id, value) => void preset(id, value)}
+						repeat={(id, day, now) => void repeat(id, day, now)}
 						setStatus={(id, value) => void changeStatus(id, value)}
 						setPanelOutcome={(id, value) => void preset(id, value, false)}
 						ondelete={(id) => void deleteTask(id)}
@@ -652,6 +717,7 @@
 					{keyboardMove}
 					complete={(id) => void complete(id)}
 					preset={(id, value) => void preset(id, value)}
+					repeat={(id, day, now) => void repeat(id, day, now)}
 					assessments={board.assessments}
 					move={(id, date) => void move(id, date)}
 					{edit}
@@ -681,11 +747,22 @@
 		title={snapshot?.traces
 			.find((trace) => trace.id === resultDialog?.id)
 			?.content.split('\n')[0] ?? ''}
+		copyTime={(() => {
+			const trace = snapshot?.traces.find((item) => item.id === resultDialog?.id);
+			return trace?.aboutTime?.basis === 'absolute' && trace.aboutTime.precision === 'minute'
+				? new Intl.DateTimeFormat(locale.current, {
+						hour: '2-digit',
+						minute: '2-digit',
+						timeZone: board.timezone
+					}).format(new Date(trace.aboutTime.start))
+				: '';
+		})()}
 		zone={board.timezone}
 		weekStart={buckets.weekStart}
 		failure={error}
 		cancel={() => (resultDialog = null)}
-		save={(text, target) => saveResult(resultDialog!.id, resultDialog!.outcome, text, target)}
+		save={(text, target, copyDay) =>
+			saveResult(resultDialog!.id, resultDialog!.outcome, text, target, copyDay)}
 	/>
 {/if}
 <UndoToast {undo} />

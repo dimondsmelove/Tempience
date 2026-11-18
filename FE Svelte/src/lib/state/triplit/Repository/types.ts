@@ -16,6 +16,12 @@ import type { UndoResult } from '../Undo/Undo';
 import type { ScopeHierarchyIntegrityReport } from '../scope-hierarchy-integrity';
 import type { TraceDatasetReader } from '../trace-dataset';
 import type {
+	RepeatOptions,
+	RepeatOutcome,
+	RepeatResult
+} from '$lib/intentions/RepeatIntention/types';
+import type { OutcomeResult } from '$lib/intentions/Outcome/types';
+import type {
 	Assertion,
 	AssertionDraft,
 	AssertionPatch,
@@ -121,6 +127,8 @@ export type ActualDraft = LedgerIntervalDraft;
 
 /** Every command and read of the space; chapters and their stages come from `Chapters/`. */
 export type TraceRepository = ChapterRepository & {
+	/** Opens or closes an intention and, when reopening a completed one, removes its completion evidence atomically. */
+	setIntentionOpen: (intentionId: string, open: boolean, now: number) => Promise<OutcomeResult>;
 	setTraceKindScopes: (
 		kindId: string,
 		scopeIds: readonly string[],
@@ -166,6 +174,14 @@ export type TraceRepository = ChapterRepository & {
 	editTrace: (id: string, patch: TracePatch, actor?: LogActor) => Promise<Trace>;
 	/** One form save: the Trace with its explicit memberships, relations and entered assessments. */
 	saveTraceRecord: (save: TraceRecordSave, actor?: LogActor) => Promise<TraceRecordResult>;
+	/** Closes an intention, records its outcome and creates an atomic copy of its intention DAG. */
+	repeatIntention: (
+		intentionId: string,
+		outcome: RepeatOutcome,
+		text: string,
+		copyDay: string,
+		options: RepeatOptions
+	) => Promise<RepeatResult>;
 	/**
 	 * Causal inverse of one committed operation through its own records; refuses whole when a
 	 * consequence is stale, unavailable, shared or outside the supported families.

@@ -7,11 +7,19 @@
 	import OutcomeIcon from '../OutcomeIcon/OutcomeIcon.svelte';
 	import type { ResultOutcome } from '../Outcome/types';
 	import type { MoveTarget } from '../MoveIntention/types';
-	import { t } from '$lib/state/Locale/Locale.svelte';
-	import { hasResultText, tomorrowTarget } from './result';
+	import { locale, t } from '$lib/state/Locale/Locale.svelte';
+	import {
+		hasResultText,
+		savesAndCloses,
+		selectCarry,
+		toggleCopyDay,
+		tomorrowTarget
+	} from './result';
+	import { repeatDays } from '../RepeatIntention/targets';
 	let {
 		outcome,
 		title,
+		copyTime = '',
 		zone,
 		weekStart,
 		failure = '',
@@ -20,15 +28,21 @@
 	}: {
 		outcome: ResultOutcome;
 		title: string;
+		copyTime?: string;
 		zone: string;
 		weekStart: number;
 		failure?: string;
 		cancel: () => void;
-		save: (text: string, target: MoveTarget | null) => Promise<boolean | 'move-failed'>;
+		save: (
+			text: string,
+			target: MoveTarget | null,
+			copyDay: string | null
+		) => Promise<boolean | 'move-failed'>;
 	} = $props();
 	let width = $state(1024);
 	let text = $state('');
 	let target = $state<MoveTarget | null>(null);
+	let copyDay = $state<string | null>(null);
 	let saving = $state(false);
 	let recorded = $state(false);
 	const id = $props.id();
@@ -41,11 +55,39 @@
 		};
 	};
 	const tomorrow = () => tomorrowTarget(zone);
+	const copyTarget = (offset: number) => {
+		const days = repeatDays(Date.now(), zone);
+		return offset === 1 ? days.tomorrow : days.nextWeek;
+	};
+	const setCarry = (value: MoveTarget | null) => {
+		const next = selectCarry(value);
+		target = next.carry;
+		copyDay = next.copyDay;
+	};
+	const toggleCopy = (day: string) => {
+		const next = toggleCopyDay({ carry: target, copyDay }, day);
+		target = next.carry;
+		copyDay = next.copyDay;
+	};
+	const selectCopy = (day: string) => {
+		target = null;
+		copyDay = day;
+	};
+	const closes = $derived(savesAndCloses(outcome, copyDay));
+	const copyLabel = (day: string) =>
+		new Intl.DateTimeFormat(locale.current, {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short',
+			timeZone: 'UTC'
+		})
+			.format(new Date(`${day}T12:00:00Z`))
+			.replace(',', '');
 	const submit = async () => {
 		if (!hasResultText(text) || saving || recorded) return;
 		saving = true;
 		try {
-			const result = await save(text, target);
+			const result = await save(text, target, copyDay);
 			if (result === 'move-failed') recorded = true;
 			else if (result) cancel();
 		} finally {
@@ -100,19 +142,24 @@
 				size="sm"
 				disabled={recorded || saving}
 				pressed={target?.kind === 'day' && target.dayKey === tomorrow().dayKey}
-				onclick={() => (target = tomorrow())}>{t('intentions.tomorrow')}</Button
+				onclick={() =>
+					setCarry(
+						target?.kind === 'day' && target.dayKey === tomorrow().dayKey ? null : tomorrow()
+					)}>{t('intentions.tomorrow')}</Button
 			>
 			<Button
 				size="sm"
 				disabled={recorded || saving}
 				pressed={target?.kind === 'week'}
-				onclick={() => (target = { kind: 'week', weekStart })}>{t('intentions.week')}</Button
+				onclick={() => setCarry(target?.kind === 'week' ? null : { kind: 'week', weekStart })}
+				>{t('intentions.week')}</Button
 			>
 			<Button
 				size="sm"
 				disabled={recorded || saving}
 				pressed={target?.kind === 'undated'}
-				onclick={() => (target = { kind: 'undated' })}>{t('intentions.undated')}</Button
+				onclick={() => setCarry(target?.kind === 'undated' ? null : { kind: 'undated' })}
+				>{t('intentions.undated')}</Button
 			>
 			<DatePopover
 				value={target?.kind === 'day' ? target.dayKey : ''}
@@ -120,11 +167,49 @@
 				disabled={recorded || saving}
 				variant="default"
 				icon
-				onchange={(value) => (target = { kind: 'day', dayKey: value })}
+				onchange={(value) => setCarry({ kind: 'day', dayKey: value })}
 				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></DatePopover
 			>
 		</div>
 	{/if}
+	<div class="copy-block">
+		<p>
+			{t(outcome === 'partial' ? 'intentions.repeatCopyClose' : 'intentions.repeatCopy')}
+			<span
+				>{t(outcome === 'alternative' ? 'intentions.optional' : 'intentions.repeatCloseHint')}</span
+			>
+		</p>
+		<div class="chips">
+			<Button
+				size="sm"
+				disabled={recorded || saving}
+				pressed={copyDay === copyTarget(1)}
+				onclick={() => toggleCopy(copyTarget(1))}>{t('intentions.tomorrow')}</Button
+			>
+			<Button
+				size="sm"
+				disabled={recorded || saving}
+				pressed={copyDay === copyTarget(7)}
+				onclick={() => toggleCopy(copyTarget(7))}>{t('intentions.repeat.week')}</Button
+			>
+			<DatePopover
+				value={copyDay ?? ''}
+				label={t('intentions.date')}
+				disabled={recorded || saving}
+				variant="default"
+				icon
+				onchange={selectCopy}
+				onclear={() => (copyDay = null)}
+				><CalendarMonthOutline width="16" height="16" aria-hidden="true" /></DatePopover
+			>
+		</div>
+		{#if copyDay}<div class="copy-preview">
+				{t('intentions.copyPreview', {
+					date: copyLabel(copyDay),
+					time: copyTime ? `, ${copyTime}` : ''
+				})}
+			</div>{/if}
+	</div>
 	{#if failure}<p role="alert">{failure}</p>{/if}
 	<footer>
 		<span>{t('intentions.resultNow')}</span><Button
@@ -136,8 +221,7 @@
 			variant="primary"
 			size="sm"
 			disabled={!hasResultText(text) || saving || recorded}
-			onclick={submit}
-			>{t(outcome === 'partial' ? 'intentions.resultSave' : 'intentions.resultSaveClose')}</Button
+			onclick={submit}>{t(closes ? 'intentions.resultSaveClose' : 'intentions.resultSave')}</Button
 		>
 	</footer>
 {/snippet}
@@ -186,6 +270,15 @@
 		color: var(--cg-text-muted);
 		font-size: 12px;
 		margin: 8px 0;
+	}
+	.copy-block {
+		margin-top: 10px;
+		padding-top: 2px;
+	}
+	.copy-preview {
+		margin-top: 6px;
+		color: var(--cg-text-muted);
+		font-size: 12px;
 	}
 	.chips,
 	footer {

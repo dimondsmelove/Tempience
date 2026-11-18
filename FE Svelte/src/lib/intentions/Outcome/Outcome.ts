@@ -1,6 +1,19 @@
 import { compareAssessmentInstants } from '$lib/state/triplit/IntentionAssessments/read';
 import { evaluateIntention } from '$lib/state/triplit/IntentionAssessments/result';
 import type { TempienceRepository } from '$lib/state/triplit/repository';
+import { createDirectAssessmentInTransaction } from '$lib/state/triplit/IntentionAssessments/create';
+import { normalizeIntentionAssessment } from '$lib/state/triplit/IntentionAssessments/read';
+import { newOperation } from '$lib/state/triplit/Repository/transaction';
+import type {
+	RepositoryClient,
+	TraceRepository,
+	Transaction
+} from '$lib/state/triplit/Repository/types';
+import { setTraceDeletedInTransaction } from '$lib/state/triplit/Traces/edit';
+import { traceLifecycleDependencies } from '$lib/state/triplit/Undo/lifecycle-guard';
+import { normalizeTrace } from '$lib/state/triplit/Traces/read';
+import { TRACE_REVISION_FIELDS, traceRevisions } from '$lib/state/triplit/Traces/revisions';
+import { normalizeIntersection } from '$lib/state/triplit/Intersections/read';
 import { isIntentionRelation } from '$lib/state/triplit/Traces/roles';
 import type {
 	AssessedOutcome,
@@ -45,6 +58,117 @@ const hasLaterStatement = (
 			source.orderedAt !== null &&
 			compareAssessmentInstants(source.orderedAt, instant) > 0
 	);
+
+const setOpenInTransaction = async (
+	transaction: Transaction,
+	intentionId: string,
+	open: boolean,
+	now: number
+): Promise<OutcomeResult> => {
+	const [traceRows, linkRows, assessmentRows] = await Promise.all([
+		transaction.fetch('traces'),
+		transaction.fetch('intersections'),
+		transaction.fetch('intentionAssessments')
+	]);
+	const traces = traceRows.map((row) => normalizeTrace(row));
+	const intersections = linkRows.map((row) => normalizeIntersection(row));
+	const assessments = assessmentRows.map(normalizeIntentionAssessment);
+	const trace = traces.find((item) => item.id === intentionId);
+	if (!trace || trace.isDeleted) return refuse('not_found');
+	if (!isIntentionRelation(trace.relation)) return refuse('not_intention');
+	const result = evaluateIntention(intentionId, assessments, {
+		tracesById: new Map(traces.map((item) => [item.id, item])),
+		intersectionsById: new Map(intersections.map((item) => [item.id, item]))
+	});
+	if (result.open.value === open) return refuse('unchanged');
+	const operation = newOperation();
+	if (!open || result.outcome.value !== 'completed') {
+		await createDirectAssessmentInTransaction(
+			transaction,
+			intentionId,
+			{ open },
+			'user',
+			operation
+		);
+		return { ok: true, operationId: operation.id, factId: null };
+	}
+	const instant = new Date(now).toISOString();
+	if (hasLaterStatement(result, instant)) return refuse('later_result_exists');
+	const before = result.sources
+		.filter(
+			(source) =>
+				source.eligibility.eligible &&
+				source.orderedAt !== null &&
+				source.assessment.outcome !== null &&
+				source.assessment.outcome !== 'completed'
+		)
+		.at(-1)?.assessment.outcome;
+	const completedFactIds = [
+		...new Set(
+			result.sources
+				.filter(
+					(source) =>
+						source.assessment.source === 'evidence' &&
+						source.eligibility.eligible &&
+						source.assessment.outcome === 'completed' &&
+						source.assessment.factId !== null
+				)
+				.map((source) => source.assessment.factId!)
+		)
+	];
+	const lifecycleGuards = new Map(
+		completedFactIds.map((factId) => {
+			const stored = traceRows.find((row) => row.id === factId)!;
+			const revisions = traceRevisions(stored);
+			return [
+				factId,
+				{
+					revisions: Object.fromEntries(
+						TRACE_REVISION_FIELDS.filter((field) => field !== 'isDeleted').map((field) => [
+							field,
+							revisions[field] ?? null
+						])
+					),
+					dependencies: traceLifecycleDependencies(factId, traceRows, linkRows, assessmentRows)
+				}
+			] as const;
+		})
+	);
+	// Finish every refusal check before the first write; the following changes share one operation.
+	for (const factId of completedFactIds) {
+		const fact = traces.find((item) => item.id === factId);
+		if (!fact || fact.isDeleted) return refuse('not_found');
+	}
+	await createDirectAssessmentInTransaction(
+		transaction,
+		intentionId,
+		{ open: true, outcome: before ?? 'none' },
+		'user',
+		operation
+	);
+	for (const factId of completedFactIds) {
+		await setTraceDeletedInTransaction(
+			transaction,
+			factId,
+			true,
+			'user',
+			operation,
+			lifecycleGuards.get(factId)
+		);
+	}
+	return { ok: true, operationId: operation.id, factId: null };
+};
+
+export const createOutcomeRepository = (
+	client: RepositoryClient
+): Pick<TraceRepository, 'setIntentionOpen'> => ({
+	setIntentionOpen: async (intentionId, open, now) => {
+		await client.ready?.();
+		return client.transact((transaction) =>
+			setOpenInTransaction(transaction, intentionId, open, now)
+		);
+	}
+});
 
 const assess = async (
 	repository: TempienceRepository,
@@ -122,8 +246,8 @@ export const setOutcome = (
 
 /**
  * Opens or closes the task without touching the outcome, except that «completed» cannot stay
- * on an open task: opening a completed task gives the outcome back to what stood before the
- * completion, or to «no outcome». The completion fact stays on the timeline as it happened.
+ * on an open task: opening a completed task restores the outcome that stood before completion,
+ * or «no outcome», and removes its eligible completion facts while keeping their sources for Undo.
  */
 export const setOpen = async (
 	repository: TempienceRepository,
@@ -131,21 +255,5 @@ export const setOpen = async (
 	open: boolean,
 	{ now }: { now: number }
 ): Promise<OutcomeResult> => {
-	const state = await stateOf(repository, intentionId);
-	if (!state.ok) return state;
-	const { result } = state;
-	if (result.open.value === open) return refuse('unchanged');
-	if (!open || result.outcome.value !== 'completed')
-		return assess(repository, intentionId, { open });
-	if (hasLaterStatement(result, new Date(now).toISOString())) return refuse('later_result_exists');
-	const before = result.sources
-		.filter(
-			(source) =>
-				source.eligibility.eligible &&
-				source.orderedAt !== null &&
-				source.assessment.outcome !== null &&
-				source.assessment.outcome !== 'completed'
-		)
-		.at(-1)?.assessment.outcome;
-	return assess(repository, intentionId, { open: true, outcome: before ?? 'none' });
+	return repository.setIntentionOpen(intentionId, open, now);
 };

@@ -23,6 +23,7 @@
 		listIds = [],
 		complete,
 		preset,
+		repeat = () => {},
 		links,
 		assessments,
 		move,
@@ -42,6 +43,7 @@
 		listIds?: readonly string[];
 		complete: (id: string) => void;
 		preset: (id: string, value: 'completed' | 'none' | 'not_completed' | ResultOutcome) => void;
+		repeat?: (id: string, day: string, now: number) => void;
 		links: readonly ExplorerIntersection[];
 		assessments: readonly IntentionAssessment[];
 		move: (id: string, date: string | null) => void;
@@ -125,8 +127,10 @@
 		<OutcomeCircle
 			outcome={trace.intentOutcome}
 			open={!closed}
+			{zone}
 			activate={() => complete(trace.id)}
 			preset={(value) => preset(trace.id, value)}
+			repeat={(day, now) => repeat(trace.id, day, now)}
 		/>
 	</div>
 	<button

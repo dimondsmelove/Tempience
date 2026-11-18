@@ -21,3 +21,17 @@ it('omits move controls for alternative', () => {
 	expect(body).toContain('Записать и закрыть');
 	expect(body).not.toContain('Перенести остаток');
 });
+it('offers an optional, date based copy for alternative results', () => {
+	const body = render(ResultDialog, { props: { ...props, outcome: 'alternative' } }).body;
+	expect(body).toContain('Создать копию');
+	expect(body).toContain('по желанию');
+	expect(body).toContain('aria-label="Выбрать дату"');
+	expect(body).toContain('Записать и закрыть');
+});
+it('shows mutually exclusive carry and copy choices for partial results', () => {
+	const body = render(ResultDialog, { props: { ...props, outcome: 'partial' } }).body;
+	expect(body).toContain('Перенести остаток');
+	expect(body).toContain('Закрыть и создать копию');
+	expect(body).toContain('Записать');
+	expect(body).not.toContain('Записать и закрыть');
+});

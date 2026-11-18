@@ -8,6 +8,7 @@ export type TaskOverviewProps = {
 	zone: string;
 	complete: (id: string) => void;
 	preset: (id: string, value: TaskOutcomeChoice) => void;
+	repeat?: (id: string, day: string, now: number) => void;
 	setStatus: (id: string, open: boolean) => void;
 	setPanelOutcome: (id: string, value: TaskOutcomeChoice) => void;
 	ondelete: (id: string) => void;
